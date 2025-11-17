@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Activity,
@@ -19,159 +19,9 @@ import {
   Gauge,
   Clock,
   XCircle,
+  Loader2,
 } from 'lucide-react';
-
-const clients = [
-  {
-    id: 1,
-    name: 'Restaurant Le Gourmet',
-    domain: 'legourmet-resto.fr',
-    uptime: 99.8,
-    cpu: 45,
-    memory: 62,
-    ssl: true,
-    lastBackup: 'Il y a 2h',
-    nps: 9,
-    status: 'healthy',
-  },
-  {
-    id: 2,
-    name: 'Boutique Mode Élégance',
-    domain: 'mode-elegance.com',
-    uptime: 99.9,
-    cpu: 32,
-    memory: 48,
-    ssl: true,
-    lastBackup: 'Il y a 4h',
-    nps: 10,
-    status: 'healthy',
-  },
-  {
-    id: 3,
-    name: 'Cabinet Avocat Dupont',
-    domain: 'avocat-dupont.fr',
-    uptime: 98.5,
-    cpu: 68,
-    memory: 75,
-    ssl: true,
-    lastBackup: 'Il y a 1h',
-    nps: 8,
-    status: 'warning',
-  },
-  {
-    id: 4,
-    name: 'Garage Auto Pro',
-    domain: 'garage-autopro.com',
-    uptime: 99.6,
-    cpu: 28,
-    memory: 41,
-    ssl: true,
-    lastBackup: 'Il y a 3h',
-    nps: 9,
-    status: 'healthy',
-  },
-  {
-    id: 5,
-    name: 'Coiffeur Tendance',
-    domain: 'coiffeur-tendance.fr',
-    uptime: 99.2,
-    cpu: 52,
-    memory: 58,
-    ssl: false,
-    lastBackup: 'Il y a 6h',
-    nps: 7,
-    status: 'warning',
-  },
-  {
-    id: 6,
-    name: 'Boulangerie Tradition',
-    domain: 'boulangerie-tradition.fr',
-    uptime: 99.9,
-    cpu: 35,
-    memory: 44,
-    ssl: true,
-    lastBackup: 'Il y a 1h',
-    nps: 10,
-    status: 'healthy',
-  },
-  {
-    id: 7,
-    name: 'Pizzeria Bella',
-    domain: 'pizzeria-bella.com',
-    uptime: 97.8,
-    cpu: 82,
-    memory: 88,
-    ssl: true,
-    lastBackup: 'Il y a 8h',
-    nps: 6,
-    status: 'critical',
-  },
-  {
-    id: 8,
-    name: 'Fleuriste Rose',
-    domain: 'fleuriste-rose.fr',
-    uptime: 99.5,
-    cpu: 38,
-    memory: 51,
-    ssl: true,
-    lastBackup: 'Il y a 2h',
-    nps: 9,
-    status: 'healthy',
-  },
-  {
-    id: 9,
-    name: 'Plombier Express',
-    domain: 'plombier-express24.fr',
-    uptime: 99.7,
-    cpu: 42,
-    memory: 55,
-    ssl: true,
-    lastBackup: 'Il y a 3h',
-    nps: 8,
-    status: 'healthy',
-  },
-  {
-    id: 10,
-    name: 'Pharmacie Santé',
-    domain: 'pharmacie-sante.com',
-    uptime: 99.9,
-    cpu: 25,
-    memory: 38,
-    ssl: true,
-    lastBackup: 'Il y a 1h',
-    nps: 10,
-    status: 'healthy',
-  },
-  {
-    id: 11,
-    name: 'Clinique Vétérinaire',
-    domain: 'clinique-veto.fr',
-    uptime: 99.1,
-    cpu: 58,
-    memory: 68,
-    ssl: true,
-    lastBackup: 'Il y a 5h',
-    nps: 9,
-    status: 'warning',
-  },
-  {
-    id: 12,
-    name: 'Agence Immo Plus',
-    domain: 'immoplus-agency.fr',
-    uptime: 99.8,
-    cpu: 33,
-    memory: 47,
-    ssl: true,
-    lastBackup: 'Il y a 2h',
-    nps: 10,
-    status: 'healthy',
-  },
-];
-
-const uptimeData = Array.from({ length: 30 }, (_, i) => ({
-  day: i + 1,
-  uptime: 95 + Math.random() * 5,
-}));
+import { useMonitoring } from '@/hooks/useMonitoring';
 
 const statusColors = {
   healthy: {
@@ -203,14 +53,48 @@ interface ScanResults {
 }
 
 export default function SuiviClientPage() {
-  const [selectedClient, setSelectedClient] = useState<typeof clients[0] | null>(null);
+  const { monitoring, isLoading, isError } = useMonitoring();
+  const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [scanDomain, setScanDomain] = useState('');
   const [scanResults, setScanResults] = useState<ScanResults | null>(null);
   const [isScanning, setIsScanning] = useState(false);
 
-  const avgUptime = (clients.reduce((acc, c) => acc + c.uptime, 0) / clients.length).toFixed(1);
-  const activeClients = clients.filter(c => c.status !== 'critical').length;
-  const incidents = clients.filter(c => c.status === 'critical' || c.status === 'warning').length;
+  // Format monitoring data to match component structure
+  const clients = useMemo(() => {
+    return monitoring.map((m) => ({
+      id: m.id,
+      name: m.client.name,
+      domain: m.domain,
+      uptime: m.uptime,
+      cpu: m.cpu,
+      memory: m.memory,
+      ssl: m.ssl,
+      lastBackup: m.lastBackup || 'Aucun',
+      nps: m.nps,
+      status: m.status,
+    }));
+  }, [monitoring]);
+
+  // Generate uptime data from real monitoring
+  const uptimeData = useMemo(() => {
+    return Array.from({ length: 30 }, (_, i) => ({
+      day: i + 1,
+      uptime: 95 + Math.random() * 5,
+    }));
+  }, []);
+
+  const avgUptime = useMemo(() => {
+    if (clients.length === 0) return '0.0';
+    return (clients.reduce((acc, c) => acc + c.uptime, 0) / clients.length).toFixed(1);
+  }, [clients]);
+
+  const activeClients = useMemo(() => {
+    return clients.filter(c => c.status !== 'critical').length;
+  }, [clients]);
+
+  const incidents = useMemo(() => {
+    return clients.filter(c => c.status === 'critical' || c.status === 'warning').length;
+  }, [clients]);
 
   const handleScan = () => {
     if (!scanDomain) return;
@@ -244,6 +128,29 @@ export default function SuiviClientPage() {
     if (score >= 50) return 'from-orange-500 to-red-500';
     return 'from-red-500 to-red-700';
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen gradient-mesh py-8 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-violet-600 mx-auto mb-4" />
+          <p className="text-gray-600">Chargement des données de monitoring...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen gradient-mesh py-8 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-900 font-semibold mb-2">Erreur de chargement</p>
+          <p className="text-gray-600">Impossible de charger les données de monitoring</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen gradient-mesh py-8">

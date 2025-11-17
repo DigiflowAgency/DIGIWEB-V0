@@ -794,6 +794,9 @@ model Client {
   // Opportunités
   upsellOpportunity Boolean     @default(false)
 
+  // Relations
+  monitoring      ClientMonitoring[]
+
   // Métadonnées
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -1133,4 +1136,27 @@ model Product {
   updatedAt    DateTime @updatedAt
 
   @@map("products")
+}
+
+// ============================================
+// CLIENT MONITORING
+// ============================================
+
+model ClientMonitoring {
+  id           String   @id @default(cuid())
+  clientId     String   // Reference to Client
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  domain       String
+  uptime       Float    @default(99.9)
+  cpu          Float    @default(0)
+  memory       Float    @default(0)
+  ssl          Boolean  @default(true)
+  lastBackup   String?
+  nps          Int      @default(0)
+  status       String   @default("healthy") // healthy, warning, critical
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("client_monitoring")
 }
