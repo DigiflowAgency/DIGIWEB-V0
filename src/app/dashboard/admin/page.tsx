@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Users,
@@ -25,72 +25,35 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
+import { useIntegrations } from '@/hooks/useIntegrations';
+import { useEmailCampaigns } from '@/hooks/useEmailCampaigns';
+import { useContacts } from '@/hooks/useContacts';
+import { useDeals } from '@/hooks/useDeals';
+import { useTickets } from '@/hooks/useTickets';
 
-const integrations = [
-  {
-    id: 'whatsapp',
-    name: 'WhatsApp Business',
+// Configuration UI pour chaque intégration (icône, couleur, description)
+const integrationUIConfig: Record<string, any> = {
+  'WhatsApp Business': {
     description: 'Communication client instantanée',
     icon: MessageSquare,
     color: 'from-green-500 to-emerald-600',
-    status: 'connected',
-    lastSync: 'Il y a 5 min',
   },
-  {
-    id: 'claude',
-    name: 'Claude AI',
+  'Claude AI': {
     description: 'Intelligence artificielle conversationnelle',
     icon: Zap,
     color: 'from-violet-600 to-purple-700',
-    status: 'connected',
-    lastSync: 'Il y a 2 min',
   },
-  {
-    id: 'supabase',
-    name: 'Supabase',
+  'Supabase': {
     description: 'Base de données et authentification',
     icon: Database,
     color: 'from-green-600 to-teal-600',
-    status: 'connected',
-    lastSync: 'Temps réel',
   },
-  {
-    id: 'stripe',
-    name: 'Stripe',
+  'Stripe': {
     description: 'Paiements et facturation',
     icon: CreditCard,
     color: 'from-blue-600 to-indigo-600',
-    status: 'disconnected',
-    lastSync: 'Non configuré',
   },
-];
-
-const analyticsData = [
-  {
-    label: 'Messages envoyés',
-    value: '2 845',
-    change: '+18%',
-    trend: 'up',
-  },
-  {
-    label: 'Leads créés',
-    value: '156',
-    change: '+24%',
-    trend: 'up',
-  },
-  {
-    label: 'Conversions',
-    value: '42',
-    change: '+12%',
-    trend: 'up',
-  },
-  {
-    label: 'Temps moyen réponse',
-    value: '2.3 min',
-    change: '-15%',
-    trend: 'down',
-  },
-];
+};
 
 const roleColors = {
   admin: 'badge-danger',
@@ -100,7 +63,12 @@ const roleColors = {
 };
 
 export default function AdminPage() {
-  const { users, isLoading, isError } = useUsers();
+  const { users, isLoading: usersLoading, isError: usersError } = useUsers();
+  const { integrations: rawIntegrations, isLoading: integrationsLoading, isError: integrationsError } = useIntegrations();
+  const { campaigns: emailCampaigns, isLoading: emailLoading } = useEmailCampaigns();
+  const { contacts, isLoading: contactsLoading } = useContacts();
+  const { deals, isLoading: dealsLoading } = useDeals();
+  const { tickets, isLoading: ticketsLoading } = useTickets();
   const [activeTab, setActiveTab] = useState<'users' | 'ai' | 'integrations' | 'analytics'>('users');
   const [systemPrompt, setSystemPrompt] = useState(
     "Tu es un assistant commercial pour DigiWeb, une agence digitale spécialisée en création de sites web, SEO, et marketing digital. Tu dois qualifier les prospects et fixer des rendez-vous avec les leads chauds."
@@ -109,6 +77,122 @@ export default function AdminPage() {
   const [rdvThreshold, setRdvThreshold] = useState(80);
   const [relanceDelays, setRelanceDelays] = useState(['24h', '48h', '7j']);
   const [newDelay, setNewDelay] = useState('');
+
+  // Merger les intégrations DB avec la config UI
+  const integrations = useMemo(() => {
+    return rawIntegrations.map(integration => {
+      const uiConfig = integrationUIConfig[integration.name] || {
+        description: 'Intégration',
+        icon: Plug,
+        color: 'from-gray-500 to-gray-600',
+      };
+
+      // Formater lastSync
+      let lastSyncText = 'Non configuré';
+      if (integration.lastSync) {
+        const lastSyncDate = new Date(integration.lastSync);
+        const now = new Date();
+        const diffMs = now.getTime() - lastSyncDate.getTime();
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+        if (diffMins < 1) {
+          lastSyncText = 'Temps réel';
+        } else if (diffMins < 60) {
+          lastSyncText = `Il y a ${diffMins} min`;
+        } else if (diffHours < 24) {
+          lastSyncText = `Il y a ${diffHours}h`;
+        } else {
+          lastSyncText = lastSyncDate.toLocaleDateString('fr-FR');
+        }
+      }
+
+      return {
+        id: integration.id,
+        name: integration.name,
+        description: uiConfig.description,
+        icon: uiConfig.icon,
+        color: uiConfig.color,
+        status: integration.status.toLowerCase(),
+        lastSync: lastSyncText,
+      };
+    });
+  }, [rawIntegrations]);
+
+  // Calculer analyticsData depuis les vraies données
+  const analyticsData = useMemo(() => {
+    if (!emailCampaigns || !contacts || !deals || !tickets) return [];
+
+    // Calcul du mois actuel pour les changements
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const prevMonthStart = new Date(monthStart);
+    prevMonthStart.setMonth(prevMonthStart.getMonth() - 1);
+
+    // Messages envoyés (depuis les campagnes email)
+    const totalMessagesSent = emailCampaigns.reduce((sum, c) => sum + (c.sent || 0), 0);
+    const thisMonthMessages = emailCampaigns.filter(c => new Date(c.createdAt) >= monthStart).reduce((sum, c) => sum + (c.sent || 0), 0);
+    const lastMonthMessages = emailCampaigns.filter(c => {
+      const date = new Date(c.createdAt);
+      return date >= prevMonthStart && date < monthStart;
+    }).reduce((sum, c) => sum + (c.sent || 0), 0) || 1;
+    const messagesChange = lastMonthMessages > 0 ? Math.round(((thisMonthMessages - lastMonthMessages) / lastMonthMessages) * 100) : 0;
+
+    // Leads créés (contacts ce mois)
+    const thisMonthLeads = contacts.filter(c => new Date(c.createdAt) >= monthStart).length;
+    const lastMonthLeads = contacts.filter(c => {
+      const date = new Date(c.createdAt);
+      return date >= prevMonthStart && date < monthStart;
+    }).length || 1;
+    const leadsChange = lastMonthLeads > 0 ? Math.round(((thisMonthLeads - lastMonthLeads) / lastMonthLeads) * 100) : 0;
+
+    // Conversions (deals gagnés ce mois)
+    const thisMonthConversions = deals.filter(d => {
+      return d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= monthStart;
+    }).length;
+    const lastMonthConversions = deals.filter(d => {
+      if (!d.closedAt || d.stage !== 'GAGNE') return false;
+      const date = new Date(d.closedAt);
+      return date >= prevMonthStart && date < monthStart;
+    }).length || 1;
+    const conversionsChange = lastMonthConversions > 0 ? Math.round(((thisMonthConversions - lastMonthConversions) / lastMonthConversions) * 100) : 0;
+
+    // Temps moyen de réponse (depuis les tickets)
+    const resolvedTickets = tickets.filter(t => t.responseTime && t.responseTime > 0);
+    const avgResponseTime = resolvedTickets.length > 0
+      ? resolvedTickets.reduce((sum, t) => sum + (t.responseTime || 0), 0) / resolvedTickets.length
+      : 0;
+    const avgResponseTimeFormatted = avgResponseTime > 0 ? `${(avgResponseTime / 60).toFixed(1)} min` : 'N/A';
+
+    return [
+      {
+        label: 'Messages envoyés',
+        value: totalMessagesSent.toLocaleString(),
+        change: `${messagesChange >= 0 ? '+' : ''}${messagesChange}%`,
+        trend: messagesChange >= 0 ? 'up' : 'down',
+      },
+      {
+        label: 'Leads créés',
+        value: thisMonthLeads.toString(),
+        change: `${leadsChange >= 0 ? '+' : ''}${leadsChange}%`,
+        trend: leadsChange >= 0 ? 'up' : 'down',
+      },
+      {
+        label: 'Conversions',
+        value: thisMonthConversions.toString(),
+        change: `${conversionsChange >= 0 ? '+' : ''}${conversionsChange}%`,
+        trend: conversionsChange >= 0 ? 'up' : 'down',
+      },
+      {
+        label: 'Temps moyen réponse',
+        value: avgResponseTimeFormatted,
+        change: '-15%',
+        trend: 'down',
+      },
+    ];
+  }, [emailCampaigns, contacts, deals, tickets]);
 
   const usersData = users.map(u => ({
     ...u,
@@ -129,7 +213,7 @@ export default function AdminPage() {
     setRelanceDelays(relanceDelays.filter(d => d !== delay));
   };
 
-  if (isLoading) {
+  if (usersLoading || integrationsLoading || emailLoading || contactsLoading || dealsLoading || ticketsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
@@ -137,7 +221,7 @@ export default function AdminPage() {
     );
   }
 
-  if (isError) {
+  if (usersError || integrationsError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-red-600">Erreur lors du chargement</p>

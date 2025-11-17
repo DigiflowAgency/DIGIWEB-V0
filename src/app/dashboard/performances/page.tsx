@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useDeals } from '@/hooks/useDeals';
 import { useActivities } from '@/hooks/useActivities';
+import { useReviews } from '@/hooks/useReviews';
 
 interface Goal {
   name: string;
@@ -37,33 +38,10 @@ interface Salesperson {
   bonus: number;
 }
 
-const achievements = [
-  {
-    name: 'Deal Master',
-    description: '10 deals signés ce mois',
-    progress: 80,
-    icon: Trophy,
-    color: 'text-yellow-500',
-  },
-  {
-    name: 'Speed Closer',
-    description: '5 deals signés en 1 semaine',
-    progress: 60,
-    icon: Zap,
-    color: 'text-violet-600',
-  },
-  {
-    name: 'Client Champion',
-    description: '95% de satisfaction client',
-    progress: 95,
-    icon: Award,
-    color: 'text-orange-500',
-  },
-];
-
 export default function PerformancesPage() {
   const { deals, isLoading: dealsLoading, isError: dealsError } = useDeals();
   const { activities, isLoading: activitiesLoading, isError: activitiesError } = useActivities();
+  const { stats: reviewStats, isLoading: reviewsLoading } = useReviews();
 
   // Calculer les objectifs du mois
   const goals: Goal[] = useMemo(() => {
@@ -173,7 +151,59 @@ export default function PerformancesPage() {
     }));
   }, [deals, activities]);
 
-  if (dealsLoading || activitiesLoading) {
+  // Calculer les achievements dynamiquement
+  const achievements = useMemo(() => {
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - 7);
+    weekStart.setHours(0, 0, 0, 0);
+
+    // Deal Master: 10 deals signés ce mois
+    const dealsThisMonth = deals.filter(
+      d => d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= monthStart
+    ).length;
+    const dealMasterProgress = Math.min(Math.round((dealsThisMonth / 10) * 100), 100);
+
+    // Speed Closer: 5 deals signés en 1 semaine
+    const dealsThisWeek = deals.filter(
+      d => d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= weekStart
+    ).length;
+    const speedCloserProgress = Math.min(Math.round((dealsThisWeek / 5) * 100), 100);
+
+    // Client Champion: 95% de satisfaction client (basé sur la moyenne des reviews)
+    const avgRating = reviewStats?.average || 0;
+    const satisfactionPercent = (avgRating / 5) * 100;
+    const clientChampionProgress = Math.min(Math.round(satisfactionPercent), 100);
+
+    return [
+      {
+        name: 'Deal Master',
+        description: '10 deals signés ce mois',
+        progress: dealMasterProgress,
+        icon: Trophy,
+        color: 'text-yellow-500',
+      },
+      {
+        name: 'Speed Closer',
+        description: '5 deals signés en 1 semaine',
+        progress: speedCloserProgress,
+        icon: Zap,
+        color: 'text-violet-600',
+      },
+      {
+        name: 'Client Champion',
+        description: '95% de satisfaction client',
+        progress: clientChampionProgress,
+        icon: Award,
+        color: 'text-orange-500',
+      },
+    ];
+  }, [deals, reviewStats]);
+
+  if (dealsLoading || activitiesLoading || reviewsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-orange-600" />

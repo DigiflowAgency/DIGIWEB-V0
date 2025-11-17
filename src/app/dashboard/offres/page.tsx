@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Package,
@@ -22,99 +22,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
-
-const devisData = [
-  {
-    id: 'DV-2024-001',
-    client: 'Restaurant Le Gourmet',
-    pack: 'Site Vitrine Pro',
-    amount: '2 990 €',
-    status: 'accepte',
-    date: '15 Oct 2024',
-    validUntil: '15 Nov 2024',
-  },
-  {
-    id: 'DV-2024-002',
-    client: 'Boutique Mode Élégance',
-    pack: 'Pack SEO Elite',
-    amount: '1 500 €',
-    status: 'en_attente',
-    date: '18 Oct 2024',
-    validUntil: '18 Nov 2024',
-  },
-  {
-    id: 'DV-2024-003',
-    client: 'Cabinet Avocat Dupont',
-    pack: 'Social Media Manager',
-    amount: '1 200 €',
-    status: 'envoye',
-    date: '20 Oct 2024',
-    validUntil: '20 Nov 2024',
-  },
-  {
-    id: 'DV-2024-004',
-    client: 'Garage Auto Pro',
-    pack: 'Pack SEA Performance',
-    amount: '800 €',
-    status: 'accepte',
-    date: '22 Oct 2024',
-    validUntil: '22 Nov 2024',
-  },
-  {
-    id: 'DV-2024-005',
-    client: 'Coiffeur Tendance',
-    pack: 'Site Vitrine Pro',
-    amount: '2 990 €',
-    status: 'refuse',
-    date: '25 Oct 2024',
-    validUntil: '25 Nov 2024',
-  },
-  {
-    id: 'DV-2024-006',
-    client: 'Boulangerie Tradition',
-    pack: 'Marketing Automation',
-    amount: '2 500 €',
-    status: 'en_attente',
-    date: '28 Oct 2024',
-    validUntil: '28 Nov 2024',
-  },
-  {
-    id: 'DV-2024-007',
-    client: 'Pizzeria Bella',
-    pack: 'Social Media Manager',
-    amount: '1 200 €',
-    status: 'envoye',
-    date: '30 Oct 2024',
-    validUntil: '30 Nov 2024',
-  },
-  {
-    id: 'DV-2024-008',
-    client: 'Fleuriste Rose',
-    pack: 'Pack SEO Elite',
-    amount: '1 500 €',
-    status: 'accepte',
-    date: '01 Nov 2024',
-    validUntil: '01 Dec 2024',
-  },
-  {
-    id: 'DV-2024-009',
-    client: 'Plombier Express',
-    pack: 'Pack SEA Performance',
-    amount: '800 €',
-    status: 'en_attente',
-    date: '02 Nov 2024',
-    validUntil: '02 Dec 2024',
-  },
-  {
-    id: 'DV-2024-010',
-    client: 'Pharmacie Santé',
-    pack: 'Site Vitrine Pro',
-    amount: '2 990 €',
-    status: 'envoye',
-    date: '03 Nov 2024',
-    validUntil: '03 Dec 2024',
-  },
-];
+import { useQuotes } from '@/hooks/useQuotes';
 
 const statusConfig = {
   accepte: {
@@ -158,12 +66,51 @@ const getCategoryColor = (category: string) => {
 };
 
 export default function OffresPage() {
-  const { products, isLoading, isError } = useProducts();
+  const { products, isLoading: productsLoading, isError: productsError } = useProducts();
+  const { quotes, isLoading: quotesLoading, isError: quotesError } = useQuotes();
   const [activeTab, setActiveTab] = useState<'catalogue' | 'devis'>('catalogue');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  if (isLoading) {
+  // Transformer les quotes en devisData pour l'UI
+  const devisData = useMemo(() => {
+    return quotes.map(quote => {
+      // Mapper les statuts de la DB vers les statuts UI
+      const statusMap: Record<string, string> = {
+        BROUILLON: 'en_attente',
+        ENVOYE: 'envoye',
+        ACCEPTE: 'accepte',
+        REFUSE: 'refuse',
+        EXPIRE: 'refuse',
+      };
+
+      // Déterminer le nom du client
+      const clientName = quote.contact
+        ? `${quote.contact.firstName} ${quote.contact.lastName}`
+        : quote.clientName || 'Client inconnu';
+
+      // Déterminer le pack (premier produit ou titre du devis)
+      const pack = quote.products && quote.products.length > 0
+        ? quote.products[0].name
+        : 'Devis personnalisé';
+
+      // Formater les dates
+      const createdDate = new Date(quote.createdAt);
+      const expiresDate = new Date(quote.expiresAt);
+
+      return {
+        id: quote.number || quote.id,
+        client: clientName,
+        pack,
+        amount: `${quote.total.toLocaleString()} €`,
+        status: statusMap[quote.status] || 'en_attente',
+        date: createdDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }),
+        validUntil: expiresDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }),
+      };
+    });
+  }, [quotes]);
+
+  if (productsLoading || quotesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
@@ -171,7 +118,7 @@ export default function OffresPage() {
     );
   }
 
-  if (isError) {
+  if (productsError || quotesError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-red-600">Erreur lors du chargement</p>
