@@ -1,45 +1,142 @@
 'use client';
 
-import { BarChart3, TrendingUp, Euro, Users, Target, Activity, ArrowUpRight } from 'lucide-react';
-
-const stats = [
-  { label: 'CA Total', value: '520 500€', change: '+18%', trend: 'up', color: 'text-orange-600', icon: Euro },
-  { label: 'Nouveaux Clients', value: '34', change: '+12%', trend: 'up', color: 'text-blue-600', icon: Users },
-  { label: 'Deals Gagnés', value: '89', change: '+23%', trend: 'up', color: 'text-green-600', icon: Target },
-  { label: 'Taux Conversion', value: '34%', change: '+5%', trend: 'up', color: 'text-purple-600', icon: TrendingUp },
-];
-
-const monthlyRevenue = [
-  { month: 'Jan', value: 42000 },
-  { month: 'Fév', value: 38000 },
-  { month: 'Mar', value: 51000 },
-  { month: 'Avr', value: 45000 },
-  { month: 'Mai', value: 48000 },
-  { month: 'Jun', value: 54000 },
-  { month: 'Jul', value: 47000 },
-  { month: 'Aoû', value: 39000 },
-  { month: 'Sep', value: 52000 },
-  { month: 'Oct', value: 56000 },
-  { month: 'Nov', value: 48500 },
-];
-
-const topProducts = [
-  { name: 'Site Web Standard', sales: 45, revenue: 135000 },
-  { name: 'E-commerce', sales: 23, revenue: 142600 },
-  { name: 'SEO Premium', sales: 34, revenue: 102000 },
-  { name: 'Marketing Digital', sales: 28, revenue: 84000 },
-  { name: 'Maintenance', sales: 67, revenue: 56900 },
-];
-
-const recentActivities = [
-  { type: 'Deal', description: 'Deal gagné - Restaurant Le Gourmet', amount: 4500, time: 'Il y a 2h' },
-  { type: 'Contact', description: 'Nouveau contact créé - Sophie Martin', amount: null, time: 'Il y a 3h' },
-  { type: 'Deal', description: 'Deal gagné - Agence Immobilière', amount: 8900, time: 'Il y a 5h' },
-  { type: 'Invoice', description: 'Facture payée - Boutique Mode', amount: 6200, time: 'Il y a 1j' },
-];
+import { useMemo } from 'react';
+import { BarChart3, TrendingUp, Euro, Users, Target, Activity, ArrowUpRight, Loader2 } from 'lucide-react';
+import { useDeals } from '@/hooks/useDeals';
+import { useContacts } from '@/hooks/useContacts';
+import { useActivities } from '@/hooks/useActivities';
 
 export default function AnalyticsReportPage() {
-  const maxRevenue = Math.max(...monthlyRevenue.map(m => m.value));
+  const { deals, isLoading: dealsLoading, isError: dealsError } = useDeals();
+  const { contacts, isLoading: contactsLoading, isError: contactsError } = useContacts();
+  const { activities, isLoading: activitiesLoading, isError: activitiesError } = useActivities({ limit: 10 });
+
+  // Calcul des stats depuis les vraies données
+  const stats = useMemo(() => {
+    if (!deals || !contacts) return [];
+
+    // CA Total (deals gagnés)
+    const wonDeals = deals.filter(d => d.stage === 'GAGNE');
+    const totalCA = wonDeals.reduce((sum, d) => sum + d.value, 0);
+
+    // Nouveaux clients (ce mois)
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const newContacts = contacts.filter(c => new Date(c.createdAt) >= monthStart);
+
+    // Deals gagnés
+    const wonDealsCount = wonDeals.length;
+
+    // Taux de conversion
+    const totalDeals = deals.length;
+    const conversionRate = totalDeals > 0 ? Math.round((wonDealsCount / totalDeals) * 100) : 0;
+
+    return [
+      { label: 'CA Total', value: `${totalCA.toLocaleString()} €`, change: '+18%', trend: 'up', color: 'text-orange-600', icon: Euro },
+      { label: 'Nouveaux Clients', value: newContacts.length.toString(), change: '+12%', trend: 'up', color: 'text-blue-600', icon: Users },
+      { label: 'Deals Gagnés', value: wonDealsCount.toString(), change: '+23%', trend: 'up', color: 'text-green-600', icon: Target },
+      { label: 'Taux Conversion', value: `${conversionRate}%`, change: '+5%', trend: 'up', color: 'text-purple-600', icon: TrendingUp },
+    ];
+  }, [deals, contacts]);
+
+  // CA mensuel (12 derniers mois)
+  const monthlyRevenue = useMemo(() => {
+    if (!deals) return [];
+
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
+
+    const monthlyData = [];
+    for (let i = 0; i < 12; i++) {
+      const monthIndex = (currentMonth - 11 + i + 12) % 12;
+      const year = currentMonth - 11 + i < 0 ? currentYear - 1 : currentYear;
+
+      const monthDeals = deals.filter(d => {
+        if (d.stage !== 'GAGNE' || !d.closedAt) return false;
+        const dealDate = new Date(d.closedAt);
+        return dealDate.getMonth() === monthIndex && dealDate.getFullYear() === year;
+      });
+
+      const revenue = monthDeals.reduce((sum, d) => sum + d.value, 0);
+      monthlyData.push({ month: months[monthIndex], value: revenue });
+    }
+
+    return monthlyData;
+  }, [deals]);
+
+  // Top 5 deals par valeur (proxy pour "top products")
+  const topDeals = useMemo(() => {
+    if (!deals) return [];
+
+    return [...deals]
+      .filter(d => d.stage === 'GAGNE')
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5)
+      .map(d => ({
+        name: d.title,
+        company: d.company?.name || 'N/A',
+        revenue: d.value,
+      }));
+  }, [deals]);
+
+  // Activités récentes formatées
+  const recentActivities = useMemo(() => {
+    if (!activities) return [];
+
+    return activities.slice(0, 4).map(activity => {
+      const timeAgo = getTimeAgo(new Date(activity.createdAt));
+      return {
+        type: activity.type,
+        description: `${activity.type} - ${activity.title}`,
+        amount: activity.type === 'CALL' || activity.type === 'MEETING' ? null : null,
+        time: timeAgo,
+      };
+    });
+  }, [activities]);
+
+  // Helper pour calculer "il y a X"
+  const getTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 1) return 'Il y a quelques minutes';
+    if (diffHours < 24) return `Il y a ${diffHours}h`;
+    if (diffDays === 1) return 'Il y a 1j';
+    return `Il y a ${diffDays}j`;
+  };
+
+  const maxRevenue = useMemo(() => {
+    if (monthlyRevenue.length === 0) return 1;
+    return Math.max(...monthlyRevenue.map(m => m.value), 1);
+  }, [monthlyRevenue]);
+
+  // Loading state
+  if (dealsLoading || contactsLoading || activitiesLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-orange-600 mx-auto mb-4" />
+          <p className="text-gray-600">Chargement des analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (dealsError || contactsError || activitiesError) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold mb-2">Erreur de chargement</p>
+          <p className="text-gray-600">Impossible de charger les analytics</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -72,14 +169,14 @@ export default function AnalyticsReportPage() {
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-6">Chiffre d&apos;Affaires 2024</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-6">Chiffre d&apos;Affaires (12 derniers mois)</h2>
           <div className="flex items-end justify-between h-64 gap-2">
             {monthlyRevenue.map((data) => (
               <div key={data.month} className="flex-1 flex flex-col items-center gap-2">
                 <div className="w-full flex flex-col items-center justify-end h-full">
                   <div
                     className="w-full bg-gradient-to-t from-orange-600 to-orange-400 rounded-t-lg hover:from-orange-700 hover:to-orange-500 transition-all cursor-pointer relative group"
-                    style={{ height: `${(data.value / maxRevenue) * 100}%` }}
+                    style={{ height: `${(data.value / maxRevenue) * 100}%`, minHeight: data.value > 0 ? '4px' : '0' }}
                   >
                     <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-semibold text-gray-900 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                       {data.value.toLocaleString()}€
@@ -94,42 +191,50 @@ export default function AnalyticsReportPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Produits les Plus Vendus</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Top 5 Deals Gagnés</h2>
             <div className="space-y-4">
-              {topProducts.map((product, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-orange-100 text-orange-600 font-bold">
-                      {index + 1}
+              {topDeals.length > 0 ? (
+                topDeals.map((deal, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-orange-100 text-orange-600 font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{deal.name}</p>
+                        <p className="text-sm text-gray-600">{deal.company}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">{product.name}</p>
-                      <p className="text-sm text-gray-600">{product.sales} ventes</p>
-                    </div>
+                    <p className="text-lg font-bold text-orange-600">{deal.revenue.toLocaleString()}€</p>
                   </div>
-                  <p className="text-lg font-bold text-orange-600">{product.revenue.toLocaleString()}€</p>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">Aucun deal gagné</p>
+              )}
             </div>
           </div>
 
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Activité Récente</h2>
             <div className="space-y-3">
-              {recentActivities.map((activity, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <Activity className="h-4 w-4 text-orange-600" />
+              {recentActivities.length > 0 ? (
+                recentActivities.map((activity, index) => (
+                  <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="p-2 bg-orange-100 rounded-lg">
+                      <Activity className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{activity.description}</p>
+                      {activity.amount && (
+                        <p className="text-sm font-bold text-orange-600">{activity.amount.toLocaleString()}€</p>
+                      )}
+                      <p className="text-xs text-gray-500">{activity.time}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900">{activity.description}</p>
-                    {activity.amount && (
-                      <p className="text-sm font-bold text-orange-600">{activity.amount.toLocaleString()}€</p>
-                    )}
-                    <p className="text-xs text-gray-500">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">Aucune activité récente</p>
+              )}
             </div>
           </div>
         </div>
