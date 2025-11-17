@@ -14,10 +14,13 @@ import {
   Shield,
   Save,
   Eye,
-  EyeOff
+  EyeOff,
+  Loader2
 } from 'lucide-react';
+import { useUsers } from '@/hooks/useUsers';
 
 export default function SettingsPage() {
+  const { users, isLoading } = useUsers();
   const [activeTab, setActiveTab] = useState('profile');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -386,32 +389,39 @@ export default function SettingsPage() {
                     </button>
 
                     <div className="space-y-3">
-                      {[
-                        { name: 'Jean Dupont', email: 'jean.dupont@example.com', role: 'Admin', status: 'Actif' },
-                        { name: 'Sophie Martin', email: 'sophie.martin@example.com', role: 'Commercial', status: 'Actif' },
-                        { name: 'Pierre Dubois', email: 'pierre.dubois@example.com', role: 'Commercial', status: 'Actif' },
-                        { name: 'Marie Lambert', email: 'marie.lambert@example.com', role: 'Support', status: 'Actif' },
-                      ].map((member, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                          <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
-                              <User className="h-6 w-6 text-orange-600" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-gray-900">{member.name}</p>
-                              <p className="text-sm text-gray-600">{member.email}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                              {member.role}
-                            </span>
-                            <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
-                              Modifier
-                            </button>
-                          </div>
+                      {isLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
                         </div>
-                      ))}
+                      ) : users.length > 0 ? (
+                        users.map((member) => (
+                          <div key={member.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                            <div className="flex items-center gap-4">
+                              <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
+                                <span className="text-orange-600 font-semibold">
+                                  {member.firstName?.[0]}{member.lastName?.[0]}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-900">
+                                  {member.firstName} {member.lastName}
+                                </p>
+                                <p className="text-sm text-gray-600">{member.email}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                                {member.role}
+                              </span>
+                              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                                Modifier
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-center text-gray-500 py-4">Aucun membre d'équipe</p>
+                      )}
                     </div>
                   </div>
                 </div>
