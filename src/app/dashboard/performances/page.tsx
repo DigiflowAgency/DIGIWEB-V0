@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import {
   Target,
   TrendingUp,
@@ -9,7 +10,10 @@ import {
   Calendar,
   Euro,
   CheckCircle2,
+  Loader2,
 } from 'lucide-react';
+import { useDeals } from '@/hooks/useDeals';
+import { useActivities } from '@/hooks/useActivities';
 
 interface Goal {
   name: string;
@@ -21,7 +25,7 @@ interface Goal {
 }
 
 interface Salesperson {
-  id: number;
+  id: string;
   name: string;
   avatar: string;
   deals: number;
@@ -32,72 +36,6 @@ interface Salesperson {
   badgeColor: string;
   bonus: number;
 }
-
-const goals: Goal[] = [
-  {
-    name: 'Chiffre d\'affaires',
-    current: 48500,
-    target: 60000,
-    unit: '€',
-    icon: Euro,
-    color: 'from-green-500 to-green-600',
-  },
-  {
-    name: 'Rendez-vous',
-    current: 23,
-    target: 30,
-    unit: 'RDV',
-    icon: Calendar,
-    color: 'from-violet-600 to-violet-700',
-  },
-  {
-    name: 'Deals signés',
-    current: 8,
-    target: 12,
-    unit: 'deals',
-    icon: CheckCircle2,
-    color: 'from-orange-500 to-orange-600',
-  },
-];
-
-const salespeople: Salesperson[] = [
-  {
-    id: 1,
-    name: 'Alex Dupont',
-    avatar: 'AD',
-    deals: 8,
-    ca: 48500,
-    meetings: 23,
-    rank: 1,
-    badge: 'Top Performer',
-    badgeColor: 'bg-gradient-to-r from-yellow-400 to-yellow-500',
-    bonus: 500,
-  },
-  {
-    id: 2,
-    name: 'Sophie Martin',
-    avatar: 'SM',
-    deals: 6,
-    ca: 35200,
-    meetings: 18,
-    rank: 2,
-    badge: 'Excellence',
-    badgeColor: 'bg-gradient-to-r from-gray-300 to-gray-400',
-    bonus: 300,
-  },
-  {
-    id: 3,
-    name: 'Thomas Bernard',
-    avatar: 'TB',
-    deals: 5,
-    ca: 28900,
-    meetings: 15,
-    rank: 3,
-    badge: 'Rising Star',
-    badgeColor: 'bg-gradient-to-r from-orange-400 to-orange-500',
-    bonus: 200,
-  },
-];
 
 const achievements = [
   {
@@ -124,6 +62,133 @@ const achievements = [
 ];
 
 export default function PerformancesPage() {
+  const { deals, isLoading: dealsLoading, isError: dealsError } = useDeals();
+  const { activities, isLoading: activitiesLoading, isError: activitiesError } = useActivities();
+
+  // Calculer les objectifs du mois
+  const goals: Goal[] = useMemo(() => {
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const wonDealsThisMonth = deals.filter(
+      d => d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= monthStart
+    );
+    const caThisMonth = wonDealsThisMonth.reduce((sum, d) => sum + d.value, 0);
+
+    const meetingsThisMonth = activities.filter(
+      a => (a.type === 'REUNION' || a.type === 'VISIO') &&
+           new Date(a.scheduledAt) >= monthStart
+    ).length;
+
+    return [
+      {
+        name: 'Chiffre d\'affaires',
+        current: caThisMonth,
+        target: 60000,
+        unit: '€',
+        icon: Euro,
+        color: 'from-green-500 to-green-600',
+      },
+      {
+        name: 'Rendez-vous',
+        current: meetingsThisMonth,
+        target: 30,
+        unit: 'RDV',
+        icon: Calendar,
+        color: 'from-violet-600 to-violet-700',
+      },
+      {
+        name: 'Deals signés',
+        current: wonDealsThisMonth.length,
+        target: 12,
+        unit: 'deals',
+        icon: CheckCircle2,
+        color: 'from-orange-500 to-orange-600',
+      },
+    ];
+  }, [deals, activities]);
+
+  // Calculer le classement des commerciaux
+  const salespeople: Salesperson[] = useMemo(() => {
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    // Grouper les deals par owner
+    const dealsByOwner = deals.reduce((acc, deal) => {
+      if (!deal.owner) return acc;
+
+      const ownerId = deal.owner.id;
+      if (!acc[ownerId]) {
+        acc[ownerId] = {
+          id: ownerId,
+          name: `${deal.owner.firstName} ${deal.owner.lastName}`,
+          email: deal.owner.email,
+          deals: [],
+          activities: [],
+        };
+      }
+
+      acc[ownerId].deals.push(deal);
+      return acc;
+    }, {} as Record<string, any>);
+
+    // Calculer les stats pour chaque commercial
+    const stats = Object.values(dealsByOwner).map((owner: any) => {
+      const wonDeals = owner.deals.filter((d: any) =>
+        d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= monthStart
+      );
+      const ca = wonDeals.reduce((sum: number, d: any) => sum + d.value, 0);
+
+      const ownerActivities = activities.filter(a => a.assignedToId === owner.id);
+      const meetings = ownerActivities.filter(
+        a => (a.type === 'REUNION' || a.type === 'VISIO') &&
+             new Date(a.scheduledAt) >= monthStart
+      ).length;
+
+      return {
+        id: owner.id,
+        name: owner.name,
+        avatar: `${owner.name.split(' ')[0]?.[0] || ''}${owner.name.split(' ')[1]?.[0] || ''}`.toUpperCase(),
+        deals: wonDeals.length,
+        ca,
+        meetings,
+      };
+    });
+
+    // Trier par CA et attribuer les rangs
+    const sorted = stats.sort((a, b) => b.ca - a.ca);
+
+    return sorted.map((person, index) => ({
+      ...person,
+      rank: index + 1,
+      badge: index === 0 ? 'Top Performer' : index === 1 ? 'Excellence' : 'Rising Star',
+      badgeColor: index === 0
+        ? 'bg-gradient-to-r from-yellow-400 to-yellow-500'
+        : index === 1
+        ? 'bg-gradient-to-r from-gray-300 to-gray-400'
+        : 'bg-gradient-to-r from-orange-400 to-orange-500',
+      bonus: index === 0 ? 500 : index === 1 ? 300 : 200,
+    }));
+  }, [deals, activities]);
+
+  if (dealsLoading || activitiesLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
+      </div>
+    );
+  }
+
+  if (dealsError || activitiesError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600">Erreur lors du chargement</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen gradient-mesh py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

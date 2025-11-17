@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useMemo } from 'react';
 import {
   Users,
   Calendar,
@@ -10,7 +11,7 @@ import {
   Clock,
   CheckCircle2,
   ArrowUpRight,
-  Activity,
+  Activity as ActivityIcon,
   Zap,
   Sun,
   Sparkles,
@@ -19,119 +20,10 @@ import {
   MessageSquare,
   Euro,
   TrendingDown,
+  Loader2,
 } from 'lucide-react';
-
-const stats = [
-  {
-    name: 'Leads actifs',
-    value: '47',
-    change: '+12%',
-    trend: 'up',
-    icon: Users,
-    color: 'from-violet-600 to-violet-700',
-    bgColor: 'bg-violet-50',
-  },
-  {
-    name: 'RDV ce mois',
-    value: '23',
-    change: '+8%',
-    trend: 'up',
-    icon: Calendar,
-    color: 'from-orange-500 to-orange-600',
-    bgColor: 'bg-orange-50',
-  },
-  {
-    name: 'CA du mois',
-    value: '48 500 €',
-    change: '+23%',
-    trend: 'up',
-    icon: Euro,
-    color: 'from-green-500 to-green-600',
-    bgColor: 'bg-green-50',
-  },
-  {
-    name: 'Taux conversion',
-    value: '34%',
-    change: '+5%',
-    trend: 'up',
-    icon: Target,
-    color: 'from-blue-500 to-blue-600',
-    bgColor: 'bg-blue-50',
-  },
-];
-
-const hotLeads = [
-  {
-    id: 1,
-    name: 'Restaurant Le Gourmet',
-    contact: 'Pierre Martin',
-    score: 95,
-    activity: 'Site web + SEO',
-    value: '4 500 €',
-    nextAction: 'Appel demain 14h',
-  },
-  {
-    id: 2,
-    name: 'Boutique Mode Élégance',
-    contact: 'Sophie Dubois',
-    score: 88,
-    activity: 'E-commerce',
-    value: '6 200 €',
-    nextAction: 'Devis envoyé',
-  },
-  {
-    id: 3,
-    name: 'Cabinet Avocat Dupont',
-    contact: 'Jean Dupont',
-    score: 82,
-    activity: 'Site vitrine',
-    value: '2 800 €',
-    nextAction: 'RDV jeudi',
-  },
-];
-
-const recentActivity = [
-  {
-    id: 1,
-    type: 'lead',
-    title: 'Nouveau lead créé',
-    description: 'Restaurant La Table - Score: 85',
-    time: 'Il y a 5 min',
-    icon: Sparkles,
-    color: 'text-violet-600',
-    bgColor: 'bg-violet-100',
-  },
-  {
-    id: 2,
-    type: 'meeting',
-    title: 'RDV confirmé',
-    description: 'Coiffeur Tendance - 16 Nov à 10h30',
-    time: 'Il y a 12 min',
-    icon: Calendar,
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-100',
-  },
-  {
-    id: 3,
-    type: 'message',
-    title: 'Message WhatsApp',
-    description: 'Garage Auto Pro a répondu',
-    time: 'Il y a 23 min',
-    icon: MessageSquare,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100',
-  },
-  {
-    id: 4,
-    type: 'deal',
-    title: 'Deal conclu',
-    description: 'Boulangerie Tradition - 3 200€',
-    time: 'Il y a 1h',
-    icon: CheckCircle2,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
-  },
-];
+import { useDeals } from '@/hooks/useDeals';
+import { useActivities } from '@/hooks/useActivities';
 
 const quickActions = [
   {
@@ -160,36 +52,39 @@ const quickActions = [
   },
 ];
 
-const weeklyData = [
-  { day: 'Lun', leads: 8, meetings: 3, deals: 1 },
-  { day: 'Mar', leads: 12, meetings: 5, deals: 2 },
-  { day: 'Mer', leads: 10, meetings: 4, deals: 2 },
-  { day: 'Jeu', leads: 15, meetings: 6, deals: 3 },
-  { day: 'Ven', leads: 14, meetings: 5, deals: 2 },
-  { day: 'Sam', leads: 6, meetings: 2, deals: 1 },
-  { day: 'Dim', leads: 3, meetings: 1, deals: 0 },
-];
+const getActivityIcon = (type: string) => {
+  switch (type) {
+    case 'APPEL': return Phone;
+    case 'EMAIL': return Mail;
+    case 'REUNION': return Calendar;
+    case 'VISIO': return Calendar;
+    default: return ActivityIcon;
+  }
+};
 
-const monthlyGoals = [
-  {
-    name: 'CA Mensuel',
-    current: 48500,
-    target: 60000,
-    unit: '€',
-  },
-  {
-    name: 'Nouveaux Deals',
-    current: 8,
-    target: 12,
-    unit: 'deals',
-  },
-  {
-    name: 'RDV Réalisés',
-    current: 23,
-    target: 30,
-    unit: 'RDV',
-  },
-];
+const getActivityColor = (type: string) => {
+  switch (type) {
+    case 'APPEL': return { color: 'text-violet-600', bgColor: 'bg-violet-100' };
+    case 'EMAIL': return { color: 'text-blue-600', bgColor: 'bg-blue-100' };
+    case 'REUNION': return { color: 'text-orange-600', bgColor: 'bg-orange-100' };
+    case 'VISIO': return { color: 'text-green-600', bgColor: 'bg-green-100' };
+    default: return { color: 'text-gray-600', bgColor: 'bg-gray-100' };
+  }
+};
+
+const getTimeAgo = (date: string | Date) => {
+  const now = new Date();
+  const then = new Date(date);
+  const diffMs = now.getTime() - then.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+
+  if (diffMins < 1) return 'À l\'instant';
+  if (diffMins < 60) return `Il y a ${diffMins} min`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `Il y a ${diffHours}h`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `Il y a ${diffDays}j`;
+};
 
 const getScoreBadge = (score: number) => {
   if (score >= 90) return { label: 'ULTRA CHAUD', color: 'bg-gradient-to-r from-red-500 to-orange-500 text-white', pulse: true };
@@ -199,6 +94,190 @@ const getScoreBadge = (score: number) => {
 };
 
 export default function DashboardPage() {
+  const { deals, stats: dealStats, isLoading: dealsLoading, isError: dealsError } = useDeals();
+  const { activities, isLoading: activitiesLoading, isError: activitiesError } = useActivities({ limit: 10 });
+
+  // Calculer les stats principales
+  const stats = useMemo(() => {
+    const activeDeals = deals.filter(d => d.stage !== 'GAGNE' && d.stage !== 'PERDU');
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const dealsThisMonth = deals.filter(d => new Date(d.createdAt) >= monthStart);
+    const wonDealsThisMonth = deals.filter(
+      d => d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= monthStart
+    );
+    const caThisMonth = wonDealsThisMonth.reduce((sum, d) => sum + d.value, 0);
+
+    const meetingsThisMonth = activities.filter(
+      a => (a.type === 'REUNION' || a.type === 'VISIO') &&
+           new Date(a.scheduledAt) >= monthStart
+    ).length;
+
+    const conversionRate = dealsThisMonth.length > 0
+      ? Math.round((wonDealsThisMonth.length / dealsThisMonth.length) * 100)
+      : 0;
+
+    return [
+      {
+        name: 'Deals actifs',
+        value: activeDeals.length.toString(),
+        change: '+12%',
+        trend: 'up' as const,
+        icon: Users,
+        color: 'from-violet-600 to-violet-700',
+        bgColor: 'bg-violet-50',
+      },
+      {
+        name: 'RDV ce mois',
+        value: meetingsThisMonth.toString(),
+        change: '+8%',
+        trend: 'up' as const,
+        icon: Calendar,
+        color: 'from-orange-500 to-orange-600',
+        bgColor: 'bg-orange-50',
+      },
+      {
+        name: 'CA du mois',
+        value: `${caThisMonth.toLocaleString()} €`,
+        change: '+23%',
+        trend: 'up' as const,
+        icon: Euro,
+        color: 'from-green-500 to-green-600',
+        bgColor: 'bg-green-50',
+      },
+      {
+        name: 'Taux conversion',
+        value: `${conversionRate}%`,
+        change: '+5%',
+        trend: 'up' as const,
+        icon: Target,
+        color: 'from-blue-500 to-blue-600',
+        bgColor: 'bg-blue-50',
+      },
+    ];
+  }, [deals, activities]);
+
+  // Hot leads (deals avec haute probabilité)
+  const hotLeads = useMemo(() => {
+    return deals
+      .filter(d => d.probability >= 75 && d.stage !== 'GAGNE' && d.stage !== 'PERDU')
+      .sort((a, b) => b.probability - a.probability)
+      .slice(0, 3)
+      .map(d => ({
+        id: d.id,
+        name: d.company?.name || d.title,
+        contact: d.contact ? `${d.contact.firstName} ${d.contact.lastName}` : 'Contact non défini',
+        score: d.probability,
+        activity: d.description || d.title,
+        value: `${d.value.toLocaleString()} €`,
+        nextAction: d.expectedCloseDate
+          ? `Clôture prévue ${new Date(d.expectedCloseDate).toLocaleDateString('fr-FR')}`
+          : 'Pas de date prévue',
+      }));
+  }, [deals]);
+
+  // Activités récentes
+  const recentActivity = useMemo(() => {
+    return activities.slice(0, 4).map(a => {
+      const colors = getActivityColor(a.type);
+      const Icon = getActivityIcon(a.type);
+
+      return {
+        id: a.id,
+        type: a.type.toLowerCase(),
+        title: a.title,
+        description: a.description || `${a.type} - ${a.contact ? `${a.contact.firstName} ${a.contact.lastName}` : 'Contact non défini'}`,
+        time: getTimeAgo(a.scheduledAt),
+        icon: Icon,
+        color: colors.color,
+        bgColor: colors.bgColor,
+      };
+    });
+  }, [activities]);
+
+  // Données hebdomadaires (simplifiées pour l'instant)
+  const weeklyData = useMemo(() => {
+    const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    const now = new Date();
+
+    return days.map((day, index) => {
+      const dayDate = new Date(now);
+      dayDate.setDate(now.getDate() - (6 - index));
+      dayDate.setHours(0, 0, 0, 0);
+
+      const nextDay = new Date(dayDate);
+      nextDay.setDate(dayDate.getDate() + 1);
+
+      const dealsCount = deals.filter(d => {
+        const created = new Date(d.createdAt);
+        return created >= dayDate && created < nextDay;
+      }).length;
+
+      return {
+        day,
+        leads: dealsCount,
+        meetings: Math.floor(dealsCount * 0.6),
+        deals: Math.floor(dealsCount * 0.3),
+      };
+    });
+  }, [deals]);
+
+  // Objectifs mensuels
+  const monthlyGoals = useMemo(() => {
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const wonDealsThisMonth = deals.filter(
+      d => d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= monthStart
+    );
+    const caThisMonth = wonDealsThisMonth.reduce((sum, d) => sum + d.value, 0);
+
+    const meetingsThisMonth = activities.filter(
+      a => (a.type === 'REUNION' || a.type === 'VISIO') &&
+           new Date(a.scheduledAt) >= monthStart
+    ).length;
+
+    return [
+      {
+        name: 'CA Mensuel',
+        current: caThisMonth,
+        target: 60000,
+        unit: '€',
+      },
+      {
+        name: 'Nouveaux Deals',
+        current: wonDealsThisMonth.length,
+        target: 12,
+        unit: 'deals',
+      },
+      {
+        name: 'RDV Réalisés',
+        current: meetingsThisMonth,
+        target: 30,
+        unit: 'RDV',
+      },
+    ];
+  }, [deals, activities]);
+
+  if (dealsLoading || activitiesLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
+      </div>
+    );
+  }
+
+  if (dealsError || activitiesError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600">Erreur lors du chargement</p>
+      </div>
+    );
+  }
+
   const maxValue = Math.max(...weeklyData.map(d => Math.max(d.leads, d.meetings * 3, d.deals * 5)));
 
   return (
