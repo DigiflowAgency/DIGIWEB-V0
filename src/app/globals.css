@@ -2,26 +2,121 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+    /* Light mode colors */
+    --background: 0 0% 100%;          /* #ffffff - Blanc */
+    --background-secondary: 210 20% 98%; /* #f8f9fa - Gris très clair */
+    --foreground: 222 47% 11%;        /* Texte sombre */
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+    /* Sidebar blue gradient */
+    --sidebar-from: 217 91% 60%;      /* #3b82f6 - Bleu */
+    --sidebar-to: 221 83% 53%;        /* #4f46e5 - Bleu indigo */
+
+    /* Cards and surfaces */
+    --card: 0 0% 100%;                /* #ffffff - Blanc */
+    --card-foreground: 222 47% 11%;
+
+    /* Primary accent */
+    --primary: 217 91% 60%;           /* Bleu */
+    --primary-foreground: 0 0% 100%;
+
+    /* Borders */
+    --border: 214 32% 91%;
+    --border-light: 210 20% 96%;
+  }
+
+  * {
+    @apply border-gray-200;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  /* Gradients */
+  .gradient-blue {
+    background: linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%);
   }
+
+  .gradient-sidebar {
+    background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%);
+  }
+
+  /* Light cards */
+  .card-light {
+    @apply bg-white rounded-xl border border-gray-200 shadow-lg p-6;
+  }
+
+  .card-light-hover {
+    @apply bg-white rounded-xl border border-gray-200 shadow-lg p-6 hover:border-blue-500/50 hover:shadow-xl transition-all duration-300;
+  }
+
+  /* Modern shadows */
+  .shadow-light {
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .shadow-light-lg {
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.1),
+      0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Modern buttons */
+  .btn-primary {
+    @apply bg-blue-500 hover:bg-blue-600 text-white font-medium px-6 py-2.5 rounded-lg shadow-light hover:shadow-light-lg transition-all duration-300;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 text-gray-900 font-medium px-6 py-2.5 rounded-lg shadow-light hover:shadow-light-lg transition-all duration-300;
+  }
+
+  /* Modern inputs */
+  .input-light {
+    @apply block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none;
+  }
+
+  /* Badges light */
+  .badge-blue {
+    @apply inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 border border-blue-200;
+  }
+
+  .badge-success {
+    @apply inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 border border-green-200;
+  }
+
+  .badge-danger {
+    @apply inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 border border-red-200;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700 border border-yellow-200;
+  }
+}
+
+/* Custom scrollbar light */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #3b82f6 0%, #4f46e5 100%);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #2563eb 0%, #4338ca 100%);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
 }

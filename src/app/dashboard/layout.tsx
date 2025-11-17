@@ -1,0 +1,475 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import {
+  LayoutDashboard,
+  Users,
+  Building2,
+  Briefcase,
+  Calendar,
+  TrendingUp,
+  FileText,
+  CreditCard,
+  Mail,
+  Megaphone,
+  Share2,
+  BarChart3,
+  Ticket,
+  BookOpen,
+  Smile,
+  Zap,
+  Workflow,
+  Settings,
+  Search,
+  Bell,
+  LogOut,
+  Menu,
+  X,
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
+  PanelLeftClose,
+  PanelLeft,
+} from 'lucide-react';
+
+interface SubNavItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface NavCategory {
+  name: string;
+  icon: React.ComponentType<{ className?: string }>;
+  subItems: SubNavItem[];
+}
+
+const navigationCategories: NavCategory[] = [
+  {
+    name: 'Dashboard',
+    icon: LayoutDashboard,
+    subItems: [],
+  },
+  {
+    name: 'CRM',
+    icon: Users,
+    subItems: [
+      { name: 'Contacts', href: '/dashboard/crm/contacts', icon: Users },
+      { name: 'Entreprises', href: '/dashboard/crm/companies', icon: Building2 },
+      { name: 'Deals', href: '/dashboard/crm/deals', icon: Briefcase },
+      { name: 'Activités', href: '/dashboard/crm/activities', icon: Calendar },
+    ],
+  },
+  {
+    name: 'Ventes',
+    icon: TrendingUp,
+    subItems: [
+      { name: 'Pipeline', href: '/dashboard/sales/pipeline', icon: TrendingUp },
+      { name: 'Devis', href: '/dashboard/sales/quotes', icon: FileText },
+      { name: 'Facturation', href: '/dashboard/sales/invoices', icon: CreditCard },
+      { name: 'Suivi commercial', href: '/dashboard/sales/tracking', icon: BarChart3 },
+    ],
+  },
+  {
+    name: 'Marketing',
+    icon: Megaphone,
+    subItems: [
+      { name: 'Campagnes', href: '/dashboard/marketing/campaigns', icon: Megaphone },
+      { name: 'Email', href: '/dashboard/marketing/email', icon: Mail },
+      { name: 'Réseaux sociaux', href: '/dashboard/marketing/social', icon: Share2 },
+      { name: 'Analytics', href: '/dashboard/marketing/analytics', icon: BarChart3 },
+    ],
+  },
+  {
+    name: 'Service',
+    icon: Ticket,
+    subItems: [
+      { name: 'Tickets', href: '/dashboard/service/tickets', icon: Ticket },
+      { name: 'Base de connaissances', href: '/dashboard/service/knowledge', icon: BookOpen },
+      { name: 'Satisfaction', href: '/dashboard/service/satisfaction', icon: Smile },
+    ],
+  },
+  {
+    name: 'Automatisation',
+    icon: Zap,
+    subItems: [
+      { name: 'Workflows', href: '/dashboard/automation/workflows', icon: Workflow },
+      { name: 'Séquences', href: '/dashboard/automation/sequences', icon: Zap },
+    ],
+  },
+  {
+    name: 'Rapports',
+    icon: BarChart3,
+    subItems: [
+      { name: 'Analytics', href: '/dashboard/reports/analytics', icon: BarChart3 },
+      { name: 'Tableaux de bord', href: '/dashboard/reports/dashboards', icon: LayoutDashboard },
+    ],
+  },
+];
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [userEmail, setUserEmail] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [notifications] = useState(3);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(['Dashboard', 'CRM', 'Ventes']);
+
+  const toggleCategory = (categoryName: string) => {
+    setExpandedCategories(prev =>
+      prev.includes(categoryName)
+        ? prev.filter(name => name !== categoryName)
+        : [...prev, categoryName]
+    );
+  };
+
+  useEffect(() => {
+    const isAuthenticated = localStorage.getItem('isAuthenticated');
+    const email = localStorage.getItem('userEmail');
+
+    if (!isAuthenticated) {
+      router.push('/login');
+    } else {
+      setUserEmail(email || 'user@digiweb.fr');
+    }
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userEmail');
+    router.push('/login');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Sidebar - Desktop */}
+      <aside className={`hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col transition-all duration-300 ${
+        sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'
+      }`}>
+        <div className="flex flex-col flex-grow gradient-sidebar border-r border-blue-900/30 pt-5 pb-4 overflow-hidden shadow-light-lg">
+          {/* Logo & Collapse Button */}
+          <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} flex-shrink-0 px-4 mb-6`}>
+            {sidebarCollapsed ? (
+              <button
+                onClick={() => setSidebarCollapsed(false)}
+                className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center hover:from-blue-500 hover:to-blue-700 transition-all"
+                title="Étendre la navigation"
+              >
+                <span className="text-white font-bold text-base">DW</span>
+              </button>
+            ) : (
+              <>
+                <div className="flex items-center space-x-3 overflow-hidden">
+                  <div className="w-9 h-9 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-bold text-base">DW</span>
+                  </div>
+                  <div className="min-w-0">
+                    <h1 className="text-lg font-bold text-white truncate">DigiWeb</h1>
+                    <p className="text-xs text-blue-200">ERP Business</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSidebarCollapsed(true)}
+                  className="p-1.5 rounded-lg hover:bg-blue-800/50 text-blue-100 transition-colors flex-shrink-0"
+                  title="Réduire"
+                >
+                  <PanelLeftClose className="h-5 w-5" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Navigation */}
+          <nav className={`flex-1 overflow-y-auto ${sidebarCollapsed ? 'px-2 space-y-1' : 'px-3 space-y-0.5'}`}>
+            {navigationCategories.map((category) => {
+              const CategoryIcon = category.icon;
+              const isExpanded = expandedCategories.includes(category.name);
+              const isDashboard = category.name === 'Dashboard';
+              const isDashboardActive = isDashboard && pathname === '/dashboard';
+
+              return (
+                <div key={category.name}>
+                  {/* Category Header */}
+                  <button
+                    onClick={() => {
+                      if (isDashboard) {
+                        router.push('/dashboard');
+                      } else {
+                        if (sidebarCollapsed) {
+                          setSidebarCollapsed(false);
+                          setTimeout(() => toggleCategory(category.name), 100);
+                        } else {
+                          toggleCategory(category.name);
+                        }
+                      }
+                    }}
+                    className={`w-full group flex items-center justify-center ${sidebarCollapsed ? 'px-0 py-3' : 'justify-between px-3 py-2.5'} text-sm font-medium rounded-lg transition-all ${
+                      isDashboardActive
+                        ? 'bg-blue-700/50 text-white'
+                        : 'text-blue-100 hover:bg-blue-800/50'
+                    }`}
+                    title={sidebarCollapsed ? category.name : ''}
+                  >
+                    {sidebarCollapsed ? (
+                      <CategoryIcon className={`h-6 w-6 ${isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
+                    ) : (
+                      <>
+                        <div className="flex items-center">
+                          <CategoryIcon className={`h-5 w-5 mr-3 ${isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
+                          <span>{category.name}</span>
+                        </div>
+                        {!isDashboard && category.subItems.length > 0 && (
+                          isExpanded ? (
+                            <ChevronDown className="h-4 w-4 text-blue-200" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-blue-200" />
+                          )
+                        )}
+                      </>
+                    )}
+                  </button>
+
+                  {/* Sub Items */}
+                  {!sidebarCollapsed && isExpanded && category.subItems.length > 0 && (
+                    <div className="ml-4 mt-1 space-y-0.5">
+                      {category.subItems.map((subItem) => {
+                        const SubIcon = subItem.icon;
+                        const isActive = pathname === subItem.href;
+                        return (
+                          <button
+                            key={subItem.href}
+                            onClick={() => router.push(subItem.href)}
+                            className={`w-full group flex items-center px-3 py-2 text-sm rounded-lg transition-all ${
+                              isActive
+                                ? 'bg-blue-700/50 text-white font-medium'
+                                : 'text-blue-100 hover:bg-blue-800/50'
+                            }`}
+                          >
+                            <SubIcon className={`mr-3 h-4 w-4 ${isActive ? 'text-white' : 'text-blue-300'}`} />
+                            {subItem.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Settings at the bottom */}
+            <div className="pt-4 mt-4 border-t border-blue-800/50">
+              <button
+                onClick={() => router.push('/dashboard/settings')}
+                className={`w-full group flex items-center justify-center ${sidebarCollapsed ? 'px-0 py-3' : 'px-3 py-2.5'} text-sm font-medium rounded-lg transition-all ${
+                  pathname === '/dashboard/settings'
+                    ? 'bg-blue-700/50 text-white'
+                    : 'text-blue-100 hover:bg-blue-800/50'
+                }`}
+                title={sidebarCollapsed ? 'Paramètres' : ''}
+              >
+                {sidebarCollapsed ? (
+                  <Settings className="h-6 w-6 text-blue-200" />
+                ) : (
+                  <>
+                    <Settings className="h-5 w-5 mr-3 text-blue-200" />
+                    Paramètres
+                  </>
+                )}
+              </button>
+            </div>
+          </nav>
+
+          {/* User Section */}
+          <div className="flex-shrink-0 flex border-t border-blue-800/50 p-4 bg-blue-900/30">
+            {sidebarCollapsed ? (
+              <div className="w-full flex justify-center">
+                <button
+                  onClick={handleLogout}
+                  className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center hover:from-blue-500 hover:to-blue-700 transition-all"
+                  title="Déconnexion"
+                >
+                  <LogOut className="h-5 w-5 text-white" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center w-full">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                    <span className="text-white font-semibold text-xs">
+                      {userEmail.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+                <div className="ml-3 flex-1 min-w-0">
+                  <p className="text-xs font-medium text-white truncate">{userEmail}</p>
+                  <p className="text-xs text-blue-200">Admin</p>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="ml-2 p-1.5 text-blue-200 hover:text-white transition"
+                  title="Déconnexion"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile sidebar */}
+      {sidebarOpen && (
+        <div className="lg:hidden">
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-y-0 left-0 flex flex-col w-64 gradient-sidebar z-50 shadow-light-lg">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-blue-800/50">
+              <div className="flex items-center space-x-3">
+                <div className="w-9 h-9 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-base">DW</span>
+                </div>
+                <h1 className="text-lg font-bold text-white">DigiWeb</h1>
+              </div>
+              <button onClick={() => setSidebarOpen(false)} className="text-blue-200 hover:text-white transition">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+              {navigationCategories.map((category) => {
+                const CategoryIcon = category.icon;
+                const isExpanded = expandedCategories.includes(category.name);
+                const isDashboard = category.name === 'Dashboard';
+                const isDashboardActive = isDashboard && pathname === '/dashboard';
+
+                return (
+                  <div key={category.name}>
+                    <button
+                      onClick={() => {
+                        if (isDashboard) {
+                          router.push('/dashboard');
+                          setSidebarOpen(false);
+                        } else {
+                          toggleCategory(category.name);
+                        }
+                      }}
+                      className={`w-full group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                        isDashboardActive
+                          ? 'bg-blue-700/50 text-white'
+                          : 'text-blue-100 hover:bg-blue-800/50'
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <CategoryIcon className={`mr-3 h-5 w-5 ${isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
+                        <span>{category.name}</span>
+                      </div>
+                      {!isDashboard && category.subItems.length > 0 && (
+                        isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-blue-200" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-blue-200" />
+                        )
+                      )}
+                    </button>
+
+                    {isExpanded && category.subItems.length > 0 && (
+                      <div className="ml-4 mt-1 space-y-0.5">
+                        {category.subItems.map((subItem) => {
+                          const SubIcon = subItem.icon;
+                          const isActive = pathname === subItem.href;
+                          return (
+                            <button
+                              key={subItem.href}
+                              onClick={() => {
+                                router.push(subItem.href);
+                                setSidebarOpen(false);
+                              }}
+                              className={`w-full group flex items-center px-3 py-2 text-sm rounded-lg transition-all ${
+                                isActive
+                                  ? 'bg-blue-700/50 text-white font-medium'
+                                  : 'text-blue-100 hover:bg-blue-800/50'
+                              }`}
+                            >
+                              <SubIcon className={`mr-3 h-4 w-4 ${isActive ? 'text-white' : 'text-blue-300'}`} />
+                              {subItem.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Settings */}
+              <div className="pt-4 mt-4 border-t border-blue-800/50">
+                <button
+                  onClick={() => {
+                    router.push('/dashboard/settings');
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                    pathname === '/dashboard/settings'
+                      ? 'bg-blue-700/50 text-white'
+                      : 'text-blue-100 hover:bg-blue-800/50'
+                  }`}
+                >
+                  <Settings className="mr-3 h-5 w-5 text-blue-200" />
+                  Paramètres
+                </button>
+              </div>
+            </nav>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className={`flex flex-col flex-1 transition-all duration-300 ${
+        sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'
+      }`}>
+        {/* Top bar */}
+        <div className="sticky top-0 z-10 flex-shrink-0 flex h-14 bg-white border-b border-gray-200 shadow-sm">
+          <button
+            className="px-4 border-r border-gray-200 text-gray-500 hover:text-gray-700 focus:outline-none lg:hidden transition"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
+          <div className="flex-1 px-4 flex justify-end items-center">
+            {/* Right section */}
+            <div className="flex items-center space-x-2">
+              {/* Notifications */}
+              <button className="relative p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition">
+                <Bell className="h-5 w-5" />
+                {notifications > 0 && (
+                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white">
+                    {notifications}
+                  </span>
+                )}
+              </button>
+
+              {/* Avatar */}
+              <div className="hidden sm:block">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center cursor-pointer">
+                  <span className="text-white font-semibold text-xs">
+                    {userEmail.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Page Content */}
+        <main className="flex-1">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}

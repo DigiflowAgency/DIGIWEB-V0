@@ -1,0 +1,906 @@
+// This is your Prisma schema file for DigiWeb ERP
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USERS & AUTHENTICATION
+// ============================================
+
+enum Role {
+  ADMIN
+  VENTE
+  MARKETING
+  ACCOUNT_MANAGEMENT
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  password      String      // Hashed
+  firstName     String
+  lastName      String
+  role          Role        @default(VENTE)
+  status        UserStatus  @default(ACTIVE)
+  avatar        String?
+  phone         String?
+  position      String?     // Poste
+  department    String?     // Département/Équipe
+  managerId     String?
+  manager       User?       @relation("ManagerToUsers", fields: [managerId], references: [id], onDelete: SetNull)
+  subordinates  User[]      @relation("ManagerToUsers")
+
+  // Objectifs (pour commerciaux)
+  monthlyGoal   Float?      // Objectif CA mensuel
+
+  // Métadonnées
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  lastLoginAt   DateTime?
+
+  // Relations
+  contacts      Contact[]
+  companies     Company[]
+  deals         Deal[]
+  activities    Activity[]
+  quotes        Quote[]
+  invoices      Invoice[]
+  tickets       Ticket[]    @relation("TicketAssignee")
+  createdTickets Ticket[]   @relation("TicketCreator")
+  notes         Note[]
+  formationProgress FormationProgress[]
+  clients       Client[]
+
+  @@index([email])
+  @@index([role])
+  @@index([managerId])
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ============================================
+// CRM - CONTACTS & COMPANIES
+// ============================================
+
+enum ContactStatus {
+  LEAD
+  PROSPECT
+  CLIENT
+}
+
+model Contact {
+  id            String        @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  position      String?       // Poste dans l'entreprise
+
+  // Informations entreprise
+  companyId     String?
+  company       Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  // Informations SIRET/Gérant (si indépendant)
+  siret         String?
+  gerant        String?       // Nom du gérant
+
+  // Statut et scoring
+  status        ContactStatus @default(LEAD)
+  qualityScore  Int?          // Score 0-100
+
+  // Assignation
+  assignedToId  String?
+  assignedTo    User?         @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  // Localisation
+  address       String?
+  city          String?
+  postalCode    String?
+  country       String?       @default("France")
+
+  // Source
+  source        String?       // Site web, LinkedIn, Référence, etc.
+
+  // Métadonnées
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  deals         Deal[]
+  activities    Activity[]
+  notes         Note[]
+
+  @@index([email])
+  @@index([companyId])
+  @@index([assignedToId])
+  @@index([status])
+  @@map("contacts")
+}
+
+enum CompanyStatus {
+  LEAD
+  PROSPECT
+  CLIENT
+}
+
+model Company {
+  id            String        @id @default(cuid())
+  name          String
+  siret         String?       @unique
+
+  // Informations légales
+  legalForm     String?       // SARL, SAS, etc.
+  gerant        String?       // Nom du gérant
+
+  // Informations business
+  industry      String?
+  employees     Int?
+  revenue       Float?        // CA annuel
+
+  // Scoring solvabilité (COFACE)
+  solvencyScore Int?          // Score 0-100
+  solvencyDate  DateTime?     // Date du dernier calcul
+
+  // Statut
+  status        CompanyStatus @default(PROSPECT)
+
+  // Localisation
+  address       String?
+  city          String?
+  postalCode    String?
+  country       String?       @default("France")
+  latitude      Float?        // Pour carte de France
+  longitude     Float?
+
+  // Contact info
+  website       String?
+  phone         String?
+  email         String?
+
+  // Assignation
+  assignedToId  String?
+  assignedTo    User?         @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  // Métadonnées
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  contacts      Contact[]
+  deals         Deal[]
+  notes         Note[]
+  clients       Client[]
+
+  @@index([siret])
+  @@index([assignedToId])
+  @@index([status])
+  @@map("companies")
+}
+
+// ============================================
+// CRM - DEALS
+// ============================================
+
+enum DealStage {
+  DECOUVERTE
+  QUALIFICATION
+  PROPOSITION
+  NEGOCIATION
+  GAGNE
+  PERDU
+}
+
+model Deal {
+  id            String      @id @default(cuid())
+  title         String
+  description   String?     @db.Text
+
+  // Montant
+  value         Float
+  currency      String      @default("EUR")
+
+  // Étape et scoring
+  stage         DealStage   @default(DECOUVERTE)
+  probability   Int         @default(50) // Score manuel 0-100
+
+  // Dates
+  expectedCloseDate DateTime?
+  closedAt      DateTime?
+
+  // Relations
+  contactId     String?
+  contact       Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  companyId     String?
+  company       Company?    @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  ownerId       String
+  owner         User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // Métadonnées
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  activities    Activity[]
+  notes         Note[]
+  products      DealProduct[]
+
+  @@index([contactId])
+  @@index([companyId])
+  @@index([ownerId])
+  @@index([stage])
+  @@map("deals")
+}
+
+model DealProduct {
+  id          String   @id @default(cuid())
+  dealId      String
+  deal        Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?  @db.Text
+  quantity    Int      @default(1)
+  unitPrice   Float
+  totalPrice  Float    // quantity * unitPrice
+
+  createdAt   DateTime @default(now())
+
+  @@index([dealId])
+  @@map("deal_products")
+}
+
+// ============================================
+// CRM - ACTIVITIES
+// ============================================
+
+enum ActivityType {
+  APPEL
+  EMAIL
+  REUNION
+  VISIO
+}
+
+enum ActivityStatus {
+  PLANIFIEE
+  COMPLETEE
+  ANNULEE
+}
+
+enum ActivityPriority {
+  HAUTE
+  MOYENNE
+  BASSE
+}
+
+model Activity {
+  id            String          @id @default(cuid())
+  title         String
+  description   String?         @db.Text
+  type          ActivityType
+  status        ActivityStatus  @default(PLANIFIEE)
+  priority      ActivityPriority @default(MOYENNE)
+
+  // Date et durée
+  scheduledAt   DateTime
+  duration      Int?            // en minutes
+  completedAt   DateTime?
+
+  // Relations
+  contactId     String?
+  contact       Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  dealId        String?
+  deal          Deal?           @relation(fields: [dealId], references: [id], onDelete: SetNull)
+
+  assignedToId  String
+  assignedTo    User            @relation(fields: [assignedToId], references: [id], onDelete: Cascade)
+
+  // Intégration AIRCALL
+  aircallCallId String?         @unique
+
+  // Métadonnées
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([contactId])
+  @@index([dealId])
+  @@index([assignedToId])
+  @@index([scheduledAt])
+  @@map("activities")
+}
+
+// ============================================
+// VENTES - QUOTES & INVOICES
+// ============================================
+
+enum QuoteStatus {
+  BROUILLON
+  ENVOYE
+  ACCEPTE
+  REFUSE
+  EXPIRE
+}
+
+model Quote {
+  id            String      @id @default(cuid())
+  number        String      @unique // QU-2025-001
+
+  // Client
+  contactId     String?
+  contact       Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  clientName    String
+  clientEmail   String
+  clientAddress String?     @db.Text
+
+  // Montants
+  subtotal      Float       // HT
+  taxRate       Float       @default(20) // TVA en %
+  taxAmount     Float       // Montant TVA
+  total         Float       // TTC
+
+  // Statut et validité
+  status        QuoteStatus @default(BROUILLON)
+  validityDays  Int         @default(30)
+  expiresAt     DateTime?
+
+  // Dates
+  issuedAt      DateTime    @default(now())
+  acceptedAt    DateTime?
+
+  // Conditions
+  paymentTerms  String?     @db.Text
+  notes         String?     @db.Text
+
+  // Signature YOUSIGN
+  yousignId     String?
+  signedAt      DateTime?
+  signatureUrl  String?
+
+  // Relations
+  ownerId       String
+  owner         User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  products      QuoteProduct[]
+  invoice       Invoice?
+
+  // Métadonnées
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([number])
+  @@map("quotes")
+}
+
+model QuoteProduct {
+  id          String   @id @default(cuid())
+  quoteId     String
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?  @db.Text
+  quantity    Int      @default(1)
+  unitPrice   Float
+  totalPrice  Float
+
+  @@index([quoteId])
+  @@map("quote_products")
+}
+
+enum InvoiceStatus {
+  BROUILLON
+  ENVOYEE
+  PAYEE
+  EN_ATTENTE
+  EN_RETARD
+  ANNULEE
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  number        String        @unique // FA-2025-001
+
+  // Lien avec devis
+  quoteId       String?       @unique
+  quote         Quote?        @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+
+  // Client
+  clientName    String
+  clientEmail   String
+  clientAddress String?       @db.Text
+
+  // Montants
+  subtotal      Float
+  taxRate       Float         @default(20)
+  taxAmount     Float
+  total         Float
+
+  // Statut et paiement
+  status        InvoiceStatus @default(BROUILLON)
+  issuedAt      DateTime      @default(now())
+  dueAt         DateTime
+  paidAt        DateTime?
+
+  // Paiement
+  paymentMethod String?       // Virement, CB, etc.
+
+  // Relations
+  ownerId       String
+  owner         User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  products      InvoiceProduct[]
+
+  // Métadonnées
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([number])
+  @@map("invoices")
+}
+
+model InvoiceProduct {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?  @db.Text
+  quantity    Int      @default(1)
+  unitPrice   Float
+  totalPrice  Float
+
+  @@index([invoiceId])
+  @@map("invoice_products")
+}
+
+// ============================================
+// MARKETING
+// ============================================
+
+enum CampaignType {
+  EMAIL
+  SOCIAL_MEDIA
+  PAID_ADS
+  EVENT
+}
+
+enum CampaignStatus {
+  BROUILLON
+  PLANIFIEE
+  ACTIVE
+  TERMINEE
+  PAUSE
+}
+
+model Campaign {
+  id          String          @id @default(cuid())
+  name        String
+  type        CampaignType
+  status      CampaignStatus  @default(BROUILLON)
+
+  // Budget et ROI
+  budget      Float?
+  spent       Float?          @default(0)
+
+  // Métriques
+  reach       Int?            @default(0)
+  clicks      Int?            @default(0)
+  conversions Int?            @default(0)
+
+  // Dates
+  startDate   DateTime?
+  endDate     DateTime?
+
+  // Métadonnées
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("campaigns")
+}
+
+enum SocialPostStatus {
+  BROUILLON
+  PLANIFIE
+  PUBLIE
+}
+
+enum SocialPlatform {
+  FACEBOOK
+  LINKEDIN
+  INSTAGRAM
+  TWITTER
+}
+
+model SocialPost {
+  id          String            @id @default(cuid())
+  content     String            @db.Text
+  platform    SocialPlatform
+  status      SocialPostStatus  @default(BROUILLON)
+
+  // Métriques
+  likes       Int               @default(0)
+  comments    Int               @default(0)
+  shares      Int               @default(0)
+  reach       Int               @default(0)
+
+  // Dates
+  scheduledAt DateTime?
+  publishedAt DateTime?
+
+  // Médias
+  imageUrl    String?
+  videoUrl    String?
+
+  // Métadonnées
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([platform])
+  @@index([status])
+  @@map("social_posts")
+}
+
+// ============================================
+// SERVICE / ACCOUNT MANAGEMENT
+// ============================================
+
+enum TicketType {
+  INTERNAL    // Ticket interne (collaborateurs)
+  CLIENT      // Ticket client externe
+}
+
+enum TicketStatus {
+  OUVERT
+  EN_COURS
+  EN_ATTENTE
+  ESCALADE
+  RESOLU
+  FERME
+}
+
+enum TicketPriority {
+  HAUTE
+  MOYENNE
+  BASSE
+}
+
+model Ticket {
+  id          String          @id @default(cuid())
+  number      String          @unique // TK-2025-001
+  subject     String
+  description String          @db.Text
+  type        TicketType      @default(CLIENT)
+  status      TicketStatus    @default(OUVERT)
+  priority    TicketPriority  @default(MOYENNE)
+
+  // Relations
+  createdById String
+  createdBy   User            @relation("TicketCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  assignedToId String?
+  assignedTo  User?           @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  // Client (si type CLIENT)
+  clientName  String?
+  clientEmail String?
+
+  // SLA
+  resolvedAt  DateTime?
+  responseTime Int?          // en minutes
+
+  // Métadonnées
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  replies     TicketReply[]
+
+  @@index([createdById])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([number])
+  @@map("tickets")
+}
+
+model TicketReply {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  authorId  String
+  content   String   @db.Text
+  isInternal Boolean @default(false) // Note interne non visible au client
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@map("ticket_replies")
+}
+
+enum ReviewSource {
+  GOOGLE
+  PAGES_JAUNES
+  TRIPADVISOR
+  TRUSTPILOT
+}
+
+enum ReviewCompany {
+  DIGIFLOW_AGENCY
+  BE_HYPE
+}
+
+model Review {
+  id          String        @id @default(cuid())
+  source      ReviewSource
+  company     ReviewCompany
+
+  // Avis
+  rating      Int           // 1-5 étoiles
+  author      String
+  content     String?       @db.Text
+  reviewDate  DateTime
+
+  // Réponse
+  response    String?       @db.Text
+  respondedAt DateTime?
+
+  // Métadonnées
+  externalId  String?       // ID de l'avis sur la plateforme externe
+  importedAt  DateTime      @default(now())
+
+  @@index([source])
+  @@index([company])
+  @@index([rating])
+  @@map("reviews")
+}
+
+// ============================================
+// FORMATIONS
+// ============================================
+
+enum FormationCategory {
+  ONBOARDING
+  TECHNIQUES_VENTE
+  PRODUITS
+  OUTILS
+  SOFT_SKILLS
+  TECHNICAL
+}
+
+model Formation {
+  id          String            @id @default(cuid())
+  title       String
+  description String?           @db.Text
+  category    FormationCategory
+
+  // Vidéo
+  videoUrl    String            // URL Vimeo/YouTube
+  duration    Int               // en minutes
+
+  // Certificat
+  hasCertificate Boolean        @default(false)
+
+  // Rôles autorisés (JSON array)
+  allowedRoles String           @db.Text // ["ADMIN", "VENTE"]
+
+  // Ordre d'affichage
+  order       Int               @default(0)
+
+  // Métadonnées
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Relations
+  progress    FormationProgress[]
+
+  @@index([category])
+  @@map("formations")
+}
+
+enum FormationProgressStatus {
+  NON_COMMENCEE
+  EN_COURS
+  COMPLETEE
+}
+
+model FormationProgress {
+  id          String                  @id @default(cuid())
+  userId      String
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  formationId String
+  formation   Formation               @relation(fields: [formationId], references: [id], onDelete: Cascade)
+
+  status      FormationProgressStatus @default(NON_COMMENCEE)
+  progress    Int                     @default(0) // 0-100%
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  lastViewedAt DateTime?
+
+  // Quiz
+  quizScore   Int?                    // Si quiz de validation
+
+  @@unique([userId, formationId])
+  @@index([userId])
+  @@index([formationId])
+  @@map("formation_progress")
+}
+
+// ============================================
+// CLIENTS ACTIFS (Espace Personnel Commercial)
+// ============================================
+
+enum ClientStatus {
+  ACTIF
+  INACTIF
+  CHURN
+}
+
+model Client {
+  id              String        @id @default(cuid())
+
+  // Lien avec Contact/Company
+  contactId       String?
+  companyId       String?
+  company         Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  // Commercial assigné
+  ownerId         String
+  owner           User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // Informations client
+  name            String
+  email           String
+
+  // Contrat
+  status          ClientStatus  @default(ACTIF)
+  contractValue   Float         // MRR ou valeur totale
+  signedAt        DateTime
+  renewalDate     DateTime?
+
+  // Health Score
+  healthScore     Int           @default(50) // 0-100
+
+  // Opportunités
+  upsellOpportunity Boolean     @default(false)
+
+  // Métadonnées
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("clients")
+}
+
+// ============================================
+// NOTES & FILES
+// ============================================
+
+model Note {
+  id          String   @id @default(cuid())
+  content     String   @db.Text
+
+  // Relations polymorphiques (au moins une doit être définie)
+  contactId   String?
+  contact     Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  dealId      String?
+  deal        Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  // Auteur
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Métadonnées
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([contactId])
+  @@index([companyId])
+  @@index([dealId])
+  @@index([authorId])
+  @@map("notes")
+}
+
+// ============================================
+// INTEGRATIONS & APIs
+// ============================================
+
+enum IntegrationStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+model Integration {
+  id          String            @id @default(cuid())
+  name        String            @unique // PAPPERS, COFACE, AIRCALL, etc.
+  status      IntegrationStatus @default(DISCONNECTED)
+
+  // Configuration (JSON)
+  config      String            @db.Text // API Keys, tokens, etc. (encrypted)
+
+  // Sync
+  lastSync    DateTime?
+  syncFrequency Int?            // en minutes
+
+  // Logs
+  errorCount  Int               @default(0)
+  lastError   String?           @db.Text
+
+  // Métadonnées
+  connectedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@map("integrations")
+}
+
+// ============================================
+// ANALYTICS & REPORTS
+// ============================================
+
+enum ReportType {
+  WEEKLY
+  MONTHLY
+  CUSTOM
+}
+
+model AnalyticsReport {
+  id          String      @id @default(cuid())
+  type        ReportType
+
+  // Pour quel site
+  website     String      // digiflow-agency.fr ou be-hype.com
+
+  // Période
+  startDate   DateTime
+  endDate     DateTime
+
+  // Données (JSON)
+  data        String      @db.Text // Métriques stockées en JSON
+
+  // Email envoyé
+  sentAt      DateTime?
+  recipients  String      @db.Text // Emails séparés par virgule
+
+  // Métadonnées
+  generatedAt DateTime    @default(now())
+
+  @@index([website])
+  @@index([type])
+  @@map("analytics_reports")
+}
