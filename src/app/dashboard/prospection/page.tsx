@@ -1,137 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Download, Phone, Mail, MapPin, Building2, Globe, Star } from 'lucide-react';
-
-interface Prospect {
-  id: number;
-  name: string;
-  activity: string;
-  address: string;
-  city: string;
-  phone: string;
-  email: string;
-  website: string;
-  employees: string;
-  rating: number;
-}
-
-const mockProspects: Prospect[] = [
-  {
-    id: 1,
-    name: 'Restaurant La Table Gourmande',
-    activity: 'Restaurant',
-    address: '15 Rue de la Paix',
-    city: 'Paris',
-    phone: '01 42 33 44 55',
-    email: 'contact@tablegourmande.fr',
-    website: 'www.tablegourmande.fr',
-    employees: '10-20',
-    rating: 4.5,
-  },
-  {
-    id: 2,
-    name: 'Boulangerie Artisanale du Centre',
-    activity: 'Boulangerie',
-    address: '28 Avenue Victor Hugo',
-    city: 'Paris',
-    phone: '01 43 22 11 00',
-    email: 'info@boulangeriecentre.fr',
-    website: 'Non renseigné',
-    employees: '5-10',
-    rating: 4.8,
-  },
-  {
-    id: 3,
-    name: 'Coiffure Moderne Style',
-    activity: 'Salon de coiffure',
-    address: '42 Boulevard Haussmann',
-    city: 'Paris',
-    phone: '01 44 55 66 77',
-    email: 'rdv@coiffurestyle.fr',
-    website: 'www.coiffurestyle.fr',
-    employees: '3-5',
-    rating: 4.3,
-  },
-  {
-    id: 4,
-    name: 'Garage Auto Service Plus',
-    activity: 'Garage automobile',
-    address: '89 Route de la Liberation',
-    city: 'Paris',
-    phone: '01 45 77 88 99',
-    email: 'contact@autoserviceplus.fr',
-    website: 'Non renseigné',
-    employees: '10-20',
-    rating: 4.1,
-  },
-  {
-    id: 5,
-    name: 'Bijouterie Prestige',
-    activity: 'Bijouterie',
-    address: '7 Place Vendôme',
-    city: 'Paris',
-    phone: '01 46 88 99 00',
-    email: 'info@bijouxprestige.fr',
-    website: 'www.bijouxprestige.fr',
-    employees: '5-10',
-    rating: 4.9,
-  },
-  {
-    id: 6,
-    name: 'Cabinet Dentaire Sourire',
-    activity: 'Cabinet dentaire',
-    address: '33 Rue du Faubourg',
-    city: 'Paris',
-    phone: '01 47 11 22 33',
-    email: 'rdv@cabinetdentaire.fr',
-    website: 'www.dentisteparis.fr',
-    employees: '5-10',
-    rating: 4.6,
-  },
-  {
-    id: 7,
-    name: 'Fleuriste Le Jardin Enchanté',
-    activity: 'Fleuriste',
-    address: '18 Rue des Roses',
-    city: 'Paris',
-    phone: '01 48 33 44 55',
-    email: 'contact@jardinenchante.fr',
-    website: 'Non renseigné',
-    employees: '1-3',
-    rating: 4.7,
-  },
-  {
-    id: 8,
-    name: 'Pharmacie Centrale',
-    activity: 'Pharmacie',
-    address: '55 Boulevard Saint-Michel',
-    city: 'Paris',
-    phone: '01 49 55 66 77',
-    email: 'pharmacie@centrale.fr',
-    website: 'www.pharmaciecentrale.fr',
-    employees: '5-10',
-    rating: 4.4,
-  },
-];
+import { Search, Download, Phone, Mail, MapPin, Building2, Globe, Star, Loader2 } from 'lucide-react';
+import { useProspects, Prospect } from '@/hooks/useProspects';
 
 export default function ProspectionPage() {
   const [activity, setActivity] = useState('');
   const [city, setCity] = useState('');
-  const [prospects, setProspects] = useState<Prospect[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [selectedProspects, setSelectedProspects] = useState<number[]>([]);
+  const [searchTriggered, setSearchTriggered] = useState(false);
+  const [selectedProspects, setSelectedProspects] = useState<string[]>([]);
+
+  // Utiliser le hook useProspects
+  const { prospects, isLoading, isError, mutate } = useProspects(
+    searchTriggered ? { activity: activity || undefined, city: city || undefined } : {}
+  );
 
   const handleSearch = () => {
-    setSearching(true);
-    // Simulation de recherche
-    setTimeout(() => {
-      setProspects(mockProspects);
-      setSearching(false);
-    }, 1000);
+    setSearchTriggered(true);
+    mutate();
   };
 
-  const toggleSelectProspect = (id: number) => {
+  const toggleSelectProspect = (id: string) => {
     if (selectedProspects.includes(id)) {
       setSelectedProspects(selectedProspects.filter((p) => p !== id));
     } else {
@@ -139,9 +28,19 @@ export default function ProspectionPage() {
     }
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
+    // Marquer les prospects comme importés
+    for (const prospectId of selectedProspects) {
+      await fetch(`/api/prospects/${prospectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imported: true }),
+      });
+    }
+
     alert(`${selectedProspects.length} prospects importés dans le CRM !`);
     setSelectedProspects([]);
+    mutate();
   };
 
   return (
@@ -204,18 +103,39 @@ export default function ProspectionPage() {
             <div className="flex items-end">
               <button
                 onClick={handleSearch}
-                disabled={searching}
+                disabled={isLoading}
                 className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-violet-700 to-orange-500 text-white py-3 px-4 rounded-lg font-semibold hover:from-violet-800 hover:to-orange-600 transition shadow-sm disabled:opacity-50"
               >
                 <Search className="h-5 w-5" />
-                <span>{searching ? 'Recherche...' : 'Rechercher'}</span>
+                <span>{isLoading ? 'Recherche...' : 'Rechercher'}</span>
               </button>
             </div>
           </div>
         </div>
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-violet-600 mx-auto mb-4" />
+            <p className="text-gray-600">Recherche en cours...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {isError && (
+          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+            <p className="text-red-600 mb-4">Erreur lors de la recherche</p>
+            <button
+              onClick={() => mutate()}
+              className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700"
+            >
+              Réessayer
+            </button>
+          </div>
+        )}
+
         {/* Results */}
-        {prospects.length > 0 && (
+        {!isLoading && !isError && searchTriggered && prospects.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             {/* Results Header */}
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
@@ -318,16 +238,20 @@ export default function ProspectionPage() {
                         <div className="space-y-2">
                           <div className="flex items-center text-sm text-gray-900">
                             <Globe className="h-4 w-4 mr-2 text-gray-400" />
-                            <span className={prospect.website === 'Non renseigné' ? 'text-red-600 font-semibold' : ''}>
-                              {prospect.website}
+                            <span className={!prospect.website || prospect.website === 'Non renseigné' ? 'text-red-600 font-semibold' : ''}>
+                              {prospect.website || 'Non renseigné'}
                             </span>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <div className="flex items-center">
-                              <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                              <span className="text-sm font-semibold text-gray-900 ml-1">{prospect.rating}</span>
-                            </div>
-                            <span className="text-xs text-gray-500">• {prospect.employees} employés</span>
+                            {prospect.rating && (
+                              <div className="flex items-center">
+                                <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                                <span className="text-sm font-semibold text-gray-900 ml-1">{prospect.rating}</span>
+                              </div>
+                            )}
+                            {prospect.employees && (
+                              <span className="text-xs text-gray-500">• {prospect.employees} employés</span>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -340,16 +264,18 @@ export default function ProspectionPage() {
         )}
 
         {/* Empty State */}
-        {prospects.length === 0 && !searching && (
+        {!isLoading && !isError && (!searchTriggered || prospects.length === 0) && (
           <div className="bg-white rounded-xl shadow-sm p-12 text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-violet-100 to-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Search className="h-8 w-8 text-violet-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Aucune recherche effectuée
+              {searchTriggered ? 'Aucun prospect trouvé' : 'Aucune recherche effectuée'}
             </h3>
             <p className="text-gray-600">
-              Utilisez le formulaire ci-dessus pour rechercher des prospects
+              {searchTriggered
+                ? 'Essayez avec d\'autres critères de recherche'
+                : 'Utilisez le formulaire ci-dessus pour rechercher des prospects'}
             </p>
           </div>
         )}

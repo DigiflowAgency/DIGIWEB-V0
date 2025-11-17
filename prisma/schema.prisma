@@ -976,3 +976,43 @@ model Sequence {
   @@index([status])
   @@map("sequences")
 }
+
+// ============================================
+// PROSPECTION
+// ============================================
+
+model Prospect {
+  id          String   @id @default(cuid())
+
+  // Informations entreprise
+  name        String
+  activity    String
+
+  // Coordonnées
+  address     String
+  city        String
+  phone       String
+  email       String
+  website     String?
+
+  // Détails
+  employees   String?  // Ex: "10-20"
+  rating      Float?   // Note sur 5
+
+  // Statut d'import
+  imported    Boolean  @default(false)
+  importedAt  DateTime?
+
+  // Relation avec contact/company (si importé)
+  contactId   String?
+  companyId   String?
+
+  // Métadonnées
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([city])
+  @@index([activity])
+  @@index([imported])
+  @@map("prospects")
+}
