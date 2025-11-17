@@ -133,6 +133,7 @@ model Contact {
   deals         Deal[]
   activities    Activity[]
   notes         Note[]
+  quotes        Quote[]
 
   @@index([email])
   @@index([companyId])
