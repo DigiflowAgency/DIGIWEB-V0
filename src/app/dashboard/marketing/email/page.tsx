@@ -1,26 +1,32 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Plus, Search, Send, Eye, Edit, Copy, BarChart3 } from 'lucide-react';
-
-const mockEmails = [
-  { id: 1, subject: 'Newsletter Novembre - Nouveautés', sent: 2500, opened: 1250, clicked: 380, status: 'Envoyé', date: '2024-11-15' },
-  { id: 2, subject: 'Offre Spéciale Black Friday', sent: 0, opened: 0, clicked: 0, status: 'Brouillon', date: '2024-11-18' },
-  { id: 3, subject: 'Rappel: Webinaire SEO Demain', sent: 450, opened: 320, clicked: 180, status: 'Envoyé', date: '2024-11-14' },
-  { id: 4, subject: 'Nouveaux Services Marketing', sent: 3200, opened: 1600, clicked: 520, status: 'Envoyé', date: '2024-11-10' },
-  { id: 5, subject: 'Invitation Événement Décembre', sent: 0, opened: 0, clicked: 0, status: 'Planifié', date: '2024-11-25' },
-  { id: 6, subject: 'Conseils SEO - Édition 42', sent: 2800, opened: 1450, clicked: 420, status: 'Envoyé', date: '2024-11-12' },
-  { id: 7, subject: 'Réactivation Clients Inactifs', sent: 1500, opened: 450, clicked: 85, status: 'Envoyé', date: '2024-11-08' },
-  { id: 8, subject: 'Nouveauté: Dashboard Analytics', sent: 3500, opened: 1950, clicked: 680, status: 'Envoyé', date: '2024-11-05' },
-  { id: 9, subject: 'Sondage Satisfaction Client', sent: 2200, opened: 1100, clicked: 320, status: 'Envoyé', date: '2024-11-13' },
-  { id: 10, subject: 'Promotion Fin d\'Année', sent: 0, opened: 0, clicked: 0, status: 'Brouillon', date: '2024-11-18' },
-];
+import { Mail, Plus, Search, Send, Eye, Edit, Copy, BarChart3, Loader2 } from 'lucide-react';
+import { useEmailCampaigns } from '@/hooks/useEmailCampaigns';
 
 export default function EmailPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const totalSent = mockEmails.reduce((sum, e) => sum + e.sent, 0);
-  const totalOpened = mockEmails.reduce((sum, e) => sum + e.opened, 0);
-  const totalClicked = mockEmails.reduce((sum, e) => sum + e.clicked, 0);
+  const { campaigns, isLoading, isError } = useEmailCampaigns();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600">Erreur lors du chargement</p>
+      </div>
+    );
+  }
+
+  const totalSent = campaigns.reduce((sum, e) => sum + e.sent, 0);
+  const totalOpened = campaigns.reduce((sum, e) => sum + e.opened, 0);
+  const totalClicked = campaigns.reduce((sum, e) => sum + e.clicked, 0);
   const openRate = totalSent > 0 ? ((totalOpened / totalSent) * 100).toFixed(1) : 0;
   const clickRate = totalOpened > 0 ? ((totalClicked / totalOpened) * 100).toFixed(1) : 0;
 
@@ -28,7 +34,7 @@ export default function EmailPage() {
     { label: 'Emails Envoyés', value: totalSent.toLocaleString(), color: 'text-orange-600' },
     { label: 'Taux d\'Ouverture', value: `${openRate}%`, color: 'text-blue-600' },
     { label: 'Taux de Clic', value: `${clickRate}%`, color: 'text-green-600' },
-    { label: 'Brouillons', value: mockEmails.filter(e => e.status === 'Brouillon').length, color: 'text-purple-600' },
+    { label: 'Brouillons', value: campaigns.filter(e => e.status === 'Brouillon').length, color: 'text-purple-600' },
   ];
 
   return (
@@ -85,7 +91,7 @@ export default function EmailPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {mockEmails.filter(e => e.subject.toLowerCase().includes(searchQuery.toLowerCase())).map((email) => (
+              {campaigns.filter(e => e.subject.toLowerCase().includes(searchQuery.toLowerCase())).map((email) => (
                 <tr key={email.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4"><span className="font-semibold text-gray-900">{email.subject}</span></td>
                   <td className="px-6 py-4">

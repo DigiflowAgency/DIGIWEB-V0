@@ -1,27 +1,34 @@
 'use client';
 
 import { useState } from 'react';
-import { LayoutDashboard, Plus, Search, Eye, Edit, Copy, Star } from 'lucide-react';
-
-const mockDashboards = [
-  { id: 1, name: 'Vue Commerciale', description: 'KPIs ventes et deals', widgets: 8, lastUpdated: '2024-11-18', favorite: true },
-  { id: 2, name: 'Performance Marketing', description: 'Campagnes et ROI', widgets: 12, lastUpdated: '2024-11-17', favorite: true },
-  { id: 3, name: 'Support Client', description: 'Tickets et satisfaction', widgets: 6, lastUpdated: '2024-11-16', favorite: false },
-  { id: 4, name: 'Vue Financière', description: 'CA et facturation', widgets: 10, lastUpdated: '2024-11-15', favorite: false },
-  { id: 5, name: 'Pipeline Ventes', description: 'Deals et conversions', widgets: 7, lastUpdated: '2024-11-18', favorite: true },
-  { id: 6, name: 'Analytics Web', description: 'Trafic et conversions', widgets: 9, lastUpdated: '2024-11-14', favorite: false },
-  { id: 7, name: 'Email Marketing', description: 'Campagnes email', widgets: 5, lastUpdated: '2024-11-17', favorite: false },
-  { id: 8, name: 'Vue Executive', description: 'KPIs direction', widgets: 15, lastUpdated: '2024-11-18', favorite: true },
-];
+import { LayoutDashboard, Plus, Search, Eye, Edit, Copy, Star, Loader2 } from 'lucide-react';
+import { useDashboards } from '@/hooks/useDashboards';
 
 export default function DashboardsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const { dashboards, isLoading, isError } = useDashboards();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600">Erreur lors du chargement</p>
+      </div>
+    );
+  }
 
   const stats = [
-    { label: 'Total Dashboards', value: mockDashboards.length, color: 'text-orange-600' },
-    { label: 'Favoris', value: mockDashboards.filter(d => d.favorite).length, color: 'text-yellow-600' },
-    { label: 'Total Widgets', value: mockDashboards.reduce((sum, d) => sum + d.widgets, 0), color: 'text-blue-600' },
-    { label: 'Actifs', value: mockDashboards.length, color: 'text-green-600' },
+    { label: 'Total Dashboards', value: dashboards.length, color: 'text-orange-600' },
+    { label: 'Favoris', value: dashboards.filter(d => d.favorite).length, color: 'text-yellow-600' },
+    { label: 'Total Widgets', value: dashboards.reduce((sum, d) => sum + d.widgets, 0), color: 'text-blue-600' },
+    { label: 'Actifs', value: dashboards.length, color: 'text-green-600' },
   ];
 
   return (
@@ -66,7 +73,7 @@ export default function DashboardsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockDashboards.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase())).map((dashboard) => (
+          {dashboards.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase())).map((dashboard) => (
             <div key={dashboard.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
@@ -88,7 +95,7 @@ export default function DashboardsPage() {
                 <div className="flex items-center justify-between">
                   <span>Mis à jour</span>
                   <span className="font-semibold text-gray-900">
-                    {new Date(dashboard.lastUpdated).toLocaleDateString('fr-FR')}
+                    {new Date(dashboard.updatedAt).toLocaleDateString('fr-FR')}
                   </span>
                 </div>
               </div>

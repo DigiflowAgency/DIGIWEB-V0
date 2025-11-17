@@ -1,101 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Send, Search, Paperclip, MoreVertical, Phone, Video } from 'lucide-react';
-
-interface Message {
-  id: number;
-  text: string;
-  sender: 'user' | 'client';
-  timestamp: string;
-}
-
-interface Conversation {
-  id: number;
-  name: string;
-  lastMessage: string;
-  timestamp: string;
-  unread: number;
-  score: number;
-  avatar: string;
-  messages: Message[];
-}
-
-const mockConversations: Conversation[] = [
-  {
-    id: 1,
-    name: 'Pierre Martin',
-    lastMessage: 'Parfait, je suis intéressé par votre offre',
-    timestamp: '10:30',
-    unread: 2,
-    score: 95,
-    avatar: 'PM',
-    messages: [
-      { id: 1, text: 'Bonjour, je cherche un site web pour mon restaurant', sender: 'client', timestamp: '10:15' },
-      { id: 2, text: 'Bonjour Pierre ! Excellent timing, nous avons des offres spéciales pour les restaurants. Quel type de site recherchez-vous ?', sender: 'user', timestamp: '10:16' },
-      { id: 3, text: 'Un site vitrine avec menu en ligne et réservation', sender: 'client', timestamp: '10:18' },
-      { id: 4, text: 'Parfait ! Nous proposons un package complet : site responsive, module réservation, menu dynamique et SEO local à partir de 4 500€. Vous avez un moment cette semaine pour en discuter ?', sender: 'user', timestamp: '10:20' },
-      { id: 5, text: 'Parfait, je suis intéressé par votre offre', sender: 'client', timestamp: '10:30' },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Sophie Dubois',
-    lastMessage: 'Je peux voir des exemples ?',
-    timestamp: 'Hier',
-    unread: 0,
-    score: 88,
-    avatar: 'SD',
-    messages: [
-      { id: 1, text: 'Bonjour, j\'ai une boutique de mode et je veux un e-commerce', sender: 'client', timestamp: 'Hier 14:30' },
-      { id: 2, text: 'Bonjour Sophie ! Nous sommes spécialisés dans les e-commerce pour la mode. Combien de produits environ ?', sender: 'user', timestamp: 'Hier 14:35' },
-      { id: 3, text: 'Environ 200 produits pour commencer', sender: 'client', timestamp: 'Hier 14:40' },
-      { id: 4, text: 'Je peux voir des exemples ?', sender: 'client', timestamp: 'Hier 15:00' },
-    ],
-  },
-  {
-    id: 3,
-    name: 'Jean Dupont',
-    lastMessage: 'D\'accord, merci',
-    timestamp: 'Hier',
-    unread: 0,
-    score: 82,
-    avatar: 'JD',
-    messages: [
-      { id: 1, text: 'Bonjour, je suis avocat et j\'ai besoin d\'un site vitrine', sender: 'client', timestamp: 'Hier 09:00' },
-      { id: 2, text: 'Bonjour Jean ! Pour un cabinet d\'avocat, nous recommandons un site sobre et professionnel avec présentation des domaines de compétence. Budget envisagé ?', sender: 'user', timestamp: 'Hier 09:10' },
-      { id: 3, text: 'D\'accord, merci', sender: 'client', timestamp: 'Hier 09:15' },
-    ],
-  },
-  {
-    id: 4,
-    name: 'Marie Laurent',
-    lastMessage: 'Oui pourquoi pas',
-    timestamp: 'Mar',
-    unread: 1,
-    score: 76,
-    avatar: 'ML',
-    messages: [
-      { id: 1, text: 'Salut, j\'ai un salon de coiffure', sender: 'client', timestamp: 'Mar 16:00' },
-      { id: 2, text: 'Bonjour Marie ! Parfait, nous avons une solution avec prise de RDV en ligne. Vous utilisez déjà un logiciel de gestion ?', sender: 'user', timestamp: 'Mar 16:05' },
-      { id: 3, text: 'Oui pourquoi pas', sender: 'client', timestamp: 'Mar 16:20' },
-    ],
-  },
-  {
-    id: 5,
-    name: 'Luc Bernard',
-    lastMessage: 'Combien ça coûte ?',
-    timestamp: 'Lun',
-    unread: 0,
-    score: 70,
-    avatar: 'LB',
-    messages: [
-      { id: 1, text: 'Bonjour, je cherche un site pour mon garage', sender: 'client', timestamp: 'Lun 11:00' },
-      { id: 2, text: 'Bonjour Luc ! Site vitrine avec présentation des services, galerie photos et formulaire de contact ?', sender: 'user', timestamp: 'Lun 11:10' },
-      { id: 3, text: 'Combien ça coûte ?', sender: 'client', timestamp: 'Lun 11:30' },
-    ],
-  },
-];
+import { Send, Search, Paperclip, MoreVertical, Phone, Video, Loader2 } from 'lucide-react';
+import { useWhatsApp, WhatsAppConversation } from '@/hooks/useWhatsApp';
 
 const getScoreBadge = (score: number) => {
   if (score >= 90) return { label: 'TRES_CHAUD', color: 'bg-red-500' };
@@ -105,13 +12,35 @@ const getScoreBadge = (score: number) => {
 };
 
 export default function WhatsAppPage() {
-  const [selectedConversation, setSelectedConversation] = useState<Conversation>(mockConversations[0]);
+  const { conversations, isLoading, isError } = useWhatsApp();
+  const [selectedConversation, setSelectedConversation] = useState<WhatsAppConversation | null>(null);
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredConversations = mockConversations.filter((conv) =>
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600">Erreur lors du chargement</p>
+      </div>
+    );
+  }
+
+  const filteredConversations = conversations.filter((conv) =>
     conv.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Set initial selected conversation if not set
+  if (!selectedConversation && filteredConversations.length > 0) {
+    setSelectedConversation(filteredConversations[0]);
+  }
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -146,20 +75,21 @@ export default function WhatsAppPage() {
         {/* Conversations */}
         <div className="flex-1 overflow-y-auto">
           {filteredConversations.map((conv) => {
-            const badge = getScoreBadge(conv.score);
+            const badge = getScoreBadge(conv.score || 0);
+            const initials = conv.avatar || conv.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
             return (
               <div
                 key={conv.id}
                 onClick={() => setSelectedConversation(conv)}
                 className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition ${
-                  selectedConversation.id === conv.id ? 'bg-violet-50' : ''
+                  selectedConversation?.id === conv.id ? 'bg-violet-50' : ''
                 }`}
               >
                 <div className="flex items-start space-x-3">
                   {/* Avatar */}
                   <div className="flex-shrink-0">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-600 to-orange-500 flex items-center justify-center">
-                      <span className="text-white font-semibold text-sm">{conv.avatar}</span>
+                      <span className="text-white font-semibold text-sm">{initials}</span>
                     </div>
                   </div>
 
@@ -167,12 +97,14 @@ export default function WhatsAppPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="text-sm font-semibold text-gray-900 truncate">{conv.name}</h3>
-                      <span className="text-xs text-gray-500 ml-2 flex-shrink-0">{conv.timestamp}</span>
+                      <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                        {conv.lastMessageAt ? new Date(conv.lastMessageAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </span>
                     </div>
-                    <p className="text-sm text-gray-600 truncate mb-2">{conv.lastMessage}</p>
+                    <p className="text-sm text-gray-600 truncate mb-2">{conv.lastMessage || 'Aucun message'}</p>
                     <div className="flex items-center justify-between">
                       <span className={`px-2 py-0.5 text-xs font-bold text-white ${badge.color} rounded`}>
-                        {conv.score}
+                        {conv.score || 0}
                       </span>
                       {conv.unread > 0 && (
                         <span className="px-2 py-0.5 text-xs font-bold bg-violet-600 text-white rounded-full">
@@ -190,44 +122,48 @@ export default function WhatsAppPage() {
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col bg-gray-50">
-        {/* Chat Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-600 to-orange-500 flex items-center justify-center">
-                <span className="text-white font-semibold text-sm">{selectedConversation.avatar}</span>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">{selectedConversation.name}</h3>
+        {selectedConversation ? (
+          <>
+            {/* Chat Header */}
+            <div className="bg-white border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-600 to-orange-500 flex items-center justify-center">
+                    <span className="text-white font-semibold text-sm">
+                      {selectedConversation.avatar || selectedConversation.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{selectedConversation.name}</h3>
+                    <div className="flex items-center space-x-2">
+                      <span
+                        className={`px-2 py-0.5 text-xs font-bold text-white ${
+                          getScoreBadge(selectedConversation.score || 0).color
+                        } rounded`}
+                      >
+                        Score: {selectedConversation.score || 0}
+                      </span>
+                      <span className="text-xs text-green-600">En ligne</span>
+                    </div>
+                  </div>
+                </div>
                 <div className="flex items-center space-x-2">
-                  <span
-                    className={`px-2 py-0.5 text-xs font-bold text-white ${
-                      getScoreBadge(selectedConversation.score).color
-                    } rounded`}
-                  >
-                    Score: {selectedConversation.score}
-                  </span>
-                  <span className="text-xs text-green-600">En ligne</span>
+                  <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                    <Phone className="h-5 w-5" />
+                  </button>
+                  <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                    <Video className="h-5 w-5" />
+                  </button>
+                  <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                    <MoreVertical className="h-5 w-5" />
+                  </button>
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
-                <Phone className="h-5 w-5" />
-              </button>
-              <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
-                <Video className="h-5 w-5" />
-              </button>
-              <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
-                <MoreVertical className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {selectedConversation.messages.map((msg) => (
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {selectedConversation.messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-md ${msg.sender === 'user' ? 'order-2' : 'order-1'}`}>
                 <div
@@ -240,7 +176,7 @@ export default function WhatsAppPage() {
                   <p className="text-sm">{msg.text}</p>
                 </div>
                 <p className={`text-xs text-gray-500 mt-1 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
-                  {msg.timestamp}
+                  {new Date(msg.sentAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
             </div>
@@ -269,6 +205,12 @@ export default function WhatsAppPage() {
             </button>
           </div>
         </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-gray-500">Sélectionnez une conversation pour commencer</p>
+          </div>
+        )}
       </div>
     </div>
   );

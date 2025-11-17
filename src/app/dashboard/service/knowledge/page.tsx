@@ -1,28 +1,34 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Plus, Search, Eye, Edit, Folder } from 'lucide-react';
-
-const mockArticles = [
-  { id: 1, title: 'Comment créer une campagne email', category: 'Marketing', views: 245, updated: '2024-11-15' },
-  { id: 2, title: 'Guide SEO pour débutants', category: 'SEO', views: 892, updated: '2024-11-12' },
-  { id: 3, title: 'Configurer votre dashboard', category: 'Aide', views: 456, updated: '2024-11-10' },
-  { id: 4, title: 'Optimiser votre site web', category: 'SEO', views: 623, updated: '2024-11-08' },
-  { id: 5, title: 'Gérer les contacts CRM', category: 'CRM', views: 334, updated: '2024-11-14' },
-  { id: 6, title: 'Créer des rapports personnalisés', category: 'Analytics', views: 289, updated: '2024-11-11' },
-  { id: 7, title: 'FAQ Facturation', category: 'Aide', views: 512, updated: '2024-11-13' },
-  { id: 8, title: 'Intégrations tierces', category: 'Technique', views: 178, updated: '2024-11-09' },
-  { id: 9, title: 'Best practices réseaux sociaux', category: 'Marketing', views: 445, updated: '2024-11-07' },
-  { id: 10, title: 'Sécurité et confidentialité', category: 'Aide', views: 367, updated: '2024-11-16' },
-];
+import { BookOpen, Plus, Search, Eye, Edit, Folder, Loader2 } from 'lucide-react';
+import { useKnowledge } from '@/hooks/useKnowledge';
 
 export default function KnowledgePage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const stats = [
-    { label: 'Total Articles', value: mockArticles.length, color: 'text-orange-600' },
-    { label: 'Vues Totales', value: mockArticles.reduce((sum, a) => sum + a.views, 0).toLocaleString(), color: 'text-blue-600' },
-    { label: 'Catégories', value: new Set(mockArticles.map(a => a.category)).size, color: 'text-green-600' },
-    { label: 'Vues Moyennes', value: Math.round(mockArticles.reduce((sum, a) => sum + a.views, 0) / mockArticles.length), color: 'text-purple-600' },
+  const { articles, stats, isLoading, isError } = useKnowledge({ search: searchQuery || undefined });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600">Erreur lors du chargement</p>
+      </div>
+    );
+  }
+
+  const statsDisplay = [
+    { label: 'Total Articles', value: stats.total, color: 'text-orange-600' },
+    { label: 'Vues Totales', value: stats.totalViews.toLocaleString(), color: 'text-blue-600' },
+    { label: 'Catégories', value: stats.categories, color: 'text-green-600' },
+    { label: 'Vues Moyennes', value: stats.avgViews, color: 'text-purple-600' },
   ];
 
   return (
@@ -45,7 +51,7 @@ export default function KnowledgePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {stats.map((stat, index) => (
+          {statsDisplay.map((stat, index) => (
             <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
               <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
               <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
@@ -67,7 +73,7 @@ export default function KnowledgePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockArticles.filter(a => a.title.toLowerCase().includes(searchQuery.toLowerCase())).map((article) => (
+          {articles.map((article) => (
             <div key={article.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-2 text-sm text-orange-600 font-semibold">
@@ -81,7 +87,7 @@ export default function KnowledgePage() {
               </div>
               <h3 className="font-semibold text-gray-900 mb-3">{article.title}</h3>
               <div className="flex items-center justify-between text-sm text-gray-500">
-                <span>Mis à jour: {new Date(article.updated).toLocaleDateString('fr-FR')}</span>
+                <span>Mis à jour: {new Date(article.updatedAt).toLocaleDateString('fr-FR')}</span>
               </div>
               <div className="flex gap-2 mt-4">
                 <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
