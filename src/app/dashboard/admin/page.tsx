@@ -22,58 +22,9 @@ import {
   Target,
   Clock,
   Thermometer,
+  Loader2,
 } from 'lucide-react';
-
-const usersData = [
-  {
-    id: 1,
-    name: 'Jason Sotoca',
-    email: 'jason@digiweb.fr',
-    role: 'admin',
-    status: 'active',
-    avatar: 'JS',
-  },
-  {
-    id: 2,
-    name: 'Marie Dupont',
-    email: 'marie@digiweb.fr',
-    role: 'commercial',
-    status: 'active',
-    avatar: 'MD',
-  },
-  {
-    id: 3,
-    name: 'Thomas Martin',
-    email: 'thomas@digiweb.fr',
-    role: 'commercial',
-    status: 'active',
-    avatar: 'TM',
-  },
-  {
-    id: 4,
-    name: 'Sophie Bernard',
-    email: 'sophie@digiweb.fr',
-    role: 'manager',
-    status: 'active',
-    avatar: 'SB',
-  },
-  {
-    id: 5,
-    name: 'Lucas Petit',
-    email: 'lucas@digiweb.fr',
-    role: 'commercial',
-    status: 'inactive',
-    avatar: 'LP',
-  },
-  {
-    id: 6,
-    name: 'Emma Rousseau',
-    email: 'emma@digiweb.fr',
-    role: 'support',
-    status: 'active',
-    avatar: 'ER',
-  },
-];
+import { useUsers } from '@/hooks/useUsers';
 
 const integrations = [
   {
@@ -149,6 +100,7 @@ const roleColors = {
 };
 
 export default function AdminPage() {
+  const { users, isLoading, isError } = useUsers();
   const [activeTab, setActiveTab] = useState<'users' | 'ai' | 'integrations' | 'analytics'>('users');
   const [systemPrompt, setSystemPrompt] = useState(
     "Tu es un assistant commercial pour DigiWeb, une agence digitale spécialisée en création de sites web, SEO, et marketing digital. Tu dois qualifier les prospects et fixer des rendez-vous avec les leads chauds."
@@ -157,6 +109,14 @@ export default function AdminPage() {
   const [rdvThreshold, setRdvThreshold] = useState(80);
   const [relanceDelays, setRelanceDelays] = useState(['24h', '48h', '7j']);
   const [newDelay, setNewDelay] = useState('');
+
+  const usersData = users.map(u => ({
+    ...u,
+    name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Utilisateur',
+    avatar: `${u.firstName?.[0] || ''}${u.lastName?.[0] || ''}`.toUpperCase() || 'U',
+    status: 'active' as const,
+    role: u.role.toLowerCase(),
+  }));
 
   const addDelay = () => {
     if (newDelay && !relanceDelays.includes(newDelay)) {
@@ -168,6 +128,22 @@ export default function AdminPage() {
   const removeDelay = (delay: string) => {
     setRelanceDelays(relanceDelays.filter(d => d !== delay));
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600">Erreur lors du chargement</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen gradient-mesh py-8">

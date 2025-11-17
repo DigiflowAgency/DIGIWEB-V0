@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   BarChart3,
   Plus,
@@ -9,40 +9,96 @@ import {
   Target,
   Activity,
   ChevronRight,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react';
+import { useDeals } from '@/hooks/useDeals';
 
-const pipelineStages = [
-  { id: 1, name: 'Prospection', deals: 12, value: 48500, color: 'bg-purple-500' },
-  { id: 2, name: 'Qualification', deals: 8, value: 36200, color: 'bg-blue-500' },
-  { id: 3, name: 'Proposition', deals: 6, value: 28900, color: 'bg-yellow-500' },
-  { id: 4, name: 'Négociation', deals: 4, value: 22400, color: 'bg-orange-500' },
-  { id: 5, name: 'Clôture', deals: 3, value: 18200, color: 'bg-green-500' },
+type DealStage = 'DECOUVERTE' | 'QUALIFICATION' | 'PROPOSITION' | 'NEGOCIATION' | 'GAGNE';
+
+const stageConfig = [
+  { id: 'DECOUVERTE' as DealStage, name: 'Découverte', color: 'bg-purple-500' },
+  { id: 'QUALIFICATION' as DealStage, name: 'Qualification', color: 'bg-blue-500' },
+  { id: 'PROPOSITION' as DealStage, name: 'Proposition', color: 'bg-yellow-500' },
+  { id: 'NEGOCIATION' as DealStage, name: 'Négociation', color: 'bg-orange-500' },
+  { id: 'GAGNE' as DealStage, name: 'Gagné', color: 'bg-green-500' },
 ];
 
-const recentDeals = [
-  { id: 1, title: 'Site Web Restaurant', stage: 'Négociation', value: 4500, probability: 75, daysInStage: 3, trend: 'up' },
-  { id: 2, title: 'E-commerce Mode', stage: 'Proposition', value: 6200, probability: 60, daysInStage: 5, trend: 'stable' },
-  { id: 3, title: 'Site Vitrine Avocat', stage: 'Qualification', value: 2800, probability: 40, daysInStage: 2, trend: 'up' },
-  { id: 4, title: 'Portail Immobilier', stage: 'Négociation', value: 8900, probability: 85, daysInStage: 7, trend: 'up' },
-  { id: 5, title: 'SEO + Ads Librairie', stage: 'Qualification', value: 2900, probability: 45, daysInStage: 3, trend: 'down' },
-  { id: 6, title: 'E-commerce Bio', stage: 'Proposition', value: 4800, probability: 70, daysInStage: 4, trend: 'up' },
-  { id: 7, title: 'Site Web Yoga', stage: 'Proposition', value: 2500, probability: 65, daysInStage: 5, trend: 'stable' },
-  { id: 8, title: 'Site + SEO Spa', stage: 'Négociation', value: 3600, probability: 75, daysInStage: 3, trend: 'up' },
-];
+const getStageLabel = (stage: string) => {
+  const config = stageConfig.find(s => s.id === stage);
+  return config?.name || stage;
+};
 
-const conversionRates = [
-  { from: 'Prospection', to: 'Qualification', rate: 67 },
-  { from: 'Qualification', to: 'Proposition', rate: 75 },
-  { from: 'Proposition', to: 'Négociation', rate: 67 },
-  { from: 'Négociation', to: 'Clôture', rate: 75 },
-];
+const getDaysInStage = (updatedAt: string) => {
+  const updated = new Date(updatedAt);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - updated.getTime());
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
 
 export default function PipelinePage() {
+  const { deals, isLoading, isError } = useDeals();
+
+  const pipelineStages = useMemo(() => {
+    return stageConfig.map(config => {
+      const stageDeals = deals.filter(d => d.stage === config.id);
+      return {
+        id: config.id,
+        name: config.name,
+        color: config.color,
+        deals: stageDeals.length,
+        value: stageDeals.reduce((sum, d) => sum + d.value, 0),
+      };
+    });
+  }, [deals]);
+
+  const recentDeals = useMemo(() => {
+    return deals
+      .filter(d => d.stage !== 'PERDU' && d.stage !== 'GAGNE')
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 8)
+      .map(d => ({
+        ...d,
+        daysInStage: getDaysInStage(d.updatedAt),
+        trend: d.probability >= 70 ? 'up' as const : d.probability <= 40 ? 'down' as const : 'stable' as const,
+      }));
+  }, [deals]);
+
+  const conversionRates = useMemo(() => {
+    return stageConfig.slice(0, -1).map((stage, index) => {
+      const currentStageCount = pipelineStages[index].deals;
+      const nextStageCount = pipelineStages[index + 1].deals;
+      const rate = currentStageCount > 0 ? Math.round((nextStageCount / currentStageCount) * 100) : 0;
+      return {
+        from: stage.name,
+        to: stageConfig[index + 1].name,
+        rate,
+      };
+    });
+  }, [pipelineStages]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600">Erreur lors du chargement</p>
+      </div>
+    );
+  }
+
   const totalValue = pipelineStages.reduce((sum, stage) => sum + stage.value, 0);
   const totalDeals = pipelineStages.reduce((sum, stage) => sum + stage.deals, 0);
-  const avgDealSize = Math.round(totalValue / totalDeals);
-  const overallConversion = Math.round(conversionRates.reduce((sum, rate) => sum + rate.rate, 0) / conversionRates.length);
+  const avgDealSize = totalDeals > 0 ? Math.round(totalValue / totalDeals) : 0;
+  const overallConversion = conversionRates.length > 0
+    ? Math.round(conversionRates.reduce((sum, rate) => sum + rate.rate, 0) / conversionRates.length)
+    : 0;
 
   const stats = [
     { label: 'Valeur Pipeline', value: `${totalValue.toLocaleString()}€`, color: 'text-orange-600', icon: Euro },
@@ -158,7 +214,7 @@ export default function PipelinePage() {
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900 mb-1">{deal.title}</h3>
-                      <span className="text-sm text-gray-600">{deal.stage}</span>
+                      <span className="text-sm text-gray-600">{getStageLabel(deal.stage)}</span>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-orange-600">{deal.value.toLocaleString()}€</p>
