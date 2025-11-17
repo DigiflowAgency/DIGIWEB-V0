@@ -1059,3 +1059,22 @@ model WhatsAppMessage {
   @@index([sentAt])
   @@map("whatsapp_messages")
 }
+
+// ============================================
+// KNOWLEDGE BASE
+// ============================================
+
+model KnowledgeArticle {
+  id          String   @id @default(cuid())
+  title       String
+  category    String
+  content     String   @db.Text
+  views       Int      @default(0)
+
+  // Métadonnées
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@map("knowledge_articles")
+}
