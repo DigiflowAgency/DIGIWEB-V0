@@ -14,43 +14,27 @@ import {
   CheckCircle2,
   User,
   Building2,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
-
-const mockActivities = [
-  { id: 1, type: 'call', title: 'Appel de suivi', contact: 'Pierre Martin', company: 'Restaurant Le Gourmet', date: '2024-11-18', time: '14:00', duration: '30min', status: 'Planifié', priority: 'High' },
-  { id: 2, type: 'meeting', title: 'Présentation devis', contact: 'Sophie Dubois', company: 'Boutique Mode Élégance', date: '2024-11-18', time: '16:00', duration: '1h', status: 'Planifié', priority: 'High' },
-  { id: 3, type: 'email', title: 'Envoi proposition', contact: 'Jean Dupont', company: 'Cabinet Avocat Dupont', date: '2024-11-18', time: '10:30', duration: '-', status: 'Terminé', priority: 'Medium' },
-  { id: 4, type: 'call', title: 'Premier contact', contact: 'Marie Lambert', company: 'Salon Tendance', date: '2024-11-19', time: '09:00', duration: '20min', status: 'Planifié', priority: 'Medium' },
-  { id: 5, type: 'video', title: 'Démo produit', contact: 'Thomas Bernard', company: 'Garage Auto Pro', date: '2024-11-19', time: '11:00', duration: '45min', status: 'Planifié', priority: 'High' },
-  { id: 6, type: 'meeting', title: 'Signature contrat', contact: 'Emma Rousseau', company: 'Boulangerie Tradition', date: '2024-11-17', time: '15:00', duration: '30min', status: 'Terminé', priority: 'High' },
-  { id: 7, type: 'call', title: 'Relance prospect', contact: 'Lucas Petit', company: 'Pharmacie Santé', date: '2024-11-19', time: '14:30', duration: '15min', status: 'Planifié', priority: 'Low' },
-  { id: 8, type: 'email', title: 'Follow-up devis', contact: 'Camille Moreau', company: 'Fleuriste Jardin', date: '2024-11-17', time: '11:00', duration: '-', status: 'Terminé', priority: 'Low' },
-  { id: 9, type: 'meeting', title: 'Kick-off projet', contact: 'Antoine Leroy', company: 'Bistrot Gourmand', date: '2024-11-20', time: '10:00', duration: '2h', status: 'Planifié', priority: 'High' },
-  { id: 10, type: 'call', title: 'Qualification lead', contact: 'Julie Blanc', company: 'Librairie Lecture', date: '2024-11-20', time: '15:00', duration: '20min', status: 'Planifié', priority: 'Medium' },
-  { id: 11, type: 'email', title: 'Documentation technique', contact: 'Nicolas Garnier', company: 'Épicerie Bio', date: '2024-11-18', time: '09:00', duration: '-', status: 'Terminé', priority: 'Medium' },
-  { id: 12, type: 'video', title: 'Formation utilisateur', contact: 'Isabelle Dupuis', company: 'Studio Yoga Zen', date: '2024-11-21', time: '14:00', duration: '1h', status: 'Planifié', priority: 'Medium' },
-  { id: 13, type: 'meeting', title: 'Revue trimestrielle', contact: 'Maxime Fontaine', company: 'Agence Immobilière', date: '2024-11-21', time: '16:00', duration: '1h30', status: 'Planifié', priority: 'High' },
-  { id: 14, type: 'call', title: 'Support client', contact: 'Sarah Cohen', company: 'Spa Beauté', date: '2024-11-19', time: '16:30', duration: '15min', status: 'Planifié', priority: 'Low' },
-  { id: 15, type: 'email', title: 'Proposition commerciale', contact: 'Olivier Roux', company: 'Traiteur Gourmet', date: '2024-11-20', time: '11:30', duration: '-', status: 'Planifié', priority: 'High' },
-];
+import { useActivities } from '@/hooks/useActivities';
 
 const getActivityIcon = (type: string) => {
   switch (type) {
-    case 'call': return Phone;
-    case 'meeting': return Calendar;
-    case 'email': return Mail;
-    case 'video': return Video;
+    case 'APPEL': return Phone;
+    case 'REUNION': return Calendar;
+    case 'EMAIL': return Mail;
+    case 'VISIO': return Video;
     default: return MessageSquare;
   }
 };
 
 const getActivityColor = (type: string) => {
   switch (type) {
-    case 'call': return 'bg-blue-100 text-blue-600';
-    case 'meeting': return 'bg-orange-100 text-orange-600';
-    case 'email': return 'bg-purple-100 text-purple-600';
-    case 'video': return 'bg-green-100 text-green-600';
+    case 'APPEL': return 'bg-blue-100 text-blue-600';
+    case 'REUNION': return 'bg-orange-100 text-orange-600';
+    case 'EMAIL': return 'bg-purple-100 text-purple-600';
+    case 'VISIO': return 'bg-green-100 text-green-600';
     default: return 'bg-gray-100 text-gray-600';
   }
 };
@@ -60,30 +44,58 @@ export default function ActivitiesPage() {
   const [selectedType, setSelectedType] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
-  const filteredActivities = mockActivities.filter(activity => {
-    const matchesSearch = activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         activity.contact.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         activity.company.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = selectedType === 'all' || activity.type === selectedType;
-    const matchesStatus = selectedStatus === 'all' || activity.status.toLowerCase() === selectedStatus.toLowerCase();
-    return matchesSearch && matchesType && matchesStatus;
+  // Utiliser le hook useActivities pour récupérer les données depuis l'API
+  const { activities, stats, isLoading, isError } = useActivities({
+    search: searchQuery || undefined,
+    type: selectedType !== 'all' ? selectedType.toUpperCase() : undefined,
+    status: selectedStatus !== 'all' ? selectedStatus.toUpperCase() : undefined,
   });
 
   // Group activities by date
-  const groupedActivities = filteredActivities.reduce((acc, activity) => {
-    if (!acc[activity.date]) {
-      acc[activity.date] = [];
+  const groupedActivities = activities.reduce((acc, activity) => {
+    const date = new Date(activity.scheduledAt).toISOString().split('T')[0];
+    if (!acc[date]) {
+      acc[date] = [];
     }
-    acc[activity.date].push(activity);
+    acc[date].push(activity);
     return acc;
-  }, {} as Record<string, typeof mockActivities>);
+  }, {} as Record<string, typeof activities>);
 
-  const stats = [
-    { label: 'Total Activités', value: mockActivities.length, color: 'text-orange-600' },
-    { label: 'Planifiées', value: mockActivities.filter(a => a.status === 'Planifié').length, color: 'text-blue-600' },
-    { label: 'Terminées', value: mockActivities.filter(a => a.status === 'Terminé').length, color: 'text-green-600' },
-    { label: "Aujourd'hui", value: mockActivities.filter(a => a.date === '2024-11-18').length, color: 'text-purple-600' },
+  const statsDisplay = [
+    { label: 'Total Activités', value: stats.total, color: 'text-orange-600' },
+    { label: 'Planifiées', value: stats.planifiees, color: 'text-blue-600' },
+    { label: 'Terminées', value: stats.completees, color: 'text-green-600' },
+    { label: "Aujourd'hui", value: stats.aujourdhui, color: 'text-purple-600' },
   ];
+
+  // État de chargement
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-violet-600 mx-auto" />
+          <p className="mt-4 text-gray-600">Chargement des activités...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // État d'erreur
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">Erreur lors du chargement des activités</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 btn-primary"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -107,7 +119,7 @@ export default function ActivitiesPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {stats.map((stat, index) => (
+          {statsDisplay.map((stat, index) => (
             <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
               <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
               <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
@@ -134,10 +146,10 @@ export default function ActivitiesPage() {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               <option value="all">Tous les types</option>
-              <option value="call">Appels</option>
-              <option value="meeting">Réunions</option>
+              <option value="appel">Appels</option>
+              <option value="reunion">Réunions</option>
               <option value="email">Emails</option>
-              <option value="video">Visio</option>
+              <option value="visio">Visio</option>
             </select>
             <select
               value={selectedStatus}
@@ -145,8 +157,9 @@ export default function ActivitiesPage() {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               <option value="all">Tous les statuts</option>
-              <option value="planifié">Planifiées</option>
-              <option value="terminé">Terminées</option>
+              <option value="planifiee">Planifiées</option>
+              <option value="completee">Terminées</option>
+              <option value="annulee">Annulées</option>
             </select>
             <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
               <Filter className="h-5 w-5" />
