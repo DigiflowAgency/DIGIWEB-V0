@@ -1113,3 +1113,24 @@ model CustomDashboard {
 
   @@map("custom_dashboards")
 }
+
+// ============================================
+// PRODUCTS / SERVICES
+// ============================================
+
+model Product {
+  id           String   @id @default(cuid())
+  name         String
+  category     String
+  description  String?
+  price        Float
+  monthlyPrice Float?
+  features     Json     // JSON array of features
+  popular      Boolean  @default(false)
+  active       Boolean  @default(true)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("products")
+}

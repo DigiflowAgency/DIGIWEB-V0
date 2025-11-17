@@ -19,124 +19,9 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
-
-const packs = [
-  {
-    id: 1,
-    name: 'Site Vitrine Pro',
-    category: 'Web',
-    price: '2 990 €',
-    monthlyPrice: '99 €/mois',
-    description: 'Site web professionnel pour votre entreprise',
-    icon: Package,
-    color: 'from-violet-600 to-violet-700',
-    features: [
-      'Design responsive moderne',
-      '5 pages personnalisées',
-      'Hébergement 1 an inclus',
-      'Nom de domaine offert',
-      'Formulaire de contact',
-      'Optimisation SEO basique',
-    ],
-    popular: true,
-  },
-  {
-    id: 2,
-    name: 'Pack SEO Elite',
-    category: 'Marketing',
-    price: '1 500 €',
-    monthlyPrice: '250 €/mois',
-    description: 'Boostez votre visibilité Google',
-    icon: TrendingUp,
-    color: 'from-green-500 to-emerald-600',
-    features: [
-      'Audit SEO complet',
-      'Optimisation technique',
-      '10 articles SEO/mois',
-      'Netlinking qualité',
-      'Suivi positions',
-      'Rapport mensuel détaillé',
-    ],
-    popular: false,
-  },
-  {
-    id: 3,
-    name: 'Pack SEA Performance',
-    category: 'Publicité',
-    price: '800 €',
-    monthlyPrice: '300 €/mois',
-    description: 'Campagnes Google Ads rentables',
-    icon: Search,
-    color: 'from-orange-500 to-red-500',
-    features: [
-      'Setup campagnes Google Ads',
-      'Budget publicitaire optimisé',
-      'A/B testing continu',
-      'Ciblage géolocalisé',
-      'Remarketing',
-      'Dashboard temps réel',
-    ],
-    popular: false,
-  },
-  {
-    id: 4,
-    name: 'Social Media Manager',
-    category: 'Social',
-    price: '1 200 €',
-    monthlyPrice: '450 €/mois',
-    description: 'Gestion complète réseaux sociaux',
-    icon: Share2,
-    color: 'from-pink-500 to-purple-600',
-    features: [
-      '20 posts/mois (FB, Insta, LinkedIn)',
-      'Stories quotidiennes',
-      'Création graphique',
-      'Gestion commentaires',
-      'Analytics détaillés',
-      'Stratégie de contenu',
-    ],
-    popular: true,
-  },
-  {
-    id: 5,
-    name: 'Marketing Automation',
-    category: 'Automation',
-    price: '2 500 €',
-    monthlyPrice: '199 €/mois',
-    description: 'Automatisez vos ventes',
-    icon: Zap,
-    color: 'from-yellow-500 to-orange-500',
-    features: [
-      'Chatbot IA conversationnel',
-      'Email sequences automatisées',
-      'CRM intégré',
-      'Lead scoring',
-      'Workflows personnalisés',
-      'Intégration tous outils',
-    ],
-    popular: false,
-  },
-  {
-    id: 6,
-    name: 'Influence Marketing',
-    category: 'Influence',
-    price: '3 500 €',
-    monthlyPrice: '500 €/mois',
-    description: 'Campagnes avec micro-influenceurs',
-    icon: Star,
-    color: 'from-blue-500 to-cyan-500',
-    features: [
-      'Sélection 5 micro-influenceurs',
-      'Négociation partenariats',
-      'Création brief créatif',
-      'Suivi campagnes',
-      'Reporting ROI',
-      'Base influenceurs exclusive',
-    ],
-    popular: false,
-  },
-];
+import { useProducts } from '@/hooks/useProducts';
 
 const devisData = [
   {
@@ -254,15 +139,50 @@ const statusConfig = {
   },
 };
 
+const getCategoryIcon = (category: string) => {
+  switch (category) {
+    case 'Web': return Package;
+    case 'Marketing': return TrendingUp;
+    case 'Social': return Share2;
+    default: return Package;
+  }
+};
+
+const getCategoryColor = (category: string) => {
+  switch (category) {
+    case 'Web': return 'from-violet-600 to-violet-700';
+    case 'Marketing': return 'from-green-500 to-emerald-600';
+    case 'Social': return 'from-pink-500 to-purple-600';
+    default: return 'from-gray-500 to-gray-600';
+  }
+};
+
 export default function OffresPage() {
+  const { products, isLoading, isError } = useProducts();
   const [activeTab, setActiveTab] = useState<'catalogue' | 'devis'>('catalogue');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const categories = ['all', ...Array.from(new Set(packs.map(p => p.category)))];
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600">Erreur lors du chargement</p>
+      </div>
+    );
+  }
+
+  const categories = ['all', ...Array.from(new Set(products.map(p => p.category)))];
   const filteredPacks = selectedCategory === 'all'
-    ? packs
-    : packs.filter(p => p.category === selectedCategory);
+    ? products
+    : products.filter(p => p.category === selectedCategory);
 
   const filteredDevis = statusFilter === 'all'
     ? devisData
@@ -347,7 +267,8 @@ export default function OffresPage() {
             {/* Packs Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPacks.map((pack, index) => {
-                const Icon = pack.icon;
+                const Icon = getCategoryIcon(pack.category);
+                const color = getCategoryColor(pack.category);
                 return (
                   <motion.div
                     key={pack.id}
@@ -367,7 +288,7 @@ export default function OffresPage() {
                       </div>
                     )}
 
-                    <div className={`p-4 rounded-2xl bg-gradient-to-br ${pack.color} w-fit mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`p-4 rounded-2xl bg-gradient-to-br ${color} w-fit mb-4 group-hover:scale-110 transition-transform duration-300`}>
                       <Icon className="h-8 w-8 text-white" />
                     </div>
 
@@ -376,16 +297,18 @@ export default function OffresPage() {
                       <p className="text-sm text-gray-600 mb-4">{pack.description}</p>
 
                       <div className="flex items-baseline gap-2 mb-1">
-                        <span className="text-3xl font-bold text-violet-700">{pack.price}</span>
+                        <span className="text-3xl font-bold text-violet-700">{pack.price.toLocaleString()} €</span>
                         <span className="text-sm text-gray-500">setup</span>
                       </div>
-                      <div className="text-sm text-gray-600">
-                        puis <span className="font-semibold text-orange-600">{pack.monthlyPrice}</span>
-                      </div>
+                      {pack.monthlyPrice && (
+                        <div className="text-sm text-gray-600">
+                          puis <span className="font-semibold text-orange-600">{pack.monthlyPrice.toLocaleString()} €/mois</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-3 mb-6">
-                      {pack.features.map((feature, idx) => (
+                      {(pack.features as string[]).map((feature, idx) => (
                         <div key={idx} className="flex items-start gap-2">
                           <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                           <span className="text-sm text-gray-700">{feature}</span>
