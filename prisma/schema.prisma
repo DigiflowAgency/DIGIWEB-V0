@@ -1016,3 +1016,46 @@ model Prospect {
   @@index([imported])
   @@map("prospects")
 }
+
+// ============================================
+// WHATSAPP
+// ============================================
+
+model WhatsAppConversation {
+  id          String              @id @default(cuid())
+  name        String
+  phone       String?
+  avatar      String?             // Initiales ou URL
+
+  lastMessage String?             @db.Text
+  lastMessageAt DateTime?
+
+  unread      Int                 @default(0)
+  score       Int?                // Score de qualification (0-100)
+
+  // Métadonnées
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  // Relations
+  messages    WhatsAppMessage[]
+
+  @@index([lastMessageAt])
+  @@map("whatsapp_conversations")
+}
+
+model WhatsAppMessage {
+  id              String                @id @default(cuid())
+  conversationId  String
+  conversation    WhatsAppConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  text            String                @db.Text
+  sender          String                // 'user' ou 'client'
+
+  // Métadonnées
+  sentAt          DateTime              @default(now())
+
+  @@index([conversationId])
+  @@index([sentAt])
+  @@map("whatsapp_messages")
+}
