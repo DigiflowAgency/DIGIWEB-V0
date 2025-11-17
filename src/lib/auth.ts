@@ -1,4 +1,4 @@
-import { NextAuthOptions } from 'next-auth';
+import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
@@ -54,6 +54,8 @@ export const authOptions: NextAuthOptions = {
       // Ajouter des infos custom au token JWT
       if (user) {
         token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
         token.role = user.role;
         token.avatar = user.avatar;
       }
@@ -62,10 +64,14 @@ export const authOptions: NextAuthOptions = {
 
     async session({ session, token }) {
       // Ajouter des infos custom à la session
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.avatar = token.avatar as string | null;
+      if (token) {
+        session.user = {
+          id: token.id as string,
+          email: token.email as string,
+          name: token.name as string,
+          role: token.role as string,
+          avatar: token.avatar as string | null,
+        };
       }
       return session;
     },
