@@ -52,9 +52,22 @@ interface ScanResults {
   quickWins: Array<{ title: string; impact: string; time: string }>;
 }
 
+interface ClientData {
+  id: string;
+  name: string;
+  domain: string;
+  uptime: number;
+  cpu: number;
+  memory: number;
+  ssl: string;
+  lastBackup: string;
+  nps: number;
+  status: string;
+}
+
 export default function SuiviClientPage() {
   const { monitoring, isLoading, isError } = useMonitoring();
-  const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
   const [scanDomain, setScanDomain] = useState('');
   const [scanResults, setScanResults] = useState<ScanResults | null>(null);
   const [isScanning, setIsScanning] = useState(false);

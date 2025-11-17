@@ -2,21 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Schema de validation pour update (tous les champs optionnels)
 const invoiceUpdateSchema = z.object({
-  contactId: z.string().optional().nullable(),
   clientName: z.string().min(1).optional(),
   clientEmail: z.string().email().optional(),
   clientAddress: z.string().optional().nullable(),
   subtotal: z.number().positive().optional(),
   taxRate: z.number().min(0).max(100).optional(),
-  paymentTerms: z.string().optional().nullable(),
   paymentMethod: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
   status: z.enum(['BROUILLON', 'ENVOYEE', 'PAYEE', 'EN_ATTENTE', 'EN_RETARD', 'ANNULEE']).optional(),
-  dueDate: z.string().datetime().optional(),
+  dueAt: z.string().datetime().optional(),
   paidAt: z.string().datetime().optional().nullable(),
 });
 
@@ -38,21 +36,6 @@ export async function GET(
     const invoice = await prisma.invoice.findUnique({
       where: { id: params.id },
       include: {
-        contact: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-            company: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
         owner: {
           select: {
             id: true,
@@ -62,11 +45,7 @@ export async function GET(
             avatar: true,
           },
         },
-        products: {
-          orderBy: {
-            createdAt: 'asc',
-          },
-        },
+        products: true,
       },
     });
 
@@ -114,22 +93,8 @@ export async function PUT(
     const body = await request.json();
     const validatedData = invoiceUpdateSchema.parse(body);
 
-    // Vérifier que le contact existe (s'il est fourni)
-    if (validatedData.contactId) {
-      const contact = await prisma.contact.findUnique({
-        where: { id: validatedData.contactId },
-      });
-
-      if (!contact) {
-        return NextResponse.json(
-          { error: 'Contact non trouvé' },
-          { status: 400 }
-        );
-      }
-    }
-
     // Préparer les données de mise à jour
-    const updateData: any = { ...validatedData };
+    const updateData: Prisma.InvoiceUpdateInput = { ...validatedData };
 
     // Recalculer les montants si subtotal ou taxRate change
     if (validatedData.subtotal !== undefined || validatedData.taxRate !== undefined) {
@@ -144,9 +109,9 @@ export async function PUT(
       updateData.paidAt = validatedData.paidAt ? new Date(validatedData.paidAt) : new Date();
     }
 
-    // Convertir dueDate en Date si fourni
-    if (validatedData.dueDate) {
-      updateData.dueDate = new Date(validatedData.dueDate);
+    // Convertir dueAt en Date si fourni
+    if (validatedData.dueAt) {
+      updateData.dueAt = new Date(validatedData.dueAt);
     }
 
     // Convertir paidAt en Date si fourni
@@ -159,14 +124,6 @@ export async function PUT(
       where: { id: params.id },
       data: updateData,
       include: {
-        contact: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
         owner: {
           select: {
             id: true,
@@ -185,7 +142,7 @@ export async function PUT(
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }

@@ -67,28 +67,6 @@ export async function GET(
           },
           orderBy: { createdAt: 'desc' },
         },
-        quotes: {
-          select: {
-            id: true,
-            quoteNumber: true,
-            totalAmount: true,
-            status: true,
-            validUntil: true,
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 5,
-        },
-        invoices: {
-          select: {
-            id: true,
-            invoiceNumber: true,
-            totalAmount: true,
-            status: true,
-            dueDate: true,
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 5,
-        },
       },
     });
 
@@ -184,7 +162,7 @@ export async function PUT(
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }

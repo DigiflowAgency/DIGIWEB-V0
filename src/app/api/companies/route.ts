@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Schema de validation Zod pour Company
@@ -43,21 +44,21 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: any = {};
+    const where: Prisma.CompanyWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { siret: { contains: search, mode: 'insensitive' } },
-        { city: { contains: search, mode: 'insensitive' } },
-        { industry: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search } },
+        { siret: { contains: search } },
+        { city: { contains: search } },
+        { industry: { contains: search } },
       ];
     }
 
     // Filtre par statut
     if (status && ['LEAD', 'PROSPECT', 'CLIENT'].includes(status)) {
-      where.status = status;
+      where.status = status as 'LEAD' | 'PROSPECT' | 'CLIENT';
     }
 
     // Filtre par secteur
@@ -165,7 +166,7 @@ export async function POST(request: NextRequest) {
     // Erreur de validation Zod
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }

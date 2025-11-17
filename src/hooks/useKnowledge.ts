@@ -10,7 +10,7 @@ export interface KnowledgeArticle {
   updatedAt: string;
 }
 
-interface KnowledgeStats {
+export interface KnowledgeStats {
   total: number;
   totalViews: number;
   categories: number;

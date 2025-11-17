@@ -6,7 +6,6 @@ import {
   Plus,
   Search,
   Filter,
-  Euro,
   Calendar,
   User,
   Building2,
@@ -14,7 +13,9 @@ import {
   ArrowRight,
   Loader2
 } from 'lucide-react';
-import { useDeals } from '@/hooks/useDeals';
+import { useDeals, useDealMutations } from '@/hooks/useDeals';
+import { useContacts } from '@/hooks/useContacts';
+import Modal from '@/components/Modal';
 
 const stages = [
   { name: 'DECOUVERTE', displayName: 'Découverte', color: 'bg-purple-100 border-purple-300', textColor: 'text-purple-700' },
@@ -28,10 +29,58 @@ export default function DealsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
 
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    value: '',
+    contactId: '',
+    stage: 'DECOUVERTE',
+    probability: '50',
+    expectedCloseDate: '',
+  });
+
   // Utiliser le hook useDeals pour récupérer les données depuis l'API
-  const { deals, stats, isLoading, isError } = useDeals({
+  const { deals, stats, isLoading, isError, mutate } = useDeals({
     search: searchQuery || undefined,
   });
+
+  // Hook de mutations
+  const { createDeal, loading: submitting, error: submitError } = useDealMutations();
+
+  // Récupérer les contacts pour le dropdown
+  const { contacts } = useContacts({});
+
+  // Gestion du formulaire
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      await createDeal({
+        title: formData.title,
+        description: formData.description || null,
+        value: parseFloat(formData.value),
+        contactId: formData.contactId || null,
+        stage: formData.stage as 'DECOUVERTE' | 'QUALIFICATION' | 'PROPOSITION' | 'NEGOCIATION' | 'GAGNE' | 'PERDU',
+        probability: parseInt(formData.probability),
+        expectedCloseDate: formData.expectedCloseDate || null,
+      });
+      setIsModalOpen(false);
+      setFormData({
+        title: '',
+        description: '',
+        value: '',
+        contactId: '',
+        stage: 'DECOUVERTE',
+        probability: '50',
+        expectedCloseDate: '',
+      });
+      mutate(); // Revalider les données
+    } catch (err) {
+      console.error('Erreur création deal:', err);
+    }
+  };
 
   const statsDisplay = [
     { label: 'Valeur Totale', value: `${stats.totalValue.toLocaleString()}€`, color: 'text-orange-600' },
@@ -82,7 +131,10 @@ export default function DealsPage() {
               </h1>
               <p className="text-gray-600 mt-1">Gérez votre pipeline de ventes</p>
             </div>
-            <button className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
+            >
               <Plus className="h-5 w-5" />
               Nouveau Deal
             </button>
@@ -281,6 +333,161 @@ export default function DealsPage() {
             </div>
           </div>
         )}
+
+        {/* Modal Nouveau Deal */}
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Nouveau Deal"
+          size="lg"
+        >
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Erreur globale */}
+            {submitError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {submitError}
+              </div>
+            )}
+
+            {/* Titre */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Titre du Deal <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Vente logiciel CRM"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Détails sur l'opportunité..."
+                rows={3}
+              />
+            </div>
+
+            {/* Valeur et Contact */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Valeur (€) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="0.01"
+                  value={formData.value}
+                  onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="15000"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Contact <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={formData.contactId}
+                  onChange={(e) => setFormData({ ...formData, contactId: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">Sélectionner un contact</option>
+                  {contacts.map((contact) => (
+                    <option key={contact.id} value={contact.id}>
+                      {contact.firstName} {contact.lastName} {contact.email ? `(${contact.email})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Étape et Probabilité */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Étape
+                </label>
+                <select
+                  value={formData.stage}
+                  onChange={(e) => setFormData({ ...formData, stage: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  {stages.map((stage) => (
+                    <option key={stage.name} value={stage.name}>
+                      {stage.displayName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Probabilité (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={formData.probability}
+                  onChange={(e) => setFormData({ ...formData, probability: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+            </div>
+
+            {/* Date de clôture attendue */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Date de clôture attendue
+              </label>
+              <input
+                type="date"
+                value={formData.expectedCloseDate}
+                onChange={(e) => setFormData({ ...formData, expectedCloseDate: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            {/* Boutons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                disabled={submitting}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Création...
+                  </>
+                ) : (
+                  'Créer le deal'
+                )}
+              </button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

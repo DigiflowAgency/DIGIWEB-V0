@@ -17,17 +17,75 @@ import {
   Globe,
   Loader2
 } from 'lucide-react';
-import { useCompanies } from '@/hooks/useCompanies';
+import { useCompanies, useCompanyMutations } from '@/hooks/useCompanies';
+import Modal from '@/components/Modal';
 
 export default function CompaniesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    siret: '',
+    industry: '',
+    employees: '',
+    phone: '',
+    email: '',
+    website: '',
+    address: '',
+    city: '',
+    postalCode: '',
+    status: 'LEAD' as 'LEAD' | 'PROSPECT' | 'CLIENT',
+  });
+
   // Utiliser le hook useCompanies pour récupérer les données depuis l'API
-  const { companies, stats, isLoading, isError } = useCompanies({
+  const { companies, stats, isLoading, isError, mutate } = useCompanies({
     search: searchQuery || undefined,
     status: selectedStatus !== 'all' ? selectedStatus.toUpperCase() : undefined,
   });
+
+  // Hook de mutations
+  const { createCompany, loading: submitting, error: submitError } = useCompanyMutations();
+
+  // Gestion du formulaire
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      await createCompany({
+        name: formData.name,
+        siret: formData.siret || null,
+        industry: formData.industry || null,
+        employees: formData.employees ? parseInt(formData.employees) : null,
+        phone: formData.phone || null,
+        email: formData.email || null,
+        website: formData.website || null,
+        address: formData.address || null,
+        city: formData.city || null,
+        postalCode: formData.postalCode || null,
+        status: formData.status,
+      });
+      setIsModalOpen(false);
+      setFormData({
+        name: '',
+        siret: '',
+        industry: '',
+        employees: '',
+        phone: '',
+        email: '',
+        website: '',
+        address: '',
+        city: '',
+        postalCode: '',
+        status: 'LEAD',
+      });
+      mutate(); // Revalider les données
+    } catch (err) {
+      console.error('Erreur création entreprise:', err);
+    }
+  };
 
   const statsDisplay = [
     { label: 'Total Entreprises', value: stats.total, color: 'text-orange-600' },
@@ -78,7 +136,10 @@ export default function CompaniesPage() {
               </h1>
               <p className="text-gray-600 mt-1">Gérez votre portefeuille d&apos;entreprises</p>
             </div>
-            <button className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
+            >
               <Plus className="h-5 w-5" />
               Nouvelle Entreprise
             </button>
@@ -214,6 +275,207 @@ export default function CompaniesPage() {
             </div>
           ))}
         </div>
+
+        {/* Modal Nouvelle Entreprise */}
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Nouvelle Entreprise"
+          size="lg"
+        >
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Erreur globale */}
+            {submitError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {submitError}
+              </div>
+            )}
+
+            {/* Nom et SIRET */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nom de l&apos;entreprise <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Acme Corporation"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  SIRET
+                </label>
+                <input
+                  type="text"
+                  value={formData.siret}
+                  onChange={(e) => setFormData({ ...formData, siret: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="123 456 789 00010"
+                />
+              </div>
+            </div>
+
+            {/* Secteur et Employés */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Secteur d&apos;activité
+                </label>
+                <input
+                  type="text"
+                  value={formData.industry}
+                  onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Technologie, Commerce, etc."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nombre d&apos;employés
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.employees}
+                  onChange={(e) => setFormData({ ...formData, employees: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="50"
+                />
+              </div>
+            </div>
+
+            {/* Email et Téléphone */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="contact@acme.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Téléphone
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="+33 1 23 45 67 89"
+                />
+              </div>
+            </div>
+
+            {/* Site Web et Statut */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Site Web
+                </label>
+                <input
+                  type="text"
+                  value={formData.website}
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="www.acme.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Statut
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'LEAD' | 'PROSPECT' | 'CLIENT' })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="LEAD">Lead</option>
+                  <option value="PROSPECT">Prospect</option>
+                  <option value="CLIENT">Client</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Adresse */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Adresse
+              </label>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="123 Rue de la Paix"
+              />
+            </div>
+
+            {/* Ville et Code Postal */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Ville
+                </label>
+                <input
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Paris"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Code Postal
+                </label>
+                <input
+                  type="text"
+                  value={formData.postalCode}
+                  onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="75001"
+                />
+              </div>
+            </div>
+
+            {/* Boutons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                disabled={submitting}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Création...
+                  </>
+                ) : (
+                  'Créer l\'entreprise'
+                )}
+              </button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

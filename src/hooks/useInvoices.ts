@@ -149,8 +149,9 @@ export function useInvoiceMutations() {
 
       const invoice = await response.json();
       return invoice;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -175,8 +176,9 @@ export function useInvoiceMutations() {
 
       const invoice = await response.json();
       return invoice;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -198,8 +200,9 @@ export function useInvoiceMutations() {
       }
 
       return true;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);

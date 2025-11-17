@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Schema de validation Zod pour Deal
@@ -35,22 +36,22 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: any = {};
+    const where: Prisma.DealWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
       where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { contact: { firstName: { contains: search, mode: 'insensitive' } } },
-        { contact: { lastName: { contains: search, mode: 'insensitive' } } },
-        { company: { name: { contains: search, mode: 'insensitive' } } },
+        { title: { contains: search } },
+        { description: { contains: search } },
+        { contact: { firstName: { contains: search } } },
+        { contact: { lastName: { contains: search } } },
+        { company: { name: { contains: search } } },
       ];
     }
 
     // Filtre par étape
     if (stage && ['DECOUVERTE', 'QUALIFICATION', 'PROPOSITION', 'NEGOCIATION', 'GAGNE', 'PERDU'].includes(stage)) {
-      where.stage = stage;
+      where.stage = stage as 'DECOUVERTE' | 'QUALIFICATION' | 'PROPOSITION' | 'NEGOCIATION' | 'GAGNE' | 'PERDU';
     }
 
     // Filtre par contact
@@ -216,7 +217,7 @@ export async function POST(request: NextRequest) {
     // Erreur de validation Zod
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }

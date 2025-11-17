@@ -16,7 +16,9 @@ import {
   Euro,
   Loader2
 } from 'lucide-react';
-import { useInvoices } from '@/hooks/useInvoices';
+import { useInvoices, useInvoiceMutations } from '@/hooks/useInvoices';
+import { useContacts } from '@/hooks/useContacts';
+import Modal from '@/components/Modal';
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -54,12 +56,45 @@ const getStatusLabel = (status: string) => {
 export default function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    clientName: '',
+    clientEmail: '',
+    clientAddress: '',
+    subtotal: '',
+    taxRate: '20',
+    dueDate: '',
+    contactId: '',
+  });
 
   // Utiliser le hook useInvoices pour récupérer les données depuis l'API
-  const { invoices, stats, isLoading, isError } = useInvoices({
+  const { invoices, stats, isLoading, isError, mutate } = useInvoices({
     search: searchQuery || undefined,
     status: selectedStatus !== 'all' ? selectedStatus.toUpperCase() : undefined,
   });
+
+  const { createInvoice, loading: submitting, error: submitError } = useInvoiceMutations();
+  const { contacts } = useContacts({});
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createInvoice({
+        clientName: formData.clientName,
+        clientEmail: formData.clientEmail,
+        clientAddress: formData.clientAddress || null,
+        subtotal: parseFloat(formData.subtotal),
+        taxRate: parseFloat(formData.taxRate),
+        dueDate: formData.dueDate || undefined,
+        contactId: formData.contactId || null,
+      });
+      setIsModalOpen(false);
+      setFormData({ clientName: '', clientEmail: '', clientAddress: '', subtotal: '', taxRate: '20', dueDate: '', contactId: '' });
+      mutate();
+    } catch (err) {
+      console.error('Erreur création facture:', err);
+    }
+  };
 
   // État de chargement
   if (isLoading) {
@@ -110,7 +145,10 @@ export default function InvoicesPage() {
               </h1>
               <p className="text-gray-600 mt-1">Gérez vos factures et paiements</p>
             </div>
-            <button className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
+            >
               <Plus className="h-5 w-5" />
               Nouvelle Facture
             </button>
@@ -246,6 +284,52 @@ export default function InvoicesPage() {
             Affichage de {invoices.length} factures
           </p>
         </div>
+
+        {/* Modal Nouvelle Facture */}
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nouvelle Facture" size="lg">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {submitError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{submitError}</div>}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Nom du client <span className="text-red-500">*</span></label>
+                <input type="text" required value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="Entreprise ABC" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Email client <span className="text-red-500">*</span></label>
+                <input type="email" required value={formData.clientEmail} onChange={(e) => setFormData({ ...formData, clientEmail: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="contact@client.com" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Adresse</label>
+              <input type="text" value={formData.clientAddress} onChange={(e) => setFormData({ ...formData, clientAddress: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="123 Rue Example, 75001 Paris" />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Montant HT (€) <span className="text-red-500">*</span></label>
+                <input type="number" required min="0" step="0.01" value={formData.subtotal} onChange={(e) => setFormData({ ...formData, subtotal: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="1000.00" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Taux TVA (%)</label>
+                <input type="number" min="0" max="100" step="0.1" value={formData.taxRate} onChange={(e) => setFormData({ ...formData, taxRate: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Date d&apos;échéance</label>
+                <input type="date" value={formData.dueDate} onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Contact associé</label>
+              <select value={formData.contactId} onChange={(e) => setFormData({ ...formData, contactId: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <option value="">Aucun contact</option>
+                {contacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.firstName} {contact.lastName}</option>)}
+              </select>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button type="button" onClick={() => setIsModalOpen(false)} disabled={submitting} className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50">Annuler</button>
+              <button type="submit" disabled={submitting} className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2">{submitting ? <><Loader2 className="h-4 w-4 animate-spin" />Création...</> : 'Créer la facture'}</button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

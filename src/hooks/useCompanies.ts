@@ -139,8 +139,9 @@ export function useCompanyMutations() {
 
       const company = await response.json();
       return company;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -165,8 +166,9 @@ export function useCompanyMutations() {
 
       const company = await response.json();
       return company;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -188,8 +190,9 @@ export function useCompanyMutations() {
       }
 
       return true;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);

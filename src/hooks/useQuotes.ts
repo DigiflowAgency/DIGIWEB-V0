@@ -135,8 +135,9 @@ export function useQuoteMutations() {
 
       const quote = await response.json();
       return quote;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -161,8 +162,9 @@ export function useQuoteMutations() {
 
       const quote = await response.json();
       return quote;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -184,8 +186,9 @@ export function useQuoteMutations() {
       }
 
       return true;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);

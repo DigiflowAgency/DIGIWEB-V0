@@ -3,16 +3,26 @@
 import { useMemo } from 'react';
 import {
   TrendingUp,
-  Euro,
-  Target,
-  Users,
-  Calendar,
   ArrowUpRight,
   ArrowDownRight,
   Loader2
 } from 'lucide-react';
 import { useDeals } from '@/hooks/useDeals';
 import { useContacts } from '@/hooks/useContacts';
+
+interface Deal {
+  id: string;
+  stage: string;
+  value: number;
+  closedAt?: Date | string | null;
+  ownerId?: string | null;
+}
+
+interface OwnerWithDeals {
+  id: string;
+  name: string;
+  deals: Deal[];
+}
 
 export default function TrackingPage() {
   const { deals, isLoading: dealsLoading, isError: dealsError } = useDeals();
@@ -118,13 +128,13 @@ export default function TrackingPage() {
       }
       acc[ownerId].deals.push(deal);
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, OwnerWithDeals>);
 
     return Object.values(dealsByOwner)
-      .map((owner: any) => ({
+      .map((owner: OwnerWithDeals) => ({
         name: owner.name,
         deals: owner.deals.length,
-        revenue: owner.deals.reduce((sum: number, d: any) => sum + d.value, 0),
+        revenue: owner.deals.reduce((sum: number, d: Deal) => sum + d.value, 0),
         conversion: owner.deals.length > 0 ? Math.round(Math.random() * 30 + 50) : 0, // Simulation
       }))
       .sort((a, b) => b.revenue - a.revenue)

@@ -124,8 +124,9 @@ export function useCampaignMutations() {
 
       const campaign = await response.json();
       return campaign;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -150,8 +151,9 @@ export function useCampaignMutations() {
 
       const campaign = await response.json();
       return campaign;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -173,8 +175,9 @@ export function useCampaignMutations() {
       }
 
       return true;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);

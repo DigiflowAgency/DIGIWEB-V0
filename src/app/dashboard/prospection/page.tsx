@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Search, Download, Phone, Mail, MapPin, Building2, Globe, Star, Loader2 } from 'lucide-react';
-import { useProspects, Prospect } from '@/hooks/useProspects';
+import { useProspects } from '@/hooks/useProspects';
 
 export default function ProspectionPage() {
   const [activity, setActivity] = useState('');

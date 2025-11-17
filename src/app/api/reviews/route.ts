@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Schema de validation Zod pour Review
@@ -35,24 +36,24 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: any = {};
+    const where: Prisma.ReviewWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
       where.OR = [
-        { author: { contains: search, mode: 'insensitive' } },
-        { content: { contains: search, mode: 'insensitive' } },
+        { author: { contains: search } },
+        { content: { contains: search } },
       ];
     }
 
     // Filtre par source
     if (source && ['GOOGLE', 'PAGES_JAUNES', 'TRIPADVISOR', 'TRUSTPILOT'].includes(source)) {
-      where.source = source;
+      where.source = source as 'GOOGLE' | 'PAGES_JAUNES' | 'TRIPADVISOR' | 'TRUSTPILOT';
     }
 
     // Filtre par entreprise
     if (company && ['DIGIFLOW_AGENCY', 'BE_HYPE'].includes(company)) {
-      where.company = company;
+      where.company = company as 'DIGIFLOW_AGENCY' | 'BE_HYPE';
     }
 
     // Filtre par note
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
     const validatedData = reviewSchema.parse(body);
 
     // Convertir les dates string en Date
-    const data: any = {
+    const data: Prisma.ReviewCreateInput = {
       ...validatedData,
       reviewDate: new Date(validatedData.reviewDate),
     };
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
     // Erreur de validation Zod
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }

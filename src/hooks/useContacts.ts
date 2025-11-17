@@ -120,8 +120,9 @@ export function useContactMutations() {
 
       const contact = await response.json();
       return contact;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -146,8 +147,9 @@ export function useContactMutations() {
 
       const contact = await response.json();
       return contact;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
@@ -169,8 +171,9 @@ export function useContactMutations() {
       }
 
       return true;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);

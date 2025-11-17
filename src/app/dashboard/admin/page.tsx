@@ -30,9 +30,16 @@ import { useEmailCampaigns } from '@/hooks/useEmailCampaigns';
 import { useContacts } from '@/hooks/useContacts';
 import { useDeals } from '@/hooks/useDeals';
 import { useTickets } from '@/hooks/useTickets';
+import type { LucideIcon } from 'lucide-react';
+
+interface IntegrationUIConfig {
+  description: string;
+  icon: LucideIcon;
+  color: string;
+}
 
 // Configuration UI pour chaque intégration (icône, couleur, description)
-const integrationUIConfig: Record<string, any> = {
+const integrationUIConfig: Record<string, IntegrationUIConfig> = {
   'WhatsApp Business': {
     description: 'Communication client instantanée',
     icon: MessageSquare,

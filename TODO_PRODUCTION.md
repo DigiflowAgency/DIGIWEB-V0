@@ -2,7 +2,7 @@
 
 **Objectif :** Passer du mode démo à une application production complète et fonctionnelle
 
-**Dernière mise à jour :** 2025-11-04
+**Dernière mise à jour :** 2025-11-17
 
 ---
 
@@ -831,59 +831,68 @@
 
 ---
 
-## 🚀 PHASE 11 : Déploiement Production (6-8h)
+## 🚀 PHASE 11 : Déploiement Production - Setup Base de Données
 
-### 11.1 Préparation
-- [ ] Configuration domaine
-  - [ ] Acheter/configurer domaine
-  - [ ] DNS configuré
-  - [ ] Certificat SSL
-- [ ] Choix hébergement
-  - [ ] Vercel (recommandé pour Next.js)
-  - [ ] Ou VPS (DigitalOcean, AWS, etc.)
-- [ ] Base de données production
-  - [ ] PlanetScale, Supabase ou RDS
-  - [ ] Migrations exécutées
-  - [ ] Backup automatique configuré
+**Note** : Les autres étapes (code, PM2, Nginx, SSL) sont déjà maîtrisées ✅
 
-**Durée estimée :** 2-3 heures
+### 11.1 Créer Base de Données MySQL sur le Serveur
+- [ ] **Se connecter au serveur**
+  ```bash
+  ssh user@votre-serveur.com
+  ```
 
----
+- [ ] **Créer la BDD vide + user**
+  ```bash
+  sudo mysql -u root -p
 
-### 11.2 Variables d'environnement Production
-- [ ] Configurer toutes les env vars
-  - [ ] DATABASE_URL (prod)
-  - [ ] NEXTAUTH_SECRET (nouveau, sécurisé)
-  - [ ] NEXTAUTH_URL (domaine prod)
-  - [ ] SMTP credentials
-  - [ ] Toutes les API keys
-- [ ] Secrets management (Vercel Env ou AWS Secrets Manager)
+  CREATE DATABASE digiweb_erp_prod CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE USER 'digiweb_prod'@'localhost' IDENTIFIED BY 'MotDePasseSecurise123!';
+  GRANT ALL PRIVILEGES ON digiweb_erp_prod.* TO 'digiweb_prod'@'localhost';
+  FLUSH PRIVILEGES;
+  EXIT;
+  ```
 
-**Durée estimée :** 1 heure
+- [ ] **Tester la connexion**
+  ```bash
+  mysql -u digiweb_prod -p digiweb_erp_prod
+  SHOW TABLES;  # Devrait être vide pour l'instant
+  EXIT;
+  ```
 
 ---
 
-### 11.3 CI/CD
-- [ ] GitHub Actions ou Vercel auto-deploy
-  - [ ] Build on push to main
-  - [ ] Tests automatiques
-  - [ ] Deploy si tests passent
-- [ ] Environnements
-  - [ ] Staging (pre-prod)
-  - [ ] Production
+### 11.2 Créer Toutes les Tables avec Prisma (30 tables automatiquement!)
+- [ ] **Dans le dossier du projet sur le serveur**
+  ```bash
+  cd /var/www/digiweb-erp  # ou ton chemin
+  ```
 
-**Durée estimée :** 2-3 heures
+- [ ] **Configurer DATABASE_URL dans .env**
+  ```bash
+  nano .env
+  # Ajouter/modifier :
+  DATABASE_URL="mysql://digiweb_prod:MotDePasseSecurise123!@localhost:3306/digiweb_erp_prod"
+  ```
 
----
+- [ ] **Push le schéma Prisma → Crée les 30 tables automatiquement !**
+  ```bash
+  npx prisma db push
+  ```
 
-### 11.4 Monitoring & Logs
-- [ ] Sentry ou Rollbar pour error tracking
-- [ ] Analytics (Vercel Analytics ou Plausible)
-- [ ] Logs centralisés
-- [ ] Alerts email/Slack si erreurs critiques
-- [ ] Uptime monitoring (UptimeRobot)
+- [ ] **Vérifier que toutes les tables sont créées**
+  ```bash
+  mysql -u digiweb_prod -p digiweb_erp_prod
+  SHOW TABLES;  # Tu verras : users, contacts, companies, deals, activities, etc. (30 tables!)
+  EXIT;
+  ```
 
-**Durée estimée :** 1-2 heures
+- [ ] **Créer user admin initial** (optionnel)
+  ```bash
+  npx prisma db seed
+  # OU créer manuellement le premier user dans Prisma Studio / MySQL
+  ```
+
+**Durée totale : 15-20 minutes max** ⚡
 
 ---
 

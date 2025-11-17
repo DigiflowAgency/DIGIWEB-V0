@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Phone, Mail, MapPin, Euro, Loader2 } from 'lucide-react';
+import { Plus, Mail, MapPin, Euro, Loader2 } from 'lucide-react';
 import { useDeals } from '@/hooks/useDeals';
 
 type DealStage = 'DECOUVERTE' | 'QUALIFICATION' | 'PROPOSITION' | 'NEGOCIATION' | 'GAGNE' | 'PERDU';

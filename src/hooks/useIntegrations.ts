@@ -40,7 +40,7 @@ export function useIntegrationMutations() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createIntegration = async (data: { name: string; status?: string; config?: any }) => {
+  const createIntegration = async (data: { name: string; status?: string; config?: Record<string, unknown> }) => {
     setLoading(true);
     setError(null);
 
@@ -58,15 +58,16 @@ export function useIntegrationMutations() {
 
       const integration = await response.json();
       return integration;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const updateIntegration = async (id: string, data: Partial<{ name: string; status: string; config: any }>) => {
+  const updateIntegration = async (id: string, data: Partial<{ name: string; status: string; config: Record<string, unknown> }>) => {
     setLoading(true);
     setError(null);
 
@@ -84,8 +85,9 @@ export function useIntegrationMutations() {
 
       const integration = await response.json();
       return integration;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
       throw err;
     } finally {
       setLoading(false);

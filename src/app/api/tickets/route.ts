@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Schema de validation Zod pour Ticket
@@ -46,31 +47,31 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: any = {};
+    const where: Prisma.TicketWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
       where.OR = [
-        { number: { contains: search, mode: 'insensitive' } },
-        { subject: { contains: search, mode: 'insensitive' } },
-        { clientName: { contains: search, mode: 'insensitive' } },
-        { clientEmail: { contains: search, mode: 'insensitive' } },
+        { number: { contains: search } },
+        { subject: { contains: search } },
+        { clientName: { contains: search } },
+        { clientEmail: { contains: search } },
       ];
     }
 
     // Filtre par statut
     if (status && ['OUVERT', 'EN_COURS', 'EN_ATTENTE', 'ESCALADE', 'RESOLU', 'FERME'].includes(status)) {
-      where.status = status;
+      where.status = status as 'OUVERT' | 'EN_COURS' | 'EN_ATTENTE' | 'ESCALADE' | 'RESOLU' | 'FERME';
     }
 
     // Filtre par priorité
     if (priority && ['HAUTE', 'MOYENNE', 'BASSE'].includes(priority)) {
-      where.priority = priority;
+      where.priority = priority as 'HAUTE' | 'MOYENNE' | 'BASSE';
     }
 
     // Filtre par type
     if (type && ['INTERNAL', 'CLIENT'].includes(type)) {
-      where.type = type;
+      where.type = type as 'INTERNAL' | 'CLIENT';
     }
 
     // Récupérer les tickets avec les relations
@@ -78,10 +79,10 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         createdBy: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
         assignedTo: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
       },
       orderBy: [
@@ -135,10 +136,12 @@ export async function POST(request: NextRequest) {
     const number = await generateTicketNumber();
 
     // Convertir les dates string en Date si elles existent
-    const data: any = {
+    const data: Prisma.TicketCreateInput = {
       ...validatedData,
       number,
-      createdById: session.user.id,
+      createdBy: {
+        connect: { id: session.user.id }
+      },
     };
 
     if (validatedData.resolvedAt) {
@@ -150,10 +153,10 @@ export async function POST(request: NextRequest) {
       data,
       include: {
         createdBy: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
         assignedTo: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
       },
     });
@@ -165,7 +168,7 @@ export async function POST(request: NextRequest) {
     // Erreur de validation Zod
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const stats = {
       total: articles.length,
       totalViews: articles.reduce((sum, a) => sum + a.views, 0),
-      categories: [...new Set(articles.map(a => a.category))].length,
+      categories: Array.from(new Set(articles.map(a => a.category))).length,
       avgViews: articles.length > 0 ? Math.round(articles.reduce((sum, a) => sum + a.views, 0) / articles.length) : 0,
     };
 

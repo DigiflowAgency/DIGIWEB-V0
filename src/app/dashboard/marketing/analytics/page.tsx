@@ -15,15 +15,15 @@ export default function AnalyticsPage() {
   const stats = useMemo(() => {
     if (!campaigns || !emailCampaigns || !posts) return [];
 
-    // Total impressions de toutes les campagnes
-    const totalImpressions = campaigns.reduce((sum, c) => sum + (c.impressions || 0), 0);
+    // Total reach de toutes les campagnes
+    const totalReach = campaigns.reduce((sum, c) => sum + (c.reach || 0), 0);
 
     // Total clics de toutes les campagnes
     const totalClicks = campaigns.reduce((sum, c) => sum + (c.clicks || 0), 0);
 
-    // Taux de conversion (clics / impressions)
-    const conversionRate = totalImpressions > 0
-      ? ((totalClicks / totalImpressions) * 100).toFixed(1)
+    // Taux de conversion (clics / reach)
+    const conversionRate = totalReach > 0
+      ? ((totalClicks / totalReach) * 100).toFixed(1)
       : '0.0';
 
     // Engagement social moyen

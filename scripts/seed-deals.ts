@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -21,12 +21,12 @@ async function main() {
   }
 
   // Créer des deals variés
-  const deals = [
+  const deals: Prisma.DealUncheckedCreateInput[] = [
     {
       title: 'Site Web E-commerce',
       description: 'Développement d\'un site e-commerce avec panier et paiement en ligne',
       value: 12000,
-      stage: 'PROPOSITION',
+      stage: 'PROPOSITION' as const,
       probability: 75,
       expectedCloseDate: new Date('2024-12-15'),
       contactId: contacts[0].id,
@@ -37,7 +37,7 @@ async function main() {
       title: 'Refonte Site Vitrine',
       description: 'Refonte complète du site vitrine avec nouveau design moderne',
       value: 6500,
-      stage: 'NEGOCIATION',
+      stage: 'NEGOCIATION' as const,
       probability: 80,
       expectedCloseDate: new Date('2024-12-10'),
       contactId: contacts[1]?.id,
@@ -48,7 +48,7 @@ async function main() {
       title: 'Application Mobile',
       description: 'Développement application mobile iOS et Android',
       value: 25000,
-      stage: 'DECOUVERTE',
+      stage: 'DECOUVERTE' as const,
       probability: 30,
       expectedCloseDate: new Date('2025-01-20'),
       contactId: contacts[2]?.id,
@@ -59,7 +59,7 @@ async function main() {
       title: 'SEO + Google Ads',
       description: 'Optimisation SEO et gestion campagnes Google Ads (6 mois)',
       value: 4500,
-      stage: 'PROPOSITION',
+      stage: 'PROPOSITION' as const,
       probability: 70,
       expectedCloseDate: new Date('2024-12-05'),
       contactId: contacts[3]?.id,
@@ -70,7 +70,7 @@ async function main() {
       title: 'Maintenance Annuelle',
       description: 'Contrat de maintenance annuel pour le site web',
       value: 3000,
-      stage: 'GAGNE',
+      stage: 'GAGNE' as const,
       probability: 100,
       expectedCloseDate: new Date('2024-11-10'),
       contactId: contacts[4]?.id,
@@ -81,7 +81,7 @@ async function main() {
       title: 'Formation WordPress',
       description: 'Formation équipe sur WordPress et gestion de contenu',
       value: 1500,
-      stage: 'QUALIFICATION',
+      stage: 'QUALIFICATION' as const,
       probability: 50,
       expectedCloseDate: new Date('2024-12-20'),
       contactId: contacts[5]?.id,
@@ -92,7 +92,7 @@ async function main() {
       title: 'API Integration',
       description: 'Intégration API CRM avec le site web existant',
       value: 8000,
-      stage: 'NEGOCIATION',
+      stage: 'NEGOCIATION' as const,
       probability: 65,
       expectedCloseDate: new Date('2024-12-12'),
       contactId: contacts[6]?.id,
@@ -103,7 +103,7 @@ async function main() {
       title: 'Portail Client',
       description: 'Développement portail client avec espace membre sécurisé',
       value: 15000,
-      stage: 'PROPOSITION',
+      stage: 'PROPOSITION' as const,
       probability: 60,
       expectedCloseDate: new Date('2025-01-05'),
       contactId: contacts[7]?.id,
@@ -114,7 +114,7 @@ async function main() {
       title: 'Refonte Logo + Charte',
       description: 'Refonte identité visuelle complète',
       value: 3500,
-      stage: 'DECOUVERTE',
+      stage: 'DECOUVERTE' as const,
       probability: 40,
       expectedCloseDate: new Date('2025-01-15'),
       contactId: contacts[0]?.id,
@@ -125,7 +125,7 @@ async function main() {
       title: 'Site Web Multilingue',
       description: 'Site web corporate avec versions FR/EN/ES',
       value: 18000,
-      stage: 'QUALIFICATION',
+      stage: 'QUALIFICATION' as const,
       probability: 55,
       expectedCloseDate: new Date('2024-12-28'),
       contactId: contacts[1]?.id,

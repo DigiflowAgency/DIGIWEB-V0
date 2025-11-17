@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
           },
         }),
         ...(status && {
-          status: status as any,
+          status: status as 'ACTIVE' | 'PAUSE' | 'ARCHIVED',
         }),
       },
       orderBy: {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Schema de validation Zod pour Activity
@@ -37,32 +38,32 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: any = {};
+    const where: Prisma.ActivityWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
       where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { contact: { firstName: { contains: search, mode: 'insensitive' } } },
-        { contact: { lastName: { contains: search, mode: 'insensitive' } } },
-        { deal: { title: { contains: search, mode: 'insensitive' } } },
+        { title: { contains: search } },
+        { description: { contains: search } },
+        { contact: { firstName: { contains: search } } },
+        { contact: { lastName: { contains: search } } },
+        { deal: { title: { contains: search } } },
       ];
     }
 
     // Filtre par type
     if (type && ['APPEL', 'EMAIL', 'REUNION', 'VISIO'].includes(type)) {
-      where.type = type;
+      where.type = type as 'APPEL' | 'EMAIL' | 'REUNION' | 'VISIO';
     }
 
     // Filtre par statut
     if (status && ['PLANIFIEE', 'COMPLETEE', 'ANNULEE'].includes(status)) {
-      where.status = status;
+      where.status = status as 'PLANIFIEE' | 'COMPLETEE' | 'ANNULEE';
     }
 
     // Filtre par priorité
     if (priority && ['HAUTE', 'MOYENNE', 'BASSE'].includes(priority)) {
-      where.priority = priority;
+      where.priority = priority as 'HAUTE' | 'MOYENNE' | 'BASSE';
     }
 
     // Filtre par contact
@@ -227,7 +228,7 @@ export async function POST(request: NextRequest) {
     // Erreur de validation Zod
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }

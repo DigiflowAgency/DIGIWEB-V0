@@ -38,6 +38,20 @@ interface Salesperson {
   bonus: number;
 }
 
+interface DealWithOwner {
+  id: string;
+  stage: string;
+  value: number;
+  closedAt?: Date | string | null;
+  ownerId?: string | null;
+}
+
+interface OwnerData {
+  id: string;
+  name: string;
+  deals: DealWithOwner[];
+}
+
 export default function PerformancesPage() {
   const { deals, isLoading: dealsLoading, isError: dealsError } = useDeals();
   const { activities, isLoading: activitiesLoading, isError: activitiesError } = useActivities();
@@ -110,14 +124,14 @@ export default function PerformancesPage() {
 
       acc[ownerId].deals.push(deal);
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, OwnerData>);
 
     // Calculer les stats pour chaque commercial
-    const stats = Object.values(dealsByOwner).map((owner: any) => {
-      const wonDeals = owner.deals.filter((d: any) =>
+    const stats = Object.values(dealsByOwner).map((owner: OwnerData) => {
+      const wonDeals = owner.deals.filter((d: DealWithOwner) =>
         d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= monthStart
       );
-      const ca = wonDeals.reduce((sum: number, d: any) => sum + d.value, 0);
+      const ca = wonDeals.reduce((sum: number, d: DealWithOwner) => sum + d.value, 0);
 
       const ownerActivities = activities.filter(a => a.assignedToId === owner.id);
       const meetings = ownerActivities.filter(

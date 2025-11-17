@@ -2,20 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Schema de validation Zod pour Invoice
 const invoiceSchema = z.object({
-  contactId: z.string().optional().nullable(),
   clientName: z.string().min(1, 'Le nom du client est requis'),
   clientEmail: z.string().email('Email invalide'),
   clientAddress: z.string().optional().nullable(),
   subtotal: z.number().positive('Le sous-total doit être positif'),
   taxRate: z.number().min(0).max(100).default(20),
-  paymentTerms: z.string().optional().nullable(),
   paymentMethod: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  dueDate: z.string().datetime().optional(),
+  dueAt: z.string().datetime().optional(),
 });
 
 // Fonction pour générer un numéro de facture unique
@@ -45,43 +43,29 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
     const status = searchParams.get('status');
-    const contactId = searchParams.get('contactId');
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: any = {};
+    const where: Prisma.InvoiceWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
       where.OR = [
-        { number: { contains: search, mode: 'insensitive' } },
-        { clientName: { contains: search, mode: 'insensitive' } },
-        { clientEmail: { contains: search, mode: 'insensitive' } },
+        { number: { contains: search } },
+        { clientName: { contains: search } },
+        { clientEmail: { contains: search } },
       ];
     }
 
     // Filtre par statut
     if (status && ['BROUILLON', 'ENVOYEE', 'PAYEE', 'EN_ATTENTE', 'EN_RETARD', 'ANNULEE'].includes(status)) {
-      where.status = status;
-    }
-
-    // Filtre par contact
-    if (contactId) {
-      where.contactId = contactId;
+      where.status = status as 'BROUILLON' | 'EN_ATTENTE' | 'PAYEE' | 'EN_RETARD' | 'ANNULEE';
     }
 
     // Récupérer les factures
     const invoices = await prisma.invoice.findMany({
       where,
       include: {
-        contact: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
         owner: {
           select: {
             id: true,
@@ -145,20 +129,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = invoiceSchema.parse(body);
 
-    // Vérifier que le contact existe (s'il est fourni)
-    if (validatedData.contactId) {
-      const contact = await prisma.contact.findUnique({
-        where: { id: validatedData.contactId },
-      });
-
-      if (!contact) {
-        return NextResponse.json(
-          { error: 'Contact non trouvé' },
-          { status: 400 }
-        );
-      }
-    }
-
     // Générer le numéro de facture
     const invoiceNumber = await generateInvoiceNumber();
 
@@ -168,15 +138,14 @@ export async function POST(request: NextRequest) {
 
     // Date d'émission et d'échéance
     const issuedAt = new Date();
-    const dueDate = validatedData.dueDate
-      ? new Date(validatedData.dueDate)
+    const dueAt = validatedData.dueAt
+      ? new Date(validatedData.dueAt)
       : new Date(issuedAt.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 jours par défaut
 
     // Créer la facture
     const invoice = await prisma.invoice.create({
       data: {
         number: invoiceNumber,
-        contactId: validatedData.contactId,
         clientName: validatedData.clientName,
         clientEmail: validatedData.clientEmail,
         clientAddress: validatedData.clientAddress,
@@ -185,21 +154,11 @@ export async function POST(request: NextRequest) {
         taxAmount,
         total,
         issuedAt,
-        dueDate,
-        paymentTerms: validatedData.paymentTerms,
+        dueAt,
         paymentMethod: validatedData.paymentMethod,
-        notes: validatedData.notes,
         ownerId: session.user.id,
       },
       include: {
-        contact: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
         owner: {
           select: {
             id: true,
@@ -219,7 +178,7 @@ export async function POST(request: NextRequest) {
     // Erreur de validation Zod
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }

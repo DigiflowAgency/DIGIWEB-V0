@@ -1,9 +1,12 @@
 import type { NextAuthOptions } from 'next-auth';
+import { getServerSession as nextGetServerSession } from 'next-auth/next';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { compare } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -87,4 +90,16 @@ export const authOptions: NextAuthOptions = {
   },
 
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 };
+
+// Helper pour récupérer la session côté serveur
+export async function getServerSession() {
+  return await nextGetServerSession(authOptions);
+}
+
+// Helper pour récupérer l'utilisateur actuel
+export async function getCurrentUser() {
+  const session = await getServerSession();
+  return session?.user;
+}

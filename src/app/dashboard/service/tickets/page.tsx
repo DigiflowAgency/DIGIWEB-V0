@@ -12,7 +12,8 @@ import {
   User,
   Loader2
 } from 'lucide-react';
-import { useTickets } from '@/hooks/useTickets';
+import { useTickets, useTicketMutations } from '@/hooks/useTickets';
+import Modal from '@/components/Modal';
 
 const getStatusLabel = (status: string) => {
   switch (status) {
@@ -59,12 +60,33 @@ const getPriorityColor = (priority: string) => {
 export default function TicketsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    subject: '',
+    description: '',
+    type: 'CLIENT' as 'CLIENT' | 'INTERNAL',
+    priority: 'MOYENNE' as 'HAUTE' | 'MOYENNE' | 'BASSE',
+  });
 
   // Utiliser le hook useTickets pour récupérer les données depuis l'API
-  const { tickets, stats, isLoading, isError } = useTickets({
+  const { tickets, stats, isLoading, isError, mutate } = useTickets({
     search: searchQuery || undefined,
     status: selectedStatus !== 'all' ? selectedStatus.toUpperCase() : undefined,
   });
+
+  const { createTicket, loading: submitting, error: submitError } = useTicketMutations();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createTicket(formData);
+      setIsModalOpen(false);
+      setFormData({ subject: '', description: '', type: 'CLIENT', priority: 'MOYENNE' });
+      mutate();
+    } catch (err) {
+      console.error('Erreur création ticket:', err);
+    }
+  };
 
   // État de chargement
   if (isLoading) {
@@ -114,7 +136,10 @@ export default function TicketsPage() {
               </h1>
               <p className="text-gray-600 mt-1">Gérez les demandes de support client</p>
             </div>
-            <button className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
+            >
               <Plus className="h-5 w-5" />
               Nouveau Ticket
             </button>
@@ -218,6 +243,42 @@ export default function TicketsPage() {
           </table>
         </div>
       </div>
+
+      {/* Modal Nouveau Ticket */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nouveau Ticket" size="lg">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {submitError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{submitError}</div>}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Sujet <span className="text-red-500">*</span></label>
+            <input type="text" required value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="Problème de connexion" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Description <span className="text-red-500">*</span></label>
+            <textarea required value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="Décrivez le problème..." rows={4} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Type</label>
+              <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value as 'CLIENT' | 'INTERNAL' })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <option value="CLIENT">Client</option>
+                <option value="INTERNAL">Interne</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Priorité</label>
+              <select value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'BASSE' | 'MOYENNE' | 'HAUTE' | 'URGENTE' })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <option value="BASSE">Basse</option>
+                <option value="MOYENNE">Moyenne</option>
+                <option value="HAUTE">Haute</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button type="button" onClick={() => setIsModalOpen(false)} disabled={submitting} className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50">Annuler</button>
+            <button type="submit" disabled={submitting} className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2">{submitting ? <><Loader2 className="h-4 w-4 animate-spin" />Création...</> : 'Créer le ticket'}</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

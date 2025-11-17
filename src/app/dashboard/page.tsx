@@ -11,13 +11,11 @@ import {
   Clock,
   CheckCircle2,
   ArrowUpRight,
-  Activity as ActivityIcon,
+  Activity,
   Zap,
   Sun,
-  Sparkles,
   Phone,
   Mail,
-  MessageSquare,
   Euro,
   TrendingDown,
   Loader2,
@@ -94,7 +92,7 @@ const getScoreBadge = (score: number) => {
 };
 
 export default function DashboardPage() {
-  const { deals, stats: dealStats, isLoading: dealsLoading, isError: dealsError } = useDeals();
+  const { deals, isLoading: dealsLoading, isError: dealsError } = useDeals();
   const { activities, isLoading: activitiesLoading, isError: activitiesError } = useActivities({ limit: 10 });
 
   // Calculer les stats principales

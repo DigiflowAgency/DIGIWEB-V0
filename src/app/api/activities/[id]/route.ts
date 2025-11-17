@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Schema de validation pour update (tous les champs optionnels)
@@ -144,7 +145,7 @@ export async function PUT(
     }
 
     // Préparer les données de mise à jour
-    const updateData: any = { ...validatedData };
+    const updateData: Prisma.ActivityUpdateInput = { ...validatedData };
 
     // Si le statut devient COMPLETEE, définir completedAt
     if (validatedData.status === 'COMPLETEE' && !existingActivity.completedAt) {
@@ -194,7 +195,7 @@ export async function PUT(
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }

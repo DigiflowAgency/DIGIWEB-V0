@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Schema de validation pour update (tous les champs optionnels)
@@ -37,10 +38,10 @@ export async function GET(
       where: { id: params.id },
       include: {
         createdBy: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
         assignedTo: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
         replies: {
           orderBy: { createdAt: 'asc' },
@@ -93,7 +94,7 @@ export async function PUT(
     const validatedData = ticketUpdateSchema.parse(body);
 
     // Préparer les données de mise à jour
-    const updateData: any = { ...validatedData };
+    const updateData: Prisma.TicketUpdateInput = { ...validatedData };
 
     // Convertir les dates string en Date si elles existent
     if (validatedData.resolvedAt) {
@@ -119,10 +120,10 @@ export async function PUT(
       data: updateData,
       include: {
         createdBy: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
         assignedTo: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
       },
     });
@@ -133,7 +134,7 @@ export async function PUT(
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }

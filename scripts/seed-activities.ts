@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -22,13 +22,13 @@ async function main() {
 
   // Créer des activités variées
   const now = new Date();
-  const activities = [
+  const activities: Prisma.ActivityUncheckedCreateInput[] = [
     {
       title: 'Appel de découverte',
       description: 'Premier contact pour comprendre les besoins',
-      type: 'APPEL',
-      status: 'PLANIFIEE',
-      priority: 'HAUTE',
+      type: 'APPEL' as const,
+      status: 'PLANIFIEE' as const,
+      priority: 'HAUTE' as const,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 10, 0),
       duration: 30,
       contactId: contacts[0]?.id,
@@ -38,9 +38,9 @@ async function main() {
     {
       title: 'Présentation commerciale',
       description: 'Présentation détaillée de notre offre et démo',
-      type: 'REUNION',
-      status: 'PLANIFIEE',
-      priority: 'HAUTE',
+      type: 'REUNION' as const,
+      status: 'PLANIFIEE' as const,
+      priority: 'HAUTE' as const,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2, 14, 30),
       duration: 60,
       contactId: contacts[1]?.id,
@@ -50,9 +50,9 @@ async function main() {
     {
       title: 'Envoi proposition commerciale',
       description: 'Envoi du devis détaillé avec conditions',
-      type: 'EMAIL',
-      status: 'COMPLETEE',
-      priority: 'MOYENNE',
+      type: 'EMAIL' as const,
+      status: 'COMPLETEE' as const,
+      priority: 'MOYENNE' as const,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 9, 0),
       completedAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 9, 15),
       contactId: contacts[2]?.id,
@@ -62,9 +62,9 @@ async function main() {
     {
       title: 'Visioconférence technique',
       description: 'Atelier technique avec l\'équipe IT du client',
-      type: 'VISIO',
-      status: 'PLANIFIEE',
-      priority: 'HAUTE',
+      type: 'VISIO' as const,
+      status: 'PLANIFIEE' as const,
+      priority: 'HAUTE' as const,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 3, 15, 0),
       duration: 90,
       contactId: contacts[3]?.id,
@@ -74,9 +74,9 @@ async function main() {
     {
       title: 'Relance téléphonique',
       description: 'Relance suite à l\'envoi de la proposition',
-      type: 'APPEL',
-      status: 'PLANIFIEE',
-      priority: 'MOYENNE',
+      type: 'APPEL' as const,
+      status: 'PLANIFIEE' as const,
+      priority: 'MOYENNE' as const,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 16, 0),
       duration: 15,
       contactId: contacts[4]?.id,
@@ -85,9 +85,9 @@ async function main() {
     {
       title: 'Réunion de kick-off',
       description: 'Lancement officiel du projet avec toute l\'équipe',
-      type: 'REUNION',
-      status: 'COMPLETEE',
-      priority: 'HAUTE',
+      type: 'REUNION' as const,
+      status: 'COMPLETEE' as const,
+      priority: 'HAUTE' as const,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 3, 10, 0),
       duration: 120,
       completedAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 3, 12, 10),
@@ -98,9 +98,9 @@ async function main() {
     {
       title: 'Email de suivi projet',
       description: 'Point d\'avancement hebdomadaire',
-      type: 'EMAIL',
-      status: 'COMPLETEE',
-      priority: 'BASSE',
+      type: 'EMAIL' as const,
+      status: 'COMPLETEE' as const,
+      priority: 'BASSE' as const,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 11, 30),
       completedAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2, 11, 45),
       contactId: contacts[6]?.id,
@@ -109,9 +109,9 @@ async function main() {
     {
       title: 'Appel support client',
       description: 'Assistance technique sur une fonctionnalité',
-      type: 'APPEL',
-      status: 'COMPLETEE',
-      priority: 'HAUTE',
+      type: 'APPEL' as const,
+      status: 'COMPLETEE' as const,
+      priority: 'HAUTE' as const,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 30),
       duration: 20,
       completedAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 50),
@@ -121,9 +121,9 @@ async function main() {
     {
       title: 'Visio formation utilisateur',
       description: 'Formation sur l\'utilisation de la plateforme',
-      type: 'VISIO',
-      status: 'PLANIFIEE',
-      priority: 'MOYENNE',
+      type: 'VISIO' as const,
+      status: 'PLANIFIEE' as const,
+      priority: 'MOYENNE' as const,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 4, 14, 0),
       duration: 60,
       contactId: contacts[0]?.id,
@@ -132,9 +132,9 @@ async function main() {
     {
       title: 'Réunion de clôture',
       description: 'Validation finale et signature',
-      type: 'REUNION',
-      status: 'PLANIFIEE',
-      priority: 'HAUTE',
+      type: 'REUNION' as const,
+      status: 'PLANIFIEE' as const,
+      priority: 'HAUTE' as const,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 5, 11, 0),
       duration: 45,
       contactId: contacts[1]?.id,
@@ -144,9 +144,9 @@ async function main() {
     {
       title: 'Email proposition de RDV',
       description: 'Proposition de créneaux pour rendez-vous',
-      type: 'EMAIL',
-      status: 'PLANIFIEE',
-      priority: 'MOYENNE',
+      type: 'EMAIL' as const,
+      status: 'PLANIFIEE' as const,
+      priority: 'MOYENNE' as const,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 15, 0),
       contactId: contacts[2]?.id,
       assignedToId: user.id,
@@ -154,9 +154,9 @@ async function main() {
     {
       title: 'Appel qualification lead',
       description: 'Qualification du besoin et du budget',
-      type: 'APPEL',
-      status: 'PLANIFIEE',
-      priority: 'MOYENNE',
+      type: 'APPEL' as const,
+      status: 'PLANIFIEE' as const,
+      priority: 'MOYENNE' as const,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2, 10, 30),
       duration: 25,
       contactId: contacts[3]?.id,

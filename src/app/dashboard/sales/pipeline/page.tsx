@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   BarChart3,
   Plus,
@@ -9,7 +9,6 @@ import {
   Target,
   Activity,
   ChevronRight,
-  Filter,
   Loader2
 } from 'lucide-react';
 import { useDeals } from '@/hooks/useDeals';

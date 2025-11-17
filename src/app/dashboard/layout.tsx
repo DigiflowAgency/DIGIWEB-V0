@@ -22,16 +22,13 @@ import {
   Zap,
   Workflow,
   Settings,
-  Search,
   Bell,
   LogOut,
   Menu,
   X,
   ChevronDown,
   ChevronRight,
-  ChevronLeft,
   PanelLeftClose,
-  PanelLeft,
 } from 'lucide-react';
 
 interface SubNavItem {

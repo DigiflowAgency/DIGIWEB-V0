@@ -16,7 +16,8 @@ import {
   DollarSign,
   Loader2
 } from 'lucide-react';
-import { useCampaigns } from '@/hooks/useCampaigns';
+import { useCampaigns, useCampaignMutations } from '@/hooks/useCampaigns';
+import Modal from '@/components/Modal';
 
 const getTypeLabel = (type: string) => {
   switch (type) {
@@ -41,12 +42,40 @@ const getStatusLabel = (status: string) => {
 export default function CampaignsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    type: 'EMAIL' as 'EMAIL' | 'SOCIAL_MEDIA' | 'PAID_ADS' | 'EVENT',
+    budget: '',
+    startDate: '',
+    endDate: '',
+  });
 
   // Utiliser le hook useCampaigns pour récupérer les données depuis l'API
-  const { campaigns, stats, isLoading, isError } = useCampaigns({
+  const { campaigns, stats, isLoading, isError, mutate } = useCampaigns({
     search: searchQuery || undefined,
     status: selectedStatus !== 'all' ? selectedStatus.toUpperCase() : undefined,
   });
+
+  const { createCampaign, loading: submitting, error: submitError } = useCampaignMutations();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createCampaign({
+        name: formData.name,
+        type: formData.type,
+        budget: formData.budget ? parseFloat(formData.budget) : null,
+        startDate: formData.startDate || null,
+        endDate: formData.endDate || null,
+      });
+      setIsModalOpen(false);
+      setFormData({ name: '', type: 'EMAIL', budget: '', startDate: '', endDate: '' });
+      mutate();
+    } catch (err) {
+      console.error('Erreur création campagne:', err);
+    }
+  };
 
   // État de chargement
   if (isLoading) {
@@ -107,7 +136,10 @@ export default function CampaignsPage() {
               </h1>
               <p className="text-gray-600 mt-1">Gérez toutes vos campagnes marketing</p>
             </div>
-            <button className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
+            >
               <Plus className="h-5 w-5" />
               Nouvelle Campagne
             </button>
@@ -227,6 +259,46 @@ export default function CampaignsPage() {
             );
           })}
         </div>
+
+        {/* Modal Nouvelle Campagne */}
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nouvelle Campagne" size="lg">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {submitError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{submitError}</div>}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Nom de la campagne <span className="text-red-500">*</span></label>
+              <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="Campagne Printemps 2025" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Type <span className="text-red-500">*</span></label>
+                <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value as 'EMAIL' | 'SOCIAL_MEDIA' | 'PAID_ADS' | 'EVENT' })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                  <option value="EMAIL">Email</option>
+                  <option value="SOCIAL_MEDIA">Social Media</option>
+                  <option value="PAID_ADS">Paid Ads</option>
+                  <option value="EVENT">Event</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Budget (€)</label>
+                <input type="number" min="0" step="0.01" value={formData.budget} onChange={(e) => setFormData({ ...formData, budget: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="5000" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Date de début</label>
+                <input type="date" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Date de fin</label>
+                <input type="date" value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button type="button" onClick={() => setIsModalOpen(false)} disabled={submitting} className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50">Annuler</button>
+              <button type="submit" disabled={submitting} className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2">{submitting ? <><Loader2 className="h-4 w-4 animate-spin" />Création...</> : 'Créer la campagne'}</button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

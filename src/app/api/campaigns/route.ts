@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Schema de validation Zod pour Campaign
@@ -35,23 +36,23 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: any = {};
+    const where: Prisma.CampaignWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search } },
       ];
     }
 
     // Filtre par statut
     if (status && ['BROUILLON', 'PLANIFIEE', 'ACTIVE', 'TERMINEE'].includes(status)) {
-      where.status = status;
+      where.status = status as 'BROUILLON' | 'PLANIFIEE' | 'ACTIVE' | 'TERMINEE';
     }
 
     // Filtre par type
     if (type && ['EMAIL', 'SOCIAL_MEDIA', 'PAID_ADS', 'EVENT'].includes(type)) {
-      where.type = type;
+      where.type = type as 'EMAIL' | 'SOCIAL_MEDIA' | 'PAID_ADS' | 'EVENT';
     }
 
     // Récupérer les campagnes
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
     const validatedData = campaignSchema.parse(body);
 
     // Convertir les dates string en Date si elles existent
-    const data: any = { ...validatedData };
+    const data: Prisma.CampaignCreateInput = { ...validatedData };
     if (validatedData.startDate) {
       data.startDate = new Date(validatedData.startDate);
     }
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
     // Erreur de validation Zod
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.errors },
+        { error: 'Données invalides', details: error.issues },
         { status: 400 }
       );
     }

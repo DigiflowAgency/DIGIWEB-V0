@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -18,8 +18,8 @@ async function main() {
         password: hashedPassword,
         firstName: 'Alexandre',
         lastName: 'Martin',
-        role: 'ADMIN',
-        status: 'ACTIVE',
+        role: 'ADMIN' as const,
+        status: 'ACTIVE' as const,
       },
     });
   }
@@ -29,7 +29,7 @@ async function main() {
     data: {
       name: 'TechCorp France',
       siret: '12345678900123',
-      status: 'CLIENT',
+      status: 'CLIENT' as const,
       address: '15 Rue du Commerce',
       city: 'Paris',
       postalCode: '75001',
@@ -41,7 +41,7 @@ async function main() {
     data: {
       name: 'Solutions Digitales',
       siret: '98765432100456',
-      status: 'PROSPECT',
+      status: 'PROSPECT' as const,
       address: '42 Avenue des Entrepreneurs',
       city: 'Lyon',
       postalCode: '69002',
@@ -53,7 +53,7 @@ async function main() {
     data: {
       name: 'Innovation Web',
       siret: '55544433322211',
-      status: 'LEAD',
+      status: 'LEAD' as const,
       address: '8 Boulevard de la Tech',
       city: 'Toulouse',
       postalCode: '31000',
@@ -62,14 +62,14 @@ async function main() {
   });
 
   // Créer des contacts
-  const contacts = [
+  const contacts: Prisma.ContactUncheckedCreateInput[] = [
     {
       firstName: 'Sophie',
       lastName: 'Dubois',
       email: 'sophie.dubois@techcorp.fr',
       phone: '+33 6 12 34 56 78',
       position: 'Directrice Générale',
-      status: 'CLIENT',
+      status: 'CLIENT' as const,
       qualityScore: 95,
       city: 'Paris',
       companyId: company1.id,
@@ -81,7 +81,7 @@ async function main() {
       email: 'pierre.lefebvre@techcorp.fr',
       phone: '+33 6 23 45 67 89',
       position: 'Directeur Technique',
-      status: 'CLIENT',
+      status: 'CLIENT' as const,
       qualityScore: 90,
       city: 'Paris',
       companyId: company1.id,
@@ -93,7 +93,7 @@ async function main() {
       email: 'marie.bernard@solutions-digitales.fr',
       phone: '+33 6 34 56 78 90',
       position: 'Chef de Projet',
-      status: 'PROSPECT',
+      status: 'PROSPECT' as const,
       qualityScore: 85,
       city: 'Lyon',
       companyId: company2.id,
@@ -105,7 +105,7 @@ async function main() {
       email: 'thomas.petit@solutions-digitales.fr',
       phone: '+33 6 45 67 89 01',
       position: 'Responsable Commercial',
-      status: 'PROSPECT',
+      status: 'PROSPECT' as const,
       qualityScore: 80,
       city: 'Lyon',
       companyId: company2.id,
@@ -117,7 +117,7 @@ async function main() {
       email: 'julie.moreau@innovation-web.fr',
       phone: '+33 6 56 78 90 12',
       position: 'CEO',
-      status: 'LEAD',
+      status: 'LEAD' as const,
       qualityScore: 75,
       city: 'Toulouse',
       companyId: company3.id,
@@ -129,7 +129,7 @@ async function main() {
       email: 'nicolas.girard@innovation-web.fr',
       phone: '+33 6 67 89 01 23',
       position: 'CTO',
-      status: 'LEAD',
+      status: 'LEAD' as const,
       qualityScore: 70,
       city: 'Toulouse',
       companyId: company3.id,
@@ -141,7 +141,7 @@ async function main() {
       email: 'isabelle.roux@freelance.fr',
       phone: '+33 6 78 90 12 34',
       position: 'Consultante Indépendante',
-      status: 'LEAD',
+      status: 'LEAD' as const,
       qualityScore: 65,
       city: 'Marseille',
       assignedToId: user.id,
@@ -152,7 +152,7 @@ async function main() {
       email: 'laurent.simon@startup.com',
       phone: '+33 6 89 01 23 45',
       position: 'Fondateur',
-      status: 'LEAD',
+      status: 'LEAD' as const,
       qualityScore: 60,
       city: 'Nantes',
       assignedToId: user.id,

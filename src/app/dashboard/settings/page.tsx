@@ -420,7 +420,7 @@ export default function SettingsPage() {
                           </div>
                         ))
                       ) : (
-                        <p className="text-center text-gray-500 py-4">Aucun membre d'équipe</p>
+                        <p className="text-center text-gray-500 py-4">Aucun membre d&apos;équipe</p>
                       )}
                     </div>
                   </div>
