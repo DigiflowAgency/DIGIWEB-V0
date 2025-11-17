@@ -1,28 +1,51 @@
 'use client';
 
 import { useState } from 'react';
-import { Zap, Plus, Search, Play, Pause, Edit, BarChart3 } from 'lucide-react';
-
-const mockWorkflows = [
-  { id: 1, name: 'Bienvenue Nouveau Client', trigger: 'Nouveau Contact', actions: 5, status: 'Active', executions: 145 },
-  { id: 2, name: 'Relance Devis Non Signé', trigger: 'Devis Envoyé +3j', actions: 3, status: 'Active', executions: 89 },
-  { id: 3, name: 'Onboarding Client', trigger: 'Deal Gagné', actions: 8, status: 'Active', executions: 34 },
-  { id: 4, name: 'Réactivation Inactif', trigger: 'Inactif 30j', actions: 4, status: 'Pause', executions: 56 },
-  { id: 5, name: 'Lead Scoring Auto', trigger: 'Nouvelle Activité', actions: 2, status: 'Active', executions: 267 },
-  { id: 6, name: 'Rappel RDV', trigger: 'RDV -24h', actions: 3, status: 'Active', executions: 198 },
-  { id: 7, name: 'Follow-up Post Demo', trigger: 'Demo Terminée', actions: 6, status: 'Active', executions: 45 },
-  { id: 8, name: 'Notification Deal', trigger: 'Deal Créé', actions: 2, status: 'Active', executions: 112 },
-  { id: 9, name: 'Survey Satisfaction', trigger: 'Ticket Résolu', actions: 4, status: 'Pause', executions: 78 },
-  { id: 10, name: 'Assignation Auto', trigger: 'Nouveau Lead', actions: 3, status: 'Active', executions: 156 },
-];
+import { Zap, Plus, Search, Play, Pause, Edit, BarChart3, Loader2 } from 'lucide-react';
+import { useWorkflows } from '@/hooks/useWorkflows';
 
 export default function WorkflowsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const stats = [
-    { label: 'Total Workflows', value: mockWorkflows.length, color: 'text-orange-600' },
-    { label: 'Actifs', value: mockWorkflows.filter(w => w.status === 'Active').length, color: 'text-green-600' },
-    { label: 'Exécutions', value: mockWorkflows.reduce((sum, w) => sum + w.executions, 0).toLocaleString(), color: 'text-blue-600' },
-    { label: 'Taux Succès', value: '98%', color: 'text-purple-600' },
+
+  // Utiliser le hook useWorkflows pour récupérer les données depuis l'API
+  const { workflows, stats, isLoading, isError } = useWorkflows({
+    search: searchQuery || undefined,
+  });
+
+  // État de chargement
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-orange-600 mx-auto" />
+          <p className="mt-4 text-gray-600">Chargement des workflows...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // État d'erreur
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">Erreur lors du chargement des workflows</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 btn-primary"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const statsDisplay = [
+    { label: 'Total Workflows', value: stats.total, color: 'text-orange-600' },
+    { label: 'Actifs', value: stats.active, color: 'text-green-600' },
+    { label: 'Exécutions', value: stats.totalExecutions.toLocaleString(), color: 'text-blue-600' },
+    { label: 'Taux Succès', value: `${Math.round(stats.avgSuccessRate)}%`, color: 'text-purple-600' },
   ];
 
   return (
@@ -45,7 +68,7 @@ export default function WorkflowsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {stats.map((stat, index) => (
+          {statsDisplay.map((stat, index) => (
             <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
               <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
               <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
@@ -67,14 +90,14 @@ export default function WorkflowsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockWorkflows.filter(w => w.name.toLowerCase().includes(searchQuery.toLowerCase())).map((workflow) => (
+          {workflows.map((workflow) => (
             <div key={workflow.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
                 <h3 className="font-semibold text-gray-900 flex-1">{workflow.name}</h3>
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  workflow.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                  workflow.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
                 }`}>
-                  {workflow.status}
+                  {workflow.status === 'ACTIVE' ? 'Actif' : workflow.status === 'PAUSE' ? 'Pause' : 'Archivé'}
                 </span>
               </div>
 
@@ -85,7 +108,7 @@ export default function WorkflowsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Actions</span>
-                  <span className="font-semibold text-gray-900">{workflow.actions}</span>
+                  <span className="font-semibold text-gray-900">{workflow.actionsCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Exécutions</span>
@@ -99,7 +122,7 @@ export default function WorkflowsPage() {
                   Modifier
                 </button>
                 <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  {workflow.status === 'Active' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  {workflow.status === 'ACTIVE' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </button>
                 <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                   <BarChart3 className="h-4 w-4" />
@@ -108,6 +131,14 @@ export default function WorkflowsPage() {
             </div>
           ))}
         </div>
+
+        {workflows.length === 0 && (
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+            <Zap className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600 text-lg mb-2">Aucun workflow trouvé</p>
+            <p className="text-gray-500 text-sm">Créez votre premier workflow pour automatiser vos processus</p>
+          </div>
+        )}
       </div>
     </div>
   );

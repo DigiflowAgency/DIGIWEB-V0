@@ -1,30 +1,51 @@
 'use client';
 
 import { useState } from 'react';
-import { Send, Plus, Search, Play, Pause, Edit, Mail, Clock } from 'lucide-react';
-
-const mockSequences = [
-  { id: 1, name: 'Prospection Cold Email', emails: 5, enrolled: 234, completed: 145, opened: 67, replied: 23, status: 'Active' },
-  { id: 2, name: 'Nurturing Leads', emails: 7, enrolled: 189, completed: 98, opened: 72, replied: 34, status: 'Active' },
-  { id: 3, name: 'Follow-up Demo', emails: 4, enrolled: 156, completed: 112, opened: 81, replied: 45, status: 'Active' },
-  { id: 4, name: 'Onboarding Client', emails: 6, enrolled: 89, completed: 67, opened: 78, replied: 12, status: 'Active' },
-  { id: 5, name: 'Réactivation', emails: 3, enrolled: 245, completed: 178, opened: 58, replied: 28, status: 'Pause' },
-  { id: 6, name: 'Upsell Existing', emails: 5, enrolled: 134, completed: 87, opened: 65, replied: 31, status: 'Active' },
-  { id: 7, name: 'Event Invitation', emails: 4, enrolled: 312, completed: 289, opened: 84, replied: 67, status: 'Active' },
-  { id: 8, name: 'Survey Request', emails: 2, enrolled: 456, completed: 398, opened: 76, replied: 198, status: 'Active' },
-];
+import { Send, Plus, Search, Play, Pause, Edit, Mail, Clock, Loader2 } from 'lucide-react';
+import { useSequences } from '@/hooks/useSequences';
 
 export default function SequencesPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const totalEnrolled = mockSequences.reduce((sum, s) => sum + s.enrolled, 0);
-  const totalOpened = mockSequences.reduce((sum, s) => sum + Math.round((s.enrolled * s.opened) / 100), 0);
-  const totalReplied = mockSequences.reduce((sum, s) => sum + Math.round((s.enrolled * s.replied) / 100), 0);
 
-  const stats = [
-    { label: 'Total Séquences', value: mockSequences.length, color: 'text-orange-600' },
-    { label: 'Contacts Inscrits', value: totalEnrolled.toLocaleString(), color: 'text-blue-600' },
-    { label: 'Taux Ouverture', value: `${Math.round((totalOpened / totalEnrolled) * 100)}%`, color: 'text-green-600' },
-    { label: 'Taux Réponse', value: `${Math.round((totalReplied / totalEnrolled) * 100)}%`, color: 'text-purple-600' },
+  // Utiliser le hook useSequences pour récupérer les données depuis l'API
+  const { sequences, stats, isLoading, isError } = useSequences({
+    search: searchQuery || undefined,
+  });
+
+  // État de chargement
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-orange-600 mx-auto" />
+          <p className="mt-4 text-gray-600">Chargement des séquences...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // État d'erreur
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">Erreur lors du chargement des séquences</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 btn-primary"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const statsDisplay = [
+    { label: 'Total Séquences', value: stats.total, color: 'text-orange-600' },
+    { label: 'Contacts Inscrits', value: stats.totalEnrolled.toLocaleString(), color: 'text-blue-600' },
+    { label: 'Taux Ouverture', value: `${stats.avgOpenRate}%`, color: 'text-green-600' },
+    { label: 'Taux Réponse', value: `${stats.avgReplyRate}%`, color: 'text-purple-600' },
   ];
 
   return (
@@ -47,7 +68,7 @@ export default function SequencesPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {stats.map((stat, index) => (
+          {statsDisplay.map((stat, index) => (
             <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
               <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
               <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
@@ -69,20 +90,20 @@ export default function SequencesPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {mockSequences.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).map((sequence) => (
+          {sequences.map((sequence) => (
             <div key={sequence.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 mb-1">{sequence.name}</h3>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Mail className="h-4 w-4" />
-                    <span>{sequence.emails} emails</span>
+                    <span>{sequence.emailsCount} emails</span>
                   </div>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  sequence.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                  sequence.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
                 }`}>
-                  {sequence.status}
+                  {sequence.status === 'ACTIVE' ? 'Actif' : sequence.status === 'PAUSE' ? 'Pause' : 'Archivé'}
                 </span>
               </div>
 
@@ -100,11 +121,11 @@ export default function SequencesPage() {
               <div className="space-y-2 mb-4 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Taux d&apos;ouverture</span>
-                  <span className="font-semibold text-green-600">{sequence.opened}%</span>
+                  <span className="font-semibold text-green-600">{sequence.openRate || 0}%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Taux de réponse</span>
-                  <span className="font-semibold text-purple-600">{sequence.replied}%</span>
+                  <span className="font-semibold text-purple-600">{sequence.replyRate || 0}%</span>
                 </div>
               </div>
 
@@ -114,7 +135,7 @@ export default function SequencesPage() {
                   Modifier
                 </button>
                 <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  {sequence.status === 'Active' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  {sequence.status === 'ACTIVE' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </button>
                 <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                   <Clock className="h-4 w-4" />
@@ -123,6 +144,14 @@ export default function SequencesPage() {
             </div>
           ))}
         </div>
+
+        {sequences.length === 0 && (
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+            <Send className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600 text-lg mb-2">Aucune séquence trouvée</p>
+            <p className="text-gray-500 text-sm">Créez votre première séquence pour automatiser vos campagnes email</p>
+          </div>
+        )}
       </div>
     </div>
   );

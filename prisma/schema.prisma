@@ -905,3 +905,74 @@ model AnalyticsReport {
   @@index([type])
   @@map("analytics_reports")
 }
+
+// ============================================
+// AUTOMATION
+// ============================================
+
+enum WorkflowStatus {
+  ACTIVE
+  PAUSE
+  ARCHIVED
+}
+
+model Workflow {
+  id          String         @id @default(cuid())
+  name        String
+  description String?        @db.Text
+
+  // Déclencheur
+  trigger     String         // Ex: "Nouveau Contact", "Devis Envoyé +3j"
+
+  // Configuration (JSON)
+  config      String         @db.Text // Actions et conditions en JSON
+
+  // Stats
+  actionsCount Int           @default(0) // Nombre d'actions dans le workflow
+  executions   Int           @default(0) // Nombre total d'exécutions
+  successRate  Float?        // Taux de succès (0-100)
+
+  // Statut
+  status      WorkflowStatus @default(ACTIVE)
+
+  // Métadonnées
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  lastRunAt   DateTime?
+
+  @@index([status])
+  @@map("workflows")
+}
+
+enum SequenceStatus {
+  ACTIVE
+  PAUSE
+  ARCHIVED
+}
+
+model Sequence {
+  id          String         @id @default(cuid())
+  name        String
+  description String?        @db.Text
+
+  // Configuration
+  emailsCount Int            @default(0) // Nombre d'emails dans la séquence
+  config      String         @db.Text    // Contenu des emails en JSON
+
+  // Stats d'engagement
+  enrolled    Int            @default(0) // Contacts inscrits
+  completed   Int            @default(0) // Contacts ayant terminé
+  openRate    Float?         // Taux d'ouverture (0-100)
+  replyRate   Float?         // Taux de réponse (0-100)
+
+  // Statut
+  status      SequenceStatus @default(ACTIVE)
+
+  // Métadonnées
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  lastRunAt   DateTime?
+
+  @@index([status])
+  @@map("sequences")
+}
