@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import {
   LayoutDashboard,
   Users,
@@ -129,22 +130,32 @@ export default function DashboardLayout({
     );
   };
 
+  const { data: session, status } = useSession();
+
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated');
-    const email = localStorage.getItem('userEmail');
-
-    if (!isAuthenticated) {
+    if (status === 'unauthenticated') {
       router.push('/login');
-    } else {
-      setUserEmail(email || 'user@digiweb.fr');
+    } else if (status === 'authenticated' && session?.user) {
+      setUserEmail(session.user.email || 'user@digiweb.fr');
     }
-  }, [router]);
+  }, [status, session, router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userEmail');
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
     router.push('/login');
   };
+
+  // Show loading state while checking auth
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

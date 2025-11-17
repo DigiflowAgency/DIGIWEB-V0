@@ -2,19 +2,19 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 
 export default function Home() {
   const router = useRouter()
+  const { status } = useSession()
 
   useEffect(() => {
-    // Vérifier si l'utilisateur est connecté
-    const userId = localStorage.getItem('userId')
-    if (userId) {
+    if (status === 'authenticated') {
       router.push('/dashboard')
-    } else {
+    } else if (status === 'unauthenticated') {
       router.push('/login')
     }
-  }, [router])
+  }, [status, router])
 
   return (
     <div className="flex min-h-screen items-center justify-center">
