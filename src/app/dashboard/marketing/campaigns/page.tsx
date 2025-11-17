@@ -13,51 +13,83 @@ import {
   TrendingUp,
   Users,
   MousePointer,
-  DollarSign
+  DollarSign,
+  Loader2
 } from 'lucide-react';
+import { useCampaigns } from '@/hooks/useCampaigns';
 
-const mockCampaigns = [
-  { id: 1, name: 'Lancement Automne 2024', type: 'Email', status: 'Active', startDate: '2024-11-01', endDate: '2024-11-30', reach: 2500, clicks: 420, conversions: 38, budget: 1200 },
-  { id: 2, name: 'Promotion Black Friday', type: 'Social Media', status: 'Planifiée', startDate: '2024-11-25', endDate: '2024-11-29', reach: 5000, clicks: 0, conversions: 0, budget: 2500 },
-  { id: 3, name: 'Newsletter Hebdo', type: 'Email', status: 'Active', startDate: '2024-11-01', endDate: '2024-12-31', reach: 3200, clicks: 580, conversions: 52, budget: 800 },
-  { id: 4, name: 'Google Ads Q4', type: 'Paid Ads', status: 'Active', startDate: '2024-10-01', endDate: '2024-12-31', reach: 12000, clicks: 1850, conversions: 145, budget: 5000 },
-  { id: 5, name: 'LinkedIn B2B', type: 'Social Media', status: 'Active', startDate: '2024-11-01', endDate: '2024-11-30', reach: 1800, clicks: 340, conversions: 28, budget: 1500 },
-  { id: 6, name: 'Webinaire SEO', type: 'Event', status: 'Terminée', startDate: '2024-10-15', endDate: '2024-10-15', reach: 450, clicks: 380, conversions: 67, budget: 800 },
-  { id: 7, name: 'Facebook Retargeting', type: 'Paid Ads', status: 'Active', startDate: '2024-11-10', endDate: '2024-12-10', reach: 4200, clicks: 680, conversions: 54, budget: 1800 },
-  { id: 8, name: 'Instagram Stories', type: 'Social Media', status: 'Active', startDate: '2024-11-01', endDate: '2024-11-30', reach: 3500, clicks: 520, conversions: 41, budget: 900 },
-  { id: 9, name: 'Campagne SEO Local', type: 'Content', status: 'Active', startDate: '2024-09-01', endDate: '2024-12-31', reach: 8500, clicks: 1250, conversions: 98, budget: 2200 },
-  { id: 10, name: 'Email Réactivation', type: 'Email', status: 'Planifiée', startDate: '2024-12-01', endDate: '2024-12-15', reach: 1500, clicks: 0, conversions: 0, budget: 600 },
-];
+const getTypeLabel = (type: string) => {
+  switch (type) {
+    case 'EMAIL': return 'Email';
+    case 'SOCIAL_MEDIA': return 'Social Media';
+    case 'PAID_ADS': return 'Paid Ads';
+    case 'EVENT': return 'Event';
+    default: return type;
+  }
+};
+
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'BROUILLON': return 'Brouillon';
+    case 'PLANIFIEE': return 'Planifiée';
+    case 'ACTIVE': return 'Active';
+    case 'TERMINEE': return 'Terminée';
+    default: return status;
+  }
+};
 
 export default function CampaignsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
-  const filteredCampaigns = mockCampaigns.filter(campaign => {
-    const matchesSearch = campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         campaign.type.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = selectedStatus === 'all' || campaign.status.toLowerCase() === selectedStatus.toLowerCase();
-    return matchesSearch && matchesStatus;
+  // Utiliser le hook useCampaigns pour récupérer les données depuis l'API
+  const { campaigns, stats, isLoading, isError } = useCampaigns({
+    search: searchQuery || undefined,
+    status: selectedStatus !== 'all' ? selectedStatus.toUpperCase() : undefined,
   });
 
-  const totalReach = mockCampaigns.reduce((sum, c) => sum + c.reach, 0);
-  const totalClicks = mockCampaigns.reduce((sum, c) => sum + c.clicks, 0);
-  const totalConversions = mockCampaigns.reduce((sum, c) => sum + c.conversions, 0);
-  const totalBudget = mockCampaigns.reduce((sum, c) => sum + c.budget, 0);
+  // État de chargement
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-orange-600 mx-auto" />
+          <p className="mt-4 text-gray-600">Chargement des campagnes...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const stats = [
-    { label: 'Portée Totale', value: totalReach.toLocaleString(), color: 'text-orange-600', icon: Users },
-    { label: 'Total Clics', value: totalClicks.toLocaleString(), color: 'text-blue-600', icon: MousePointer },
-    { label: 'Conversions', value: totalConversions, color: 'text-green-600', icon: TrendingUp },
-    { label: 'Budget Total', value: `${totalBudget.toLocaleString()}€`, color: 'text-purple-600', icon: DollarSign },
+  // État d'erreur
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">Erreur lors du chargement des campagnes</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 btn-primary"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const statsDisplay = [
+    { label: 'Portée Totale', value: stats.totalReach.toLocaleString(), color: 'text-orange-600', icon: Users },
+    { label: 'Total Clics', value: stats.totalClicks.toLocaleString(), color: 'text-blue-600', icon: MousePointer },
+    { label: 'Conversions', value: stats.totalConversions, color: 'text-green-600', icon: TrendingUp },
+    { label: 'Budget Total', value: `${stats.totalBudget.toLocaleString()}€`, color: 'text-purple-600', icon: DollarSign },
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return 'bg-green-100 text-green-700';
-      case 'Planifiée': return 'bg-blue-100 text-blue-700';
-      case 'Terminée': return 'bg-gray-100 text-gray-700';
-      case 'En Pause': return 'bg-yellow-100 text-yellow-700';
+      case 'ACTIVE': return 'bg-green-100 text-green-700';
+      case 'PLANIFIEE': return 'bg-blue-100 text-blue-700';
+      case 'TERMINEE': return 'bg-gray-100 text-gray-700';
+      case 'BROUILLON': return 'bg-yellow-100 text-yellow-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -84,7 +116,7 @@ export default function CampaignsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {stats.map((stat, index) => {
+          {statsDisplay.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
@@ -118,9 +150,9 @@ export default function CampaignsPage() {
             >
               <option value="all">Tous les statuts</option>
               <option value="active">Active</option>
-              <option value="planifiée">Planifiée</option>
-              <option value="en pause">En Pause</option>
-              <option value="terminée">Terminée</option>
+              <option value="planifiee">Planifiée</option>
+              <option value="brouillon">Brouillon</option>
+              <option value="terminee">Terminée</option>
             </select>
             <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
               <Filter className="h-5 w-5" />
@@ -131,7 +163,7 @@ export default function CampaignsPage() {
 
         {/* Campaigns Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCampaigns.map((campaign) => {
+          {campaigns.map((campaign) => {
             const clickRate = campaign.reach > 0 ? ((campaign.clicks / campaign.reach) * 100).toFixed(1) : 0;
             const conversionRate = campaign.clicks > 0 ? ((campaign.conversions / campaign.clicks) * 100).toFixed(1) : 0;
 
@@ -140,10 +172,10 @@ export default function CampaignsPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 mb-1">{campaign.name}</h3>
-                    <span className="text-sm text-gray-500">{campaign.type}</span>
+                    <span className="text-sm text-gray-500">{getTypeLabel(campaign.type)}</span>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(campaign.status)}`}>
-                    {campaign.status}
+                    {getStatusLabel(campaign.status)}
                   </span>
                 </div>
 
@@ -162,7 +194,9 @@ export default function CampaignsPage() {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Budget</span>
-                    <span className="font-semibold text-orange-600">{campaign.budget.toLocaleString()}€</span>
+                    <span className="font-semibold text-orange-600">
+                      {campaign.budget ? campaign.budget.toLocaleString() : '0'}€
+                    </span>
                   </div>
                 </div>
 
@@ -186,7 +220,7 @@ export default function CampaignsPage() {
                     <Edit className="h-4 w-4" />
                   </button>
                   <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    {campaign.status === 'Active' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    {campaign.status === 'ACTIVE' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
