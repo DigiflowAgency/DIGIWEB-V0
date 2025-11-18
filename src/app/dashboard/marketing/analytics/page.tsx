@@ -15,8 +15,11 @@ export default function AnalyticsPage() {
   const stats = useMemo(() => {
     if (!campaigns || !emailCampaigns || !posts) return [];
 
-    // Total reach de toutes les campagnes
-    const totalReach = campaigns.reduce((sum, c) => sum + (c.reach || 0), 0);
+    // Total impressions (reach) de toutes les campagnes
+    const totalImpressions = campaigns.reduce((sum, c) => sum + (c.reach || 0), 0);
+
+    // Total reach de toutes les campagnes (même valeur)
+    const totalReach = totalImpressions;
 
     // Total clics de toutes les campagnes
     const totalClicks = campaigns.reduce((sum, c) => sum + (c.clicks || 0), 0);
@@ -45,7 +48,7 @@ export default function AnalyticsPage() {
     const sources = [
       {
         source: 'Campagnes Marketing',
-        visitors: campaigns.reduce((sum, c) => sum + (c.impressions || 0), 0),
+        visitors: campaigns.reduce((sum, c) => sum + (c.reach || 0), 0),
       },
       {
         source: 'Email Marketing',
@@ -74,14 +77,14 @@ export default function AnalyticsPage() {
     if (!campaigns) return [];
 
     return [...campaigns]
-      .filter(c => c.status === 'ACTIVE' || c.status === 'COMPLETED')
-      .sort((a, b) => (b.impressions || 0) - (a.impressions || 0))
+      .filter(c => c.status === 'PLANIFIEE' || c.status === 'TERMINEE')
+      .sort((a, b) => (b.reach || 0) - (a.reach || 0))
       .slice(0, 5)
       .map(c => ({
         name: c.name,
-        views: c.impressions || 0,
-        ctr: c.impressions && c.impressions > 0
-          ? Math.round(((c.clicks || 0) / c.impressions) * 100)
+        views: c.reach || 0,
+        ctr: c.reach && c.reach > 0
+          ? Math.round(((c.clicks || 0) / c.reach) * 100)
           : 0,
       }));
   }, [campaigns]);

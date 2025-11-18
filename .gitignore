@@ -35,3 +35,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# PM2 and server configs
+ecosystem.config.js
+ecosystem.config.cjs
+ecosystem.config.mjs
+ecosystem.config.cjs.backup
+serve.json
+static-mime-config.js
+
+# Server scripts
+start-*.sh
+fix-*.sh
+deploy-*.sh

@@ -266,7 +266,7 @@ export default function TicketsPage() {
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Priorité</label>
-              <select value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'BASSE' | 'MOYENNE' | 'HAUTE' | 'URGENTE' })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+              <select value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'BASSE' | 'MOYENNE' | 'HAUTE' })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
                 <option value="BASSE">Basse</option>
                 <option value="MOYENNE">Moyenne</option>
                 <option value="HAUTE">Haute</option>

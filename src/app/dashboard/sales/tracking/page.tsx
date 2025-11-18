@@ -122,6 +122,7 @@ export default function TrackingPage() {
 
       if (!acc[ownerId]) {
         acc[ownerId] = {
+          id: ownerId,
           name: `${deal.owner.firstName} ${deal.owner.lastName}`,
           deals: [],
         };

@@ -81,7 +81,7 @@ export default function SuiviClientPage() {
       uptime: m.uptime,
       cpu: m.cpu,
       memory: m.memory,
-      ssl: m.ssl,
+      ssl: m.ssl ? 'Actif' : 'Inactif',
       lastBackup: m.lastBackup || 'Aucun',
       nps: m.nps,
       status: m.status,

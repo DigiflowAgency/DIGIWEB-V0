@@ -56,7 +56,7 @@ const getActivityIcon = (type: string) => {
     case 'EMAIL': return Mail;
     case 'REUNION': return Calendar;
     case 'VISIO': return Calendar;
-    default: return ActivityIcon;
+    default: return Activity;
   }
 };
 

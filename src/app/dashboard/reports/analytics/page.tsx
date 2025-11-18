@@ -90,7 +90,6 @@ export default function AnalyticsReportPage() {
       return {
         type: activity.type,
         description: `${activity.type} - ${activity.title}`,
-        amount: activity.type === 'CALL' || activity.type === 'MEETING' ? null : null,
         time: timeAgo,
       };
     });
@@ -225,9 +224,6 @@ export default function AnalyticsReportPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900">{activity.description}</p>
-                      {activity.amount && (
-                        <p className="text-sm font-bold text-orange-600">{activity.amount.toLocaleString()}€</p>
-                      )}
                       <p className="text-xs text-gray-500">{activity.time}</p>
                     </div>
                   </div>

@@ -116,9 +116,7 @@ export default function PerformancesPage() {
         acc[ownerId] = {
           id: ownerId,
           name: `${deal.owner.firstName} ${deal.owner.lastName}`,
-          email: deal.owner.email,
           deals: [],
-          activities: [],
         };
       }
 
@@ -188,7 +186,7 @@ export default function PerformancesPage() {
     const speedCloserProgress = Math.min(Math.round((dealsThisWeek / 5) * 100), 100);
 
     // Client Champion: 95% de satisfaction client (basé sur la moyenne des reviews)
-    const avgRating = reviewStats?.average || 0;
+    const avgRating = reviewStats?.avgRating || 0;
     const satisfactionPercent = (avgRating / 5) * 100;
     const clientChampionProgress = Math.min(Math.round(satisfactionPercent), 100);
 
