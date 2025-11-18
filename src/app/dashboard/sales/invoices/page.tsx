@@ -5,7 +5,6 @@ import {
   Receipt,
   Plus,
   Search,
-  Filter,
   Download,
   Send,
   Eye,
@@ -14,7 +13,8 @@ import {
   AlertCircle,
   Calendar,
   Euro,
-  Loader2
+  Loader2,
+  Filter
 } from 'lucide-react';
 import { useInvoices, useInvoiceMutations } from '@/hooks/useInvoices';
 import { useContacts } from '@/hooks/useContacts';
@@ -57,6 +57,18 @@ export default function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    status: 'all',
+    amountMin: '',
+    amountMax: '',
+    issuedFrom: '',
+    issuedTo: '',
+    dueFrom: '',
+    dueTo: '',
+  });
   const [formData, setFormData] = useState({
     clientName: '',
     clientEmail: '',
@@ -75,6 +87,107 @@ export default function InvoicesPage() {
 
   const { createInvoice, loading: submitting, error: submitError } = useInvoiceMutations();
   const { contacts } = useContacts({});
+
+  // Filtres avancés
+  const filteredInvoices = invoices.filter(invoice => {
+    if (advancedFilters.status !== 'all' && invoice.status !== advancedFilters.status.toUpperCase()) return false;
+    if (advancedFilters.amountMin && invoice.total < parseFloat(advancedFilters.amountMin)) return false;
+    if (advancedFilters.amountMax && invoice.total > parseFloat(advancedFilters.amountMax)) return false;
+    if (advancedFilters.issuedFrom && new Date(invoice.issuedAt) < new Date(advancedFilters.issuedFrom)) return false;
+    if (advancedFilters.issuedTo && new Date(invoice.issuedAt) > new Date(advancedFilters.issuedTo)) return false;
+    if (advancedFilters.dueFrom && new Date(invoice.dueAt) < new Date(advancedFilters.dueFrom)) return false;
+    if (advancedFilters.dueTo && new Date(invoice.dueAt) > new Date(advancedFilters.dueTo)) return false;
+    return true;
+  });
+
+  const handleApplyFilters = () => {
+    setIsFilterModalOpen(false);
+  };
+
+  const handleResetFilters = () => {
+    setAdvancedFilters({
+      status: 'all',
+      amountMin: '',
+      amountMax: '',
+      issuedFrom: '',
+      issuedTo: '',
+      dueFrom: '',
+      dueTo: '',
+    });
+  };
+
+  // Handlers pour les actions
+  const handleView = (invoice: any) => {
+    setSelectedInvoice(invoice);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleDownload = async (invoice: any) => {
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}/pdf`, {
+        method: 'GET',
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `facture-${invoice.number}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        alert('Erreur lors du téléchargement du PDF');
+      }
+    } catch (err) {
+      console.error('Erreur téléchargement PDF:', err);
+      alert('Erreur lors du téléchargement du PDF');
+    }
+  };
+
+  const handleSend = async (invoice: any) => {
+    if (!confirm(`Envoyer la facture ${invoice.number} à ${invoice.clientEmail} ?`)) return;
+
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}/send`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        alert('Facture envoyée avec succès !');
+        mutate();
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Erreur lors de l\'envoi');
+      }
+    } catch (err) {
+      console.error('Erreur envoi facture:', err);
+      alert('Erreur lors de l\'envoi de la facture');
+    }
+  };
+
+  const handleMarkAsPaid = async (invoice: any) => {
+    if (!confirm(`Marquer la facture ${invoice.number} comme payée ?`)) return;
+
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}/mark-paid`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        alert('Facture marquée comme payée !');
+        mutate();
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Erreur lors de la mise à jour');
+      }
+    } catch (err) {
+      console.error('Erreur mise à jour facture:', err);
+      alert('Erreur lors de la mise à jour de la facture');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,9 +310,12 @@ export default function InvoicesPage() {
               <option value="en_retard">En Retard</option>
               <option value="annulee">Annulées</option>
             </select>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => setIsFilterModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <Filter className="h-5 w-5" />
-              Filtres
+              Filtres Avancés
             </button>
           </div>
         </div>
@@ -220,7 +336,7 @@ export default function InvoicesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {invoices.map((invoice) => {
+                {filteredInvoices.map((invoice) => {
                   const StatusIcon = getStatusIcon(invoice.status);
                   const statusColor = getStatusColor(invoice.status);
 
@@ -257,14 +373,26 @@ export default function InvoicesPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Voir">
+                          <button
+                            onClick={() => handleView(invoice)}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Voir"
+                          >
                             <Eye className="h-4 w-4 text-gray-600" />
                           </button>
-                          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Télécharger">
+                          <button
+                            onClick={() => handleDownload(invoice)}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Télécharger"
+                          >
                             <Download className="h-4 w-4 text-gray-600" />
                           </button>
                           {invoice.status !== 'PAYEE' && (
-                            <button className="p-2 hover:bg-orange-100 rounded-lg transition-colors" title="Envoyer">
+                            <button
+                              onClick={() => handleSend(invoice)}
+                              className="p-2 hover:bg-orange-100 rounded-lg transition-colors"
+                              title="Envoyer"
+                            >
                               <Send className="h-4 w-4 text-orange-600" />
                             </button>
                           )}
@@ -281,7 +409,7 @@ export default function InvoicesPage() {
         {/* Pagination */}
         <div className="mt-6 flex items-center justify-between">
           <p className="text-sm text-gray-600">
-            Affichage de {invoices.length} factures
+            Affichage de {filteredInvoices.length} factures
           </p>
         </div>
 
@@ -329,6 +457,240 @@ export default function InvoicesPage() {
               <button type="submit" disabled={submitting} className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2">{submitting ? <><Loader2 className="h-4 w-4 animate-spin" />Création...</> : 'Créer la facture'}</button>
             </div>
           </form>
+        </Modal>
+
+        {/* Modal Détails Facture */}
+        <Modal
+          isOpen={isDetailModalOpen}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setSelectedInvoice(null);
+          }}
+          title={`Détails de la Facture ${selectedInvoice?.number || ''}`}
+          size="lg"
+        >
+          {selectedInvoice && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Informations Client</h3>
+                  <div className="space-y-2">
+                    <p className="text-sm"><span className="font-medium">Nom:</span> {selectedInvoice.clientName}</p>
+                    <p className="text-sm"><span className="font-medium">Email:</span> {selectedInvoice.clientEmail}</p>
+                    {selectedInvoice.clientAddress && (
+                      <p className="text-sm"><span className="font-medium">Adresse:</span> {selectedInvoice.clientAddress}</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Informations Facture</h3>
+                  <div className="space-y-2">
+                    <p className="text-sm"><span className="font-medium">Numéro:</span> {selectedInvoice.number}</p>
+                    <p className="text-sm">
+                      <span className="font-medium">Statut:</span>{' '}
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(selectedInvoice.status)}`}>
+                        {getStatusLabel(selectedInvoice.status)}
+                      </span>
+                    </p>
+                    <p className="text-sm"><span className="font-medium">Date d&apos;émission:</span> {new Date(selectedInvoice.issuedAt).toLocaleDateString('fr-FR')}</p>
+                    <p className="text-sm"><span className="font-medium">Date d&apos;échéance:</span> {new Date(selectedInvoice.dueAt).toLocaleDateString('fr-FR')}</p>
+                    {selectedInvoice.paidAt && (
+                      <p className="text-sm"><span className="font-medium">Date de paiement:</span> {new Date(selectedInvoice.paidAt).toLocaleDateString('fr-FR')}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Détails Financiers</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Montant HT:</span>
+                    <span className="text-sm font-semibold">{selectedInvoice.subtotal.toLocaleString()}€</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">TVA ({selectedInvoice.taxRate}%):</span>
+                    <span className="text-sm font-semibold">{selectedInvoice.taxAmount.toLocaleString()}€</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2">
+                    <span className="text-lg font-bold text-gray-900">Total TTC:</span>
+                    <span className="text-lg font-bold text-orange-600">{selectedInvoice.total.toLocaleString()}€</span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedInvoice.products && selectedInvoice.products.length > 0 && (
+                <div className="border-t pt-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Articles ({selectedInvoice.products.length})</h3>
+                  <div className="space-y-2">
+                    {selectedInvoice.products.map((product: any) => (
+                      <div key={product.id} className="flex justify-between items-start p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="text-sm font-medium">{product.name}</p>
+                          {product.description && (
+                            <p className="text-xs text-gray-600 mt-1">{product.description}</p>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">Quantité: {product.quantity} × {product.unitPrice.toLocaleString()}€</p>
+                        </div>
+                        <span className="text-sm font-semibold text-orange-600">{product.total.toLocaleString()}€</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button
+                  onClick={() => {
+                    setIsDetailModalOpen(false);
+                    setSelectedInvoice(null);
+                  }}
+                  className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Fermer
+                </button>
+                <button
+                  onClick={() => handleDownload(selectedInvoice)}
+                  className="px-6 py-2 border border-orange-600 text-orange-600 rounded-lg hover:bg-orange-50 transition-colors font-semibold flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Télécharger PDF
+                </button>
+                {selectedInvoice.status !== 'PAYEE' && (
+                  <button
+                    onClick={() => {
+                      handleMarkAsPaid(selectedInvoice);
+                      setIsDetailModalOpen(false);
+                      setSelectedInvoice(null);
+                    }}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center gap-2"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Marquer comme payée
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </Modal>
+
+        {/* Modal Filtres Avancés */}
+        <Modal
+          isOpen={isFilterModalOpen}
+          onClose={() => setIsFilterModalOpen(false)}
+          title="Filtres Avancés"
+          size="md"
+        >
+          <div className="space-y-4">
+            {/* Statut */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Statut
+              </label>
+              <select
+                value={advancedFilters.status}
+                onChange={(e) => setAdvancedFilters({ ...advancedFilters, status: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="all">Tous les statuts</option>
+                <option value="brouillon">Brouillon</option>
+                <option value="envoyee">Envoyée</option>
+                <option value="en_attente">En Attente</option>
+                <option value="payee">Payée</option>
+                <option value="en_retard">En Retard</option>
+                <option value="annulee">Annulée</option>
+              </select>
+            </div>
+
+            {/* Montant */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Montant (€)
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={advancedFilters.amountMin}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, amountMin: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Min"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={advancedFilters.amountMax}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, amountMax: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Max"
+                />
+              </div>
+            </div>
+
+            {/* Date d'émission */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Date d&apos;émission
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="date"
+                  value={advancedFilters.issuedFrom}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, issuedFrom: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Du"
+                />
+                <input
+                  type="date"
+                  value={advancedFilters.issuedTo}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, issuedTo: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Au"
+                />
+              </div>
+            </div>
+
+            {/* Date d'échéance */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Date d&apos;échéance
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="date"
+                  value={advancedFilters.dueFrom}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, dueFrom: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Du"
+                />
+                <input
+                  type="date"
+                  value={advancedFilters.dueTo}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, dueTo: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Au"
+                />
+              </div>
+            </div>
+
+            {/* Boutons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button
+                onClick={handleResetFilters}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Réinitialiser
+              </button>
+              <button
+                onClick={handleApplyFilters}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold"
+              >
+                Appliquer
+              </button>
+            </div>
+          </div>
         </Modal>
       </div>
     </div>

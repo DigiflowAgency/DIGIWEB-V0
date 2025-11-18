@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import NotificationDropdown from '@/components/NotificationDropdown';
 import {
   LayoutDashboard,
   Users,
@@ -22,7 +23,6 @@ import {
   Zap,
   Workflow,
   Settings,
-  Bell,
   LogOut,
   Menu,
   X,
@@ -116,7 +116,6 @@ export default function DashboardLayout({
   const [userEmail, setUserEmail] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [notifications] = useState(3);
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['Dashboard', 'CRM', 'Ventes']);
 
   const toggleCategory = (categoryName: string) => {
@@ -452,14 +451,7 @@ export default function DashboardLayout({
             {/* Right section */}
             <div className="flex items-center space-x-2">
               {/* Notifications */}
-              <button className="relative p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition">
-                <Bell className="h-5 w-5" />
-                {notifications > 0 && (
-                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white">
-                    {notifications}
-                  </span>
-                )}
-              </button>
+              <NotificationDropdown />
 
               {/* Avatar */}
               <div className="hidden sm:block">

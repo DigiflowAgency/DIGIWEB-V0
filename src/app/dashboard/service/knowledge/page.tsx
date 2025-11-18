@@ -2,11 +2,32 @@
 
 import { useState } from 'react';
 import { BookOpen, Plus, Search, Eye, Edit, Folder, Loader2 } from 'lucide-react';
-import { useKnowledge } from '@/hooks/useKnowledge';
+import { useKnowledge, useKnowledgeMutations } from '@/hooks/useKnowledge';
+import Modal from '@/components/Modal';
+import { useRouter } from 'next/navigation';
 
 export default function KnowledgePage() {
+  const _router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const { articles, stats, isLoading, isError } = useKnowledge({ search: searchQuery || undefined });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ title: '', category: '', content: '' });
+
+  const { articles, stats, isLoading, isError, mutate } = useKnowledge({ search: searchQuery || undefined });
+  const { createArticle, loading: submitting } = useKnowledgeMutations();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.title.trim() || !formData.category.trim()) return;
+
+    try {
+      await createArticle(formData);
+      mutate();
+      setIsModalOpen(false);
+      setFormData({ title: '', category: '', content: '' });
+    } catch (err) {
+      console.error('Erreur création article:', err);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -43,7 +64,10 @@ export default function KnowledgePage() {
               </h1>
               <p className="text-gray-600 mt-1">Documentation et guides pour vos clients</p>
             </div>
-            <button className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
+            >
               <Plus className="h-5 w-5" />
               Nouvel Article
             </button>
@@ -90,17 +114,105 @@ export default function KnowledgePage() {
                 <span>Mis à jour: {new Date(article.updatedAt).toLocaleDateString('fr-FR')}</span>
               </div>
               <div className="flex gap-2 mt-4">
-                <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                <button
+                  onClick={() => alert(`Voir article: ${article.title}\nContenu: ${article.content}`)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
                   <Eye className="h-4 w-4" />
                   Voir
                 </button>
-                <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                <button
+                  onClick={() => alert(`Éditer article: ${article.title}`)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  title="Éditer"
+                >
                   <Edit className="h-4 w-4" />
                 </button>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Modal Nouvel Article */}
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Nouvel Article"
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                Titre *
+              </label>
+              <input
+                type="text"
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+                placeholder="Ex: Guide d'utilisation du CRM"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                Catégorie *
+              </label>
+              <input
+                type="text"
+                id="category"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+                placeholder="Ex: CRM, Facturation, Support..."
+              />
+            </div>
+
+            <div>
+              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+                Contenu *
+              </label>
+              <textarea
+                id="content"
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                rows={6}
+                required
+                placeholder="Contenu de l'article..."
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end pt-4">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || !formData.title.trim() || !formData.category.trim()}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Création...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    Créer
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

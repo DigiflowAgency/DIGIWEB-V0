@@ -61,11 +61,21 @@ export default function TicketsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     subject: '',
     description: '',
     type: 'CLIENT' as 'CLIENT' | 'INTERNAL',
     priority: 'MOYENNE' as 'HAUTE' | 'MOYENNE' | 'BASSE',
+  });
+
+  // États des filtres avancés
+  const [advancedFilters, setAdvancedFilters] = useState({
+    priority: 'all',
+    type: 'all',
+    dateFrom: '',
+    dateTo: '',
+    assignedTo: 'all',
   });
 
   // Utiliser le hook useTickets pour récupérer les données depuis l'API
@@ -75,6 +85,15 @@ export default function TicketsPage() {
   });
 
   const { createTicket, loading: submitting, error: submitError } = useTicketMutations();
+
+  // Appliquer les filtres avancés
+  const filteredTickets = tickets.filter(ticket => {
+    if (advancedFilters.priority !== 'all' && ticket.priority !== advancedFilters.priority.toUpperCase()) return false;
+    if (advancedFilters.type !== 'all' && ticket.type !== advancedFilters.type.toUpperCase()) return false;
+    if (advancedFilters.dateFrom && new Date(ticket.createdAt) < new Date(advancedFilters.dateFrom)) return false;
+    if (advancedFilters.dateTo && new Date(ticket.createdAt) > new Date(advancedFilters.dateTo)) return false;
+    return true;
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +105,20 @@ export default function TicketsPage() {
     } catch (err) {
       console.error('Erreur création ticket:', err);
     }
+  };
+
+  const handleApplyFilters = () => {
+    setIsFilterModalOpen(false);
+  };
+
+  const handleResetFilters = () => {
+    setAdvancedFilters({
+      priority: 'all',
+      type: 'all',
+      dateFrom: '',
+      dateTo: '',
+      assignedTo: 'all',
+    });
   };
 
   // État de chargement
@@ -186,9 +219,12 @@ export default function TicketsPage() {
               <option value="resolu">Résolus</option>
               <option value="ferme">Fermés</option>
             </select>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => setIsFilterModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <Filter className="h-5 w-5" />
-              Filtres
+              Filtres Avancés
             </button>
           </div>
         </div>
@@ -207,7 +243,7 @@ export default function TicketsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {tickets.map((ticket) => (
+              {filteredTickets.map((ticket) => (
                 <tr key={ticket.id} className="hover:bg-gray-50 transition-colors cursor-pointer">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="font-mono text-sm font-semibold text-gray-900">{ticket.number}</span>
@@ -278,6 +314,79 @@ export default function TicketsPage() {
             <button type="submit" disabled={submitting} className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2">{submitting ? <><Loader2 className="h-4 w-4 animate-spin" />Création...</> : 'Créer le ticket'}</button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal Filtres Avancés */}
+      <Modal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        title="Filtres Avancés"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Priorité</label>
+            <select
+              value={advancedFilters.priority}
+              onChange={(e) => setAdvancedFilters({ ...advancedFilters, priority: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <option value="all">Toutes les priorités</option>
+              <option value="haute">Haute</option>
+              <option value="moyenne">Moyenne</option>
+              <option value="basse">Basse</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Type</label>
+            <select
+              value={advancedFilters.type}
+              onChange={(e) => setAdvancedFilters({ ...advancedFilters, type: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <option value="all">Tous les types</option>
+              <option value="client">Client</option>
+              <option value="internal">Interne</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Date de début</label>
+              <input
+                type="date"
+                value={advancedFilters.dateFrom}
+                onChange={(e) => setAdvancedFilters({ ...advancedFilters, dateFrom: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Date de fin</label>
+              <input
+                type="date"
+                value={advancedFilters.dateTo}
+                onChange={(e) => setAdvancedFilters({ ...advancedFilters, dateTo: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-between gap-3 pt-4 border-t border-gray-200">
+            <button
+              onClick={handleResetFilters}
+              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              Réinitialiser
+            </button>
+            <button
+              onClick={handleApplyFilters}
+              className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold"
+            >
+              Appliquer
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

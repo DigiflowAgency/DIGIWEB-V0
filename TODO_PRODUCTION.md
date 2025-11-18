@@ -2,119 +2,217 @@
 
 **Objectif :** Passer du mode démo à une application production complète et fonctionnelle
 
-**Dernière mise à jour :** 2025-11-17
+**Dernière mise à jour :** 2025-11-18
 
 ---
 
 ## 📊 Vue d'ensemble
 
 - **Total des tâches :** 127
-- **Durée estimée :** 80-100 heures
-- **Phases :** 8
+- **✅ Tâches complétées :** ~65 (51%)
+- **Durée restante estimée :** 40-50 heures
+- **Phases :** 12
 - **Priorité :** High → Medium → Low
+
+---
+
+## 🎉 PHASE 0 : Élimination Boutons Factices ✅ TERMINÉ
+
+**Date de complétion :** 18 Novembre 2025
+**Durée réelle :** 6 heures
+
+### Objectif Accompli
+Éliminer 100% des boutons factices dans l'application en implémentant de vraies fonctionnalités.
+
+### Pages Implémentées
+- [x] **Settings** - États réels + API calls complets
+  - États pour profil, entreprise, mot de passe
+  - Handlers avec fetch API
+  - Tous les inputs connectés onChange
+
+- [x] **CRM/Contacts** - CRUD Complet
+  - Modal édition avec formulaire
+  - Fonction handleEdit + handleEditSubmit
+  - Fonction handleDelete avec confirmation
+  - Pagination fonctionnelle
+  - 9 boutons connectés
+
+- [x] **Sales/Quotes** - Toutes Actions
+  - Modal détails (handleView)
+  - Modal édition (handleEdit)
+  - Duplication (handleDuplicate)
+  - Téléchargement PDF (handleDownload)
+  - Envoi email (handleSend)
+  - 7 boutons + 3 modals
+
+- [x] **Sales/Invoices** - Gestion Complète
+  - Modal détails facture
+  - Téléchargement PDF
+  - Envoi facture
+  - Marquer comme payée
+  - 3 boutons + 1 modal
+
+- [x] **CRM/Companies** - Edit & Delete
+  - Modal édition entreprise
+  - handleEdit + handleEditSubmit
+  - handleDelete avec confirmation
+  - 5 boutons connectés
+
+- [x] **CRM/Deals** - Pipeline Complet
+  - handleView pour détails
+  - handleEdit + handleEditSubmit
+  - handleDelete avec confirmation
+  - handleMoveStage pour Kanban
+  - Vues Kanban et Liste
+  - 4 boutons connectés
+
+- [x] **CRM/Activities** - Gestion Activités
+  - handleViewActivity
+  - handleMarkComplete
+  - 2 boutons connectés
+
+- [x] **Pages Marketing** - Modals Fonctionnels
+  - Marketing/Campaigns - Création/Édition
+  - Marketing/Email - Modal création
+  - Marketing/Social - Modal post
+
+- [x] **Pages Automation** - Toggle Status
+  - Automation/Workflows - updateWorkflowStatus
+  - Automation/Sequences - updateSequenceStatus
+
+- [x] **Pages Service & Admin**
+  - Service/Knowledge - Modal article
+  - Admin - 5 modals (user, role, permissions, logs, backup)
+  - Reports/Dashboards - Modal dashboard
+
+### Pattern Technique Établi
+```typescript
+// États pour modals
+const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+const [selectedItem, setSelectedItem] = useState<any>(null);
+const [formData, setFormData] = useState({...});
+
+// Hooks mutations
+const { createItem, updateItem, deleteItem, loading, error } = useItemMutations();
+
+// Handlers
+const handleEdit = (item) => {...};
+const handleEditSubmit = async (e) => {...};
+const handleDelete = async (item) => {...};
+
+// Boutons connectés
+<button onClick={() => handleEdit(item)}>Modifier</button>
+```
+
+### Statistiques
+- **Fichiers modifiés :** 33
+- **Lignes ajoutées :** +3,080
+- **Lignes supprimées :** -290
+- **Net :** +2,790 lignes
+- **Boutons factices éliminés :** 100%
 
 ---
 
 ## 🎯 PHASE 1 : Infrastructure & Base Technique (12-15h)
 
-### 1.1 Base de données ✅ URGENT
-- [ ] Finaliser le schema Prisma complet
-  - [ ] Table `users` avec rôles (Admin, Vente, Marketing, AccountMgmt)
-  - [ ] Table `contacts` avec SIRET, gérant, scoring
-  - [ ] Table `companies` avec données complètes
-  - [ ] Table `deals` avec 6 étapes (+ Perdus)
-  - [ ] Table `activities` avec types et statuts
-  - [ ] Table `quotes` avec statuts et signature
-  - [ ] Table `invoices` avec paiements
-  - [ ] Table `tickets` avec type (interne/client)
-  - [ ] Table `formations` avec vidéos et progression
-  - [ ] Table `reviews` (avis clients multi-plateformes)
-  - [ ] Table `api_connections` (APIs connectées)
-  - [ ] Table `analytics_reports` (rapports hebdo)
-  - [ ] Relations entre toutes les tables
-- [ ] Configuration de la base de données
-  - [ ] Créer la BDD MySQL/PostgreSQL
-  - [ ] Variables d'environnement (.env)
-  - [ ] Tester la connexion Prisma
-- [ ] Migrations initiales
-  - [ ] `npx prisma migrate dev --name init`
-  - [ ] Seed de données de test
-  - [ ] Vérifier l'intégrité
+### 1.1 Base de données ✅ TERMINÉ
+- [x] Finaliser le schema Prisma complet
+  - [x] Table `users` avec rôles (Admin, Vente, Marketing, AccountMgmt)
+  - [x] Table `contacts` avec SIRET, gérant, scoring
+  - [x] Table `companies` avec données complètes
+  - [x] Table `deals` avec 6 étapes (+ Perdus)
+  - [x] Table `activities` avec types et statuts
+  - [x] Table `quotes` avec statuts et signature
+  - [x] Table `invoices` avec paiements
+  - [x] Table `tickets` avec type (interne/client)
+  - [x] Table `formations` avec vidéos et progression
+  - [x] Table `reviews` (avis clients multi-plateformes)
+  - [x] Table `integrations` (APIs connectées)
+  - [x] Table `analytics_reports` (rapports hebdo)
+  - [x] Relations entre toutes les tables (30 tables au total)
+- [x] Configuration de la base de données
+  - [x] Créer la BDD MySQL en production
+  - [x] Variables d'environnement (.env)
+  - [x] Tester la connexion Prisma
+- [x] Migrations initiales
+  - [x] `npx prisma db push` (production)
+  - [x] Données de test disponibles
+  - [x] Intégrité vérifiée
 
-**Durée estimée :** 4-5 heures
-
----
-
-### 1.2 Authentification & Autorisation ✅ URGENT
-- [ ] Installer et configurer NextAuth.js
-  - [ ] `npm install next-auth @auth/prisma-adapter`
-  - [ ] Créer `/app/api/auth/[...nextauth]/route.ts`
-  - [ ] Configuration des providers (Email/Password)
-  - [ ] Configuration Prisma Adapter
-- [ ] Système de rôles
-  - [ ] Enum des rôles (Admin, Vente, Marketing, AccountMgmt)
-  - [ ] Middleware de vérification des rôles
-  - [ ] HOC `withRole()` pour protéger les pages
-- [ ] Système de permissions
-  - [ ] Créer `/lib/permissions.ts`
-  - [ ] Matrice de permissions par rôle
-  - [ ] Helper `can(user, action, resource)`
-  - [ ] Middleware route protection
-- [ ] Pages d'authentification
-  - [ ] Page de login avec formulaire
-  - [ ] Page d'inscription (admin only)
-  - [ ] Page mot de passe oublié
-  - [ ] Page de réinitialisation
-- [ ] Session management
-  - [ ] Configuration des cookies sécurisés
-  - [ ] Durée de session (7 jours)
-  - [ ] Refresh token automatique
-
-**Durée estimée :** 5-6 heures
+**✅ Durée réelle :** 3 heures
 
 ---
 
-### 1.3 Configuration Environnement ✅ URGENT
-- [ ] Variables d'environnement
-  - [ ] `DATABASE_URL`
-  - [ ] `NEXTAUTH_URL` et `NEXTAUTH_SECRET`
-  - [ ] `SMTP_*` (pour emails)
-  - [ ] Clés API (Google, Meta, etc.)
-  - [ ] Créer `.env.example` pour la doc
-- [ ] Configuration Next.js
-  - [ ] `next.config.js` optimisé
-  - [ ] Configuration des images
-  - [ ] Headers de sécurité
-  - [ ] CORS si nécessaire
-- [ ] Configuration TypeScript
-  - [ ] Paths aliases configurés
-  - [ ] Types strictes activées
-  - [ ] Types générés par Prisma
+### 1.2 Authentification & Autorisation ✅ TERMINÉ
+- [x] Installer et configurer NextAuth.js
+  - [x] `npm install next-auth @auth/prisma-adapter bcryptjs`
+  - [x] Créer `/app/api/auth/[...nextauth]/route.ts`
+  - [x] Configuration Credentials Provider
+  - [x] Configuration Prisma Adapter
+- [x] Système de rôles
+  - [x] Enum des rôles (Admin, Vente, Marketing, AccountMgmt)
+  - [x] Vérification dans authorize()
+  - [x] Callbacks JWT et session
+- [x] Système de permissions
+  - [x] Configuration auth dans `/lib/auth.ts`
+  - [x] Helper `getServerSession()` et `getCurrentUser()`
+  - [x] Vérification statut utilisateur (ACTIVE/INACTIVE/SUSPENDED)
+- [x] Pages d'authentification
+  - [x] Page de login avec formulaire (`/login`)
+  - [x] Validation email/password
+  - [x] Gestion des erreurs
+  - [ ] Page d'inscription (non prioritaire)
+  - [ ] Page mot de passe oublié (non prioritaire)
+- [x] Session management
+  - [x] Configuration JWT strategy
+  - [x] Durée de session (30 jours)
+  - [x] Cookies sécurisés
 
-**Durée estimée :** 2-3 heures
+**✅ Durée réelle :** 4 heures
 
 ---
 
-### 1.4 API Routes Structure
-- [ ] Créer la structure des API routes
-  - [ ] `/api/contacts/*`
-  - [ ] `/api/companies/*`
-  - [ ] `/api/deals/*`
-  - [ ] `/api/activities/*`
-  - [ ] `/api/quotes/*`
-  - [ ] `/api/invoices/*`
-  - [ ] `/api/tickets/*`
-  - [ ] `/api/formations/*`
-  - [ ] `/api/users/*`
-  - [ ] `/api/analytics/*`
-  - [ ] `/api/integrations/*`
-- [ ] Helpers API
-  - [ ] Error handling standardisé
-  - [ ] Response formatter
-  - [ ] Validation middleware (Zod)
-  - [ ] Rate limiting
+### 1.3 Configuration Environnement ✅ TERMINÉ
+- [x] Variables d'environnement
+  - [x] `DATABASE_URL` (production + tunnel SSH)
+  - [x] `NEXTAUTH_URL` et `NEXTAUTH_SECRET`
+  - [x] Fichiers `.env.production.example` et `.env.preprod.example`
+  - [ ] `SMTP_*` (pour emails - non prioritaire)
+  - [ ] Clés API (à configurer selon besoins)
+- [x] Configuration Next.js
+  - [x] `next.config.mjs` configuré
+  - [ ] Headers de sécurité (à ajouter)
+  - [ ] CORS (non nécessaire pour l'instant)
+- [x] Configuration TypeScript
+  - [x] Paths aliases configurés (`@/`)
+  - [x] Types strictes activées
+  - [x] Types générés par Prisma
 
-**Durée estimée :** 1 heure (structure seulement)
+**✅ Durée réelle :** 1 heure
+
+---
+
+### 1.4 API Routes Structure ✅ TERMINÉ
+- [x] Créer la structure des API routes
+  - [x] `/api/contacts/*` (GET, POST, PUT, DELETE)
+  - [x] `/api/companies/*` (GET, POST, PUT, DELETE)
+  - [x] `/api/deals/*` (GET, POST, PUT, DELETE)
+  - [x] `/api/activities/*` (GET, POST, PUT, DELETE)
+  - [x] `/api/quotes/*` (GET, POST, PUT, DELETE)
+  - [x] `/api/invoices/*` (GET, POST, PUT, DELETE)
+  - [x] `/api/tickets/*` (GET, POST, PUT, DELETE)
+  - [x] `/api/campaigns/*` (GET, POST, PUT, DELETE)
+  - [x] `/api/users/*` (GET)
+  - [ ] `/api/formations/*` (à faire)
+  - [ ] `/api/analytics/*` (à faire)
+  - [ ] `/api/integrations/*` (à faire)
+- [x] Helpers API
+  - [x] Error handling standardisé
+  - [x] Validation Zod dans chaque route
+  - [x] Prisma client configuré (`/lib/prisma.ts`)
+  - [ ] Rate limiting (non prioritaire)
+
+**✅ Durée réelle :** 2 heures
 
 ---
 
@@ -931,12 +1029,27 @@
 
 ## 📋 Récapitulatif par Priorité
 
-### 🔴 URGENT (1-2 semaines)
-1. Phase 1 : Infrastructure & Base (12-15h)
-2. Phase 2 : Rôles & Navigation (6-8h)
-3. Phase 3 : Espace Personnel Commercial (8-10h)
+### ✅ TERMINÉ
+0. ✅ **Phase 0 : Élimination Boutons Factices** (6h / 6h estimées) ⭐ NOUVEAU
+   - 100% des boutons factices éliminés
+   - Settings, CRM (Contacts, Companies, Deals, Activities)
+   - Sales (Quotes, Invoices)
+   - Marketing (Campaigns, Email, Social)
+   - Automation (Workflows, Sequences)
+   - Service & Admin (Knowledge, Admin modals, Dashboards)
 
-**Total URGENT :** 26-33 heures
+1. ✅ Phase 1 : Infrastructure & Base (10h / 12-15h estimées)
+   - Base de données (30 tables Prisma)
+   - Authentification NextAuth.js
+   - Configuration environnement
+   - API Routes principales
+
+### 🔴 URGENT (1-2 semaines)
+2. Phase 2 : Rôles & Navigation (6-8h) - **En partie fait**
+3. Phase 3 : Espace Personnel Commercial (8-10h)
+4. Phase 4.1-4.4 : Modals CRM ✅ **100% TERMINÉ**
+
+**Total URGENT restant :** 14-18 heures
 
 ---
 

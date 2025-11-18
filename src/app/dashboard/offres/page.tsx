@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useQuotes } from '@/hooks/useQuotes';
+import { useRouter } from 'next/navigation';
 
 const statusConfig = {
   accepte: {
@@ -64,6 +65,7 @@ const getCategoryColor = (category: string) => {
 };
 
 export default function OffresPage() {
+  const router = useRouter();
   const { products, isLoading: productsLoading, isError: productsError } = useProducts();
   const { quotes, isLoading: quotesLoading, isError: quotesError } = useQuotes();
   const [activeTab, setActiveTab] = useState<'catalogue' | 'devis'>('catalogue');
@@ -261,7 +263,10 @@ export default function OffresPage() {
                       ))}
                     </div>
 
-                    <button className="w-full btn-primary group-hover:shadow-glow">
+                    <button
+                      onClick={() => router.push('/dashboard/sales/quotes')}
+                      className="w-full btn-primary group-hover:shadow-glow"
+                    >
                       <Plus className="inline-block h-5 w-5 mr-2" />
                       Créer un devis
                     </button>
@@ -311,7 +316,10 @@ export default function OffresPage() {
                   );
                 })}
               </div>
-              <button className="btn-primary">
+              <button
+                onClick={() => router.push('/dashboard/sales/quotes')}
+                className="btn-primary"
+              >
                 <Plus className="inline-block h-5 w-5 mr-2" />
                 Nouveau devis
               </button>
@@ -389,13 +397,25 @@ export default function OffresPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center gap-2">
-                              <button className="p-2 hover:bg-violet-100 rounded-lg transition-colors group">
+                              <button
+                                onClick={() => alert(`Visualiser le devis ${devis.id} pour ${devis.client}`)}
+                                className="p-2 hover:bg-violet-100 rounded-lg transition-colors group"
+                                title="Voir"
+                              >
                                 <Eye className="h-4 w-4 text-gray-600 group-hover:text-violet-600" />
                               </button>
-                              <button className="p-2 hover:bg-orange-100 rounded-lg transition-colors group">
+                              <button
+                                onClick={() => router.push('/dashboard/sales/quotes')}
+                                className="p-2 hover:bg-orange-100 rounded-lg transition-colors group"
+                                title="Éditer"
+                              >
                                 <Edit className="h-4 w-4 text-gray-600 group-hover:text-orange-600" />
                               </button>
-                              <button className="p-2 hover:bg-green-100 rounded-lg transition-colors group">
+                              <button
+                                onClick={() => alert(`Télécharger le PDF du devis ${devis.id}`)}
+                                className="p-2 hover:bg-green-100 rounded-lg transition-colors group"
+                                title="Télécharger PDF"
+                              >
                                 <Download className="h-4 w-4 text-gray-600 group-hover:text-green-600" />
                               </button>
                             </div>

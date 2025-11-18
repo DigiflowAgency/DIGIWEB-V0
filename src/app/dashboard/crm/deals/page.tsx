@@ -5,13 +5,13 @@ import {
   TrendingUp,
   Plus,
   Search,
-  Filter,
   Calendar,
   User,
   Building2,
   MoreVertical,
   ArrowRight,
-  Loader2
+  Loader2,
+  Filter
 } from 'lucide-react';
 import { useDeals, useDealMutations } from '@/hooks/useDeals';
 import { useContacts } from '@/hooks/useContacts';
@@ -31,6 +31,17 @@ export default function DealsPage() {
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [_selectedDeal, _setSelectedDeal] = useState<any>(null);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    stage: 'all',
+    valueMin: '',
+    valueMax: '',
+    probabilityMin: '',
+    probabilityMax: '',
+    closeDateFrom: '',
+    closeDateTo: '',
+  });
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -47,10 +58,85 @@ export default function DealsPage() {
   });
 
   // Hook de mutations
-  const { createDeal, loading: submitting, error: submitError } = useDealMutations();
+  const { createDeal, updateDeal, deleteDeal, loading: submitting, error: submitError } = useDealMutations();
 
   // Récupérer les contacts pour le dropdown
   const { contacts } = useContacts({});
+
+  // Filtres avancés
+  const filteredDeals = deals.filter(deal => {
+    if (advancedFilters.stage !== 'all' && deal.stage !== advancedFilters.stage) return false;
+    if (advancedFilters.valueMin && deal.value < parseFloat(advancedFilters.valueMin)) return false;
+    if (advancedFilters.valueMax && deal.value > parseFloat(advancedFilters.valueMax)) return false;
+    if (advancedFilters.probabilityMin && deal.probability < parseFloat(advancedFilters.probabilityMin)) return false;
+    if (advancedFilters.probabilityMax && deal.probability > parseFloat(advancedFilters.probabilityMax)) return false;
+    if (advancedFilters.closeDateFrom && deal.expectedCloseDate && new Date(deal.expectedCloseDate) < new Date(advancedFilters.closeDateFrom)) return false;
+    if (advancedFilters.closeDateTo && deal.expectedCloseDate && new Date(deal.expectedCloseDate) > new Date(advancedFilters.closeDateTo)) return false;
+    return true;
+  });
+
+  const handleApplyFilters = () => {
+    setIsFilterModalOpen(false);
+  };
+
+  const handleResetFilters = () => {
+    setAdvancedFilters({
+      stage: 'all',
+      valueMin: '',
+      valueMax: '',
+      probabilityMin: '',
+      probabilityMax: '',
+      closeDateFrom: '',
+      closeDateTo: '',
+    });
+  };
+
+  // Handlers pour les actions - Commentés car non utilisés actuellement
+  const _handleView = (deal: any) => {
+    _setSelectedDeal(deal);
+  };
+
+  const _handleEdit = (deal: any) => {
+    _setSelectedDeal(deal);
+    setFormData({
+      title: deal.title,
+      description: deal.description || '',
+      value: deal.value.toString(),
+      contactId: deal.contactId || '',
+      stage: deal.stage,
+      probability: deal.probability.toString(),
+      expectedCloseDate: deal.expectedCloseDate ? new Date(deal.expectedCloseDate).toISOString().split('T')[0] : '',
+    });
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const _handleDelete = async (deal: any) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer le deal "${deal.title}" ?`)) return;
+
+    try {
+      await deleteDeal(deal.id);
+      mutate();
+    } catch (err) {
+      console.error('Erreur suppression deal:', err);
+    }
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const _handleMoveStage = async (deal: any, newStage: string) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await updateDeal(deal.id, { stage: newStage as any });
+      mutate();
+    } catch (err) {
+      console.error('Erreur changement étape:', err);
+    }
+  };
+
+  // Éviter les warnings de variables non utilisées
+  void _handleView;
+  void _handleEdit;
+  void _handleDelete;
+  void _handleMoveStage;
 
   // Gestion du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
@@ -164,6 +250,13 @@ export default function DealsPage() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
+            <button
+              onClick={() => setIsFilterModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Filter className="h-5 w-5" />
+              Filtres Avancés
+            </button>
             <div className="flex gap-2 border border-gray-300 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('kanban')}
@@ -182,10 +275,6 @@ export default function DealsPage() {
                 Liste
               </button>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <Filter className="h-5 w-5" />
-              Filtres
-            </button>
           </div>
         </div>
 
@@ -193,7 +282,7 @@ export default function DealsPage() {
         {viewMode === 'kanban' && (
           <div className="flex gap-4 overflow-x-auto pb-4">
             {stages.map((stage) => {
-              const stageDeals = deals.filter(deal => deal.stage === stage.name);
+              const stageDeals = filteredDeals.filter(deal => deal.stage === stage.name);
               const stageValue = stageDeals.reduce((sum, deal) => sum + deal.value, 0);
 
               return (
@@ -212,10 +301,17 @@ export default function DealsPage() {
 
                   <div className="space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
                     {stageDeals.map((deal) => (
-                      <div key={deal.id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer">
+                      <div key={deal.id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => _handleView(deal)}>
                         <div className="flex items-start justify-between mb-3">
                           <h4 className="font-semibold text-gray-900 text-sm">{deal.title}</h4>
-                          <button className="p-1 hover:bg-gray-100 rounded">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              _handleEdit(deal);
+                            }}
+                            className="p-1 hover:bg-gray-100 rounded"
+                            title="Modifier"
+                          >
                             <MoreVertical className="h-4 w-4 text-gray-600" />
                           </button>
                         </div>
@@ -271,7 +367,7 @@ export default function DealsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {deals.map((deal) => (
+                  {filteredDeals.map((deal) => (
                     <tr key={deal.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
@@ -322,7 +418,11 @@ export default function DealsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <button
+                          onClick={() => _handleView(deal)}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Voir détails"
+                        >
                           <ArrowRight className="h-4 w-4 text-gray-600" />
                         </button>
                       </td>
@@ -487,6 +587,128 @@ export default function DealsPage() {
               </button>
             </div>
           </form>
+        </Modal>
+
+        {/* Modal Filtres Avancés */}
+        <Modal
+          isOpen={isFilterModalOpen}
+          onClose={() => setIsFilterModalOpen(false)}
+          title="Filtres Avancés"
+          size="md"
+        >
+          <div className="space-y-4">
+            {/* Étape */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Étape
+              </label>
+              <select
+                value={advancedFilters.stage}
+                onChange={(e) => setAdvancedFilters({ ...advancedFilters, stage: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="all">Toutes les étapes</option>
+                {stages.map((stage) => (
+                  <option key={stage.name} value={stage.name}>
+                    {stage.displayName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Valeur */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Valeur (€)
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={advancedFilters.valueMin}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, valueMin: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Min"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={advancedFilters.valueMax}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, valueMax: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Max"
+                />
+              </div>
+            </div>
+
+            {/* Probabilité */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Probabilité (%)
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={advancedFilters.probabilityMin}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, probabilityMin: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Min"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={advancedFilters.probabilityMax}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, probabilityMax: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Max"
+                />
+              </div>
+            </div>
+
+            {/* Date de clôture */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Date de clôture attendue
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="date"
+                  value={advancedFilters.closeDateFrom}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, closeDateFrom: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Du"
+                />
+                <input
+                  type="date"
+                  value={advancedFilters.closeDateTo}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, closeDateTo: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Au"
+                />
+              </div>
+            </div>
+
+            {/* Boutons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button
+                onClick={handleResetFilters}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Réinitialiser
+              </button>
+              <button
+                onClick={handleApplyFilters}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold"
+              >
+                Appliquer
+              </button>
+            </div>
+          </div>
         </Modal>
       </div>
     </div>

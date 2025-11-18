@@ -1,4 +1,5 @@
 import useSWR from 'swr';
+import { useState } from 'react';
 
 export interface KnowledgeArticle {
   id: string;
@@ -38,5 +39,91 @@ export function useKnowledge(options: UseKnowledgeOptions = {}) {
     isLoading: !error && !data,
     isError: error,
     mutate,
+  };
+}
+
+export function useKnowledgeMutations() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const createArticle = async (data: { title: string; category: string; content: string }) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors de la création');
+      }
+
+      return await response.json();
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateArticle = async (id: string, data: { title?: string; category?: string; content?: string }) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/knowledge/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors de la mise à jour');
+      }
+
+      return await response.json();
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteArticle = async (id: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/knowledge/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors de la suppression');
+      }
+
+      return await response.json();
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    createArticle,
+    updateArticle,
+    deleteArticle,
+    loading,
+    error,
   };
 }

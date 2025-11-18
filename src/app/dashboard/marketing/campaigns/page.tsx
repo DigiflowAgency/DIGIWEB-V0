@@ -5,7 +5,6 @@ import {
   Megaphone,
   Plus,
   Search,
-  Filter,
   Play,
   Pause,
   Eye,
@@ -42,7 +41,11 @@ const getStatusLabel = (status: string) => {
 export default function CampaignsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
     type: 'EMAIL' as 'EMAIL' | 'SOCIAL_MEDIA' | 'PAID_ADS' | 'EVENT',
@@ -57,7 +60,7 @@ export default function CampaignsPage() {
     status: selectedStatus !== 'all' ? selectedStatus.toUpperCase() : undefined,
   });
 
-  const { createCampaign, loading: submitting, error: submitError } = useCampaignMutations();
+  const { createCampaign, updateCampaign, loading: submitting, error: submitError } = useCampaignMutations();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +77,53 @@ export default function CampaignsPage() {
       mutate();
     } catch (err) {
       console.error('Erreur création campagne:', err);
+    }
+  };
+
+  const handleEdit = (campaign: any) => {
+    setSelectedCampaign(campaign);
+    setFormData({
+      name: campaign.name,
+      type: campaign.type,
+      budget: campaign.budget?.toString() || '',
+      startDate: campaign.startDate ? new Date(campaign.startDate).toISOString().split('T')[0] : '',
+      endDate: campaign.endDate ? new Date(campaign.endDate).toISOString().split('T')[0] : '',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCampaign) return;
+    try {
+      await updateCampaign(selectedCampaign.id, {
+        name: formData.name,
+        type: formData.type,
+        budget: formData.budget ? parseFloat(formData.budget) : null,
+        startDate: formData.startDate || null,
+        endDate: formData.endDate || null,
+      });
+      setIsEditModalOpen(false);
+      setFormData({ name: '', type: 'EMAIL', budget: '', startDate: '', endDate: '' });
+      setSelectedCampaign(null);
+      mutate();
+    } catch (err) {
+      console.error('Erreur mise à jour campagne:', err);
+    }
+  };
+
+  const handleViewDetails = (campaign: any) => {
+    setSelectedCampaign(campaign);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleToggleStatus = async (campaign: any) => {
+    try {
+      const newStatus = campaign.status === 'ACTIVE' ? 'PLANIFIEE' : 'ACTIVE';
+      await updateCampaign(campaign.id, { status: newStatus });
+      mutate();
+    } catch (err) {
+      console.error('Erreur changement statut:', err);
     }
   };
 
@@ -186,10 +236,17 @@ export default function CampaignsPage() {
               <option value="brouillon">Brouillon</option>
               <option value="terminee">Terminée</option>
             </select>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <Filter className="h-5 w-5" />
-              Filtres
-            </button>
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <option value="all">Tous les types</option>
+              <option value="email">Email</option>
+              <option value="social_media">Social Media</option>
+              <option value="paid_ads">Paid Ads</option>
+              <option value="event">Event</option>
+            </select>
           </div>
         </div>
 
@@ -244,14 +301,25 @@ export default function CampaignsPage() {
                 </div>
 
                 <div className="flex gap-2 mt-4">
-                  <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                  <button
+                    onClick={() => handleViewDetails(campaign)}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                  >
                     <Eye className="h-4 w-4" />
                     Voir
                   </button>
-                  <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                  <button
+                    onClick={() => handleEdit(campaign)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    title="Éditer"
+                  >
                     <Edit className="h-4 w-4" />
                   </button>
-                  <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                  <button
+                    onClick={() => handleToggleStatus(campaign)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    title={campaign.status === 'ACTIVE' ? 'Mettre en pause' : 'Activer'}
+                  >
                     {campaign.status === 'ACTIVE' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   </button>
                 </div>
@@ -298,6 +366,120 @@ export default function CampaignsPage() {
               <button type="submit" disabled={submitting} className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2">{submitting ? <><Loader2 className="h-4 w-4 animate-spin" />Création...</> : 'Créer la campagne'}</button>
             </div>
           </form>
+        </Modal>
+
+        {/* Modal Édition Campagne */}
+        <Modal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); setSelectedCampaign(null); }} title="Éditer la Campagne" size="lg">
+          <form onSubmit={handleUpdateSubmit} className="space-y-6">
+            {submitError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{submitError}</div>}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Nom de la campagne <span className="text-red-500">*</span></label>
+              <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Type <span className="text-red-500">*</span></label>
+                <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value as 'EMAIL' | 'SOCIAL_MEDIA' | 'PAID_ADS' | 'EVENT' })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                  <option value="EMAIL">Email</option>
+                  <option value="SOCIAL_MEDIA">Social Media</option>
+                  <option value="PAID_ADS">Paid Ads</option>
+                  <option value="EVENT">Event</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Budget (€)</label>
+                <input type="number" min="0" step="0.01" value={formData.budget} onChange={(e) => setFormData({ ...formData, budget: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Date de début</label>
+                <input type="date" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Date de fin</label>
+                <input type="date" value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button type="button" onClick={() => { setIsEditModalOpen(false); setSelectedCampaign(null); }} disabled={submitting} className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50">Annuler</button>
+              <button type="submit" disabled={submitting} className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2">{submitting ? <><Loader2 className="h-4 w-4 animate-spin" />Enregistrement...</> : 'Enregistrer'}</button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Modal Détails Campagne */}
+        <Modal isOpen={isDetailModalOpen} onClose={() => { setIsDetailModalOpen(false); setSelectedCampaign(null); }} title="Détails de la Campagne" size="lg">
+          {selectedCampaign && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Nom</label>
+                  <p className="text-gray-900 font-semibold">{selectedCampaign.name}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Type</label>
+                  <p className="text-gray-900 font-semibold">{getTypeLabel(selectedCampaign.type)}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Statut</label>
+                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(selectedCampaign.status)}`}>
+                    {getStatusLabel(selectedCampaign.status)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Budget</label>
+                  <p className="text-orange-600 font-bold text-lg">{selectedCampaign.budget ? `${selectedCampaign.budget.toLocaleString()}€` : 'Non défini'}</p>
+                </div>
+              </div>
+              <div className="pt-4 border-t border-gray-200">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Performance</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Portée</p>
+                    <p className="text-blue-600 font-bold text-xl">{selectedCampaign.reach.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-green-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Clics</p>
+                    <p className="text-green-600 font-bold text-xl">{selectedCampaign.clicks.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-purple-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Conversions</p>
+                    <p className="text-purple-600 font-bold text-xl">{selectedCampaign.conversions}</p>
+                  </div>
+                  <div className="bg-orange-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Dépensé</p>
+                    <p className="text-orange-600 font-bold text-xl">{selectedCampaign.spent.toLocaleString()}€</p>
+                  </div>
+                </div>
+              </div>
+              {(selectedCampaign.startDate || selectedCampaign.endDate) && (
+                <div className="pt-4 border-t border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Dates</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {selectedCampaign.startDate && (
+                      <div>
+                        <p className="text-xs text-gray-600 mb-1">Date de début</p>
+                        <p className="text-gray-900 font-medium">{new Date(selectedCampaign.startDate).toLocaleDateString('fr-FR')}</p>
+                      </div>
+                    )}
+                    {selectedCampaign.endDate && (
+                      <div>
+                        <p className="text-xs text-gray-600 mb-1">Date de fin</p>
+                        <p className="text-gray-900 font-medium">{new Date(selectedCampaign.endDate).toLocaleDateString('fr-FR')}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <button onClick={() => { setIsDetailModalOpen(false); setSelectedCampaign(null); }} className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">Fermer</button>
+                <button onClick={() => { setIsDetailModalOpen(false); handleEdit(selectedCampaign); }} className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold flex items-center gap-2"><Edit className="h-4 w-4" />Éditer</button>
+              </div>
+            </div>
+          )}
         </Modal>
       </div>
     </div>

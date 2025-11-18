@@ -5,7 +5,6 @@ import {
   Calendar,
   Plus,
   Search,
-  Filter,
   Clock,
   Phone,
   Mail,
@@ -15,7 +14,8 @@ import {
   User,
   Building2,
   ChevronRight,
-  Loader2
+  Loader2,
+  Filter
 } from 'lucide-react';
 import { useActivities, useActivityMutations } from '@/hooks/useActivities';
 import { useContacts } from '@/hooks/useContacts';
@@ -49,6 +49,18 @@ export default function ActivitiesPage() {
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<typeof activities[0] | null>(null);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    type: 'all',
+    status: 'all',
+    priority: 'all',
+    dateFrom: '',
+    dateTo: '',
+    durationMin: '',
+    durationMax: '',
+  });
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -69,11 +81,59 @@ export default function ActivitiesPage() {
   });
 
   // Hook de mutations
-  const { createActivity, loading: submitting, error: submitError } = useActivityMutations();
+  const { createActivity, updateActivity, loading: submitting, error: submitError } = useActivityMutations();
 
   // Récupérer les contacts et deals pour les dropdowns
   const { contacts } = useContacts({});
   const { deals } = useDeals({});
+
+  // Filtres avancés
+  const filteredActivities = activities.filter(activity => {
+    if (advancedFilters.type !== 'all' && activity.type !== advancedFilters.type.toUpperCase()) return false;
+    if (advancedFilters.status !== 'all' && activity.status !== advancedFilters.status.toUpperCase()) return false;
+    if (advancedFilters.priority !== 'all' && activity.priority !== advancedFilters.priority.toUpperCase()) return false;
+    if (advancedFilters.dateFrom && new Date(activity.scheduledAt) < new Date(advancedFilters.dateFrom)) return false;
+    if (advancedFilters.dateTo && new Date(activity.scheduledAt) > new Date(advancedFilters.dateTo)) return false;
+    if (advancedFilters.durationMin && (activity.duration || 0) < parseInt(advancedFilters.durationMin)) return false;
+    if (advancedFilters.durationMax && (activity.duration || 0) > parseInt(advancedFilters.durationMax)) return false;
+    return true;
+  });
+
+  const handleApplyFilters = () => {
+    setIsFilterModalOpen(false);
+  };
+
+  const handleResetFilters = () => {
+    setAdvancedFilters({
+      type: 'all',
+      status: 'all',
+      priority: 'all',
+      dateFrom: '',
+      dateTo: '',
+      durationMin: '',
+      durationMax: '',
+    });
+  };
+
+  // Handler pour voir une activité
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleViewActivity = async (activity: any) => {
+    setSelectedActivity(activity);
+    setIsDetailModalOpen(true);
+  };
+
+  // Handler pour marquer comme complétée
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleMarkComplete = async (activity: any) => {
+    if (activity.status === 'COMPLETEE') return;
+
+    try {
+      await updateActivity(activity.id, { status: 'COMPLETEE' });
+      mutate();
+    } catch (err) {
+      console.error('Erreur mise à jour activité:', err);
+    }
+  };
 
   // Gestion du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
@@ -112,14 +172,14 @@ export default function ActivitiesPage() {
   };
 
   // Group activities by date
-  const groupedActivities = activities.reduce((acc, activity) => {
+  const groupedActivities = filteredActivities.reduce((acc, activity) => {
     const date = new Date(activity.scheduledAt).toISOString().split('T')[0];
     if (!acc[date]) {
       acc[date] = [];
     }
     acc[date].push(activity);
     return acc;
-  }, {} as Record<string, typeof activities>);
+  }, {} as Record<string, typeof filteredActivities>);
 
   const statsDisplay = [
     { label: 'Total Activités', value: stats.total, color: 'text-orange-600' },
@@ -224,9 +284,12 @@ export default function ActivitiesPage() {
               <option value="completee">Terminées</option>
               <option value="annulee">Annulées</option>
             </select>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => setIsFilterModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <Filter className="h-5 w-5" />
-              Filtres
+              Filtres Avancés
             </button>
           </div>
         </div>
@@ -318,7 +381,11 @@ export default function ActivitiesPage() {
                           </div>
                         </div>
 
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <button
+                          onClick={() => handleViewActivity(activity)}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Voir détails"
+                        >
                           <ChevronRight className="h-5 w-5 text-gray-600" />
                         </button>
                       </div>
@@ -516,6 +583,253 @@ export default function ActivitiesPage() {
               </button>
             </div>
           </form>
+        </Modal>
+
+        {/* Modal Filtres Avancés */}
+        <Modal
+          isOpen={isFilterModalOpen}
+          onClose={() => setIsFilterModalOpen(false)}
+          title="Filtres Avancés"
+          size="md"
+        >
+          <div className="space-y-4">
+            {/* Type */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Type d&apos;activité
+              </label>
+              <select
+                value={advancedFilters.type}
+                onChange={(e) => setAdvancedFilters({ ...advancedFilters, type: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="all">Tous les types</option>
+                <option value="appel">Appel</option>
+                <option value="reunion">Réunion</option>
+                <option value="email">Email</option>
+                <option value="visio">Visio</option>
+              </select>
+            </div>
+
+            {/* Statut */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Statut
+              </label>
+              <select
+                value={advancedFilters.status}
+                onChange={(e) => setAdvancedFilters({ ...advancedFilters, status: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="all">Tous les statuts</option>
+                <option value="planifiee">Planifiée</option>
+                <option value="completee">Terminée</option>
+                <option value="annulee">Annulée</option>
+              </select>
+            </div>
+
+            {/* Priorité */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Priorité
+              </label>
+              <select
+                value={advancedFilters.priority}
+                onChange={(e) => setAdvancedFilters({ ...advancedFilters, priority: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="all">Toutes les priorités</option>
+                <option value="haute">Haute</option>
+                <option value="moyenne">Moyenne</option>
+                <option value="basse">Basse</option>
+              </select>
+            </div>
+
+            {/* Date planifiée */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Date planifiée
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="date"
+                  value={advancedFilters.dateFrom}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, dateFrom: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Du"
+                />
+                <input
+                  type="date"
+                  value={advancedFilters.dateTo}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, dateTo: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Au"
+                />
+              </div>
+            </div>
+
+            {/* Durée */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Durée (minutes)
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="number"
+                  min="0"
+                  value={advancedFilters.durationMin}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, durationMin: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Min"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  value={advancedFilters.durationMax}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, durationMax: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Max"
+                />
+              </div>
+            </div>
+
+            {/* Boutons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button
+                onClick={handleResetFilters}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Réinitialiser
+              </button>
+              <button
+                onClick={handleApplyFilters}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold"
+              >
+                Appliquer
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Modal Détails Activité */}
+        <Modal
+          isOpen={isDetailModalOpen}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setSelectedActivity(null);
+          }}
+          title={`Détails de l'activité`}
+          size="lg"
+        >
+          {selectedActivity && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Informations Générales</h3>
+                  <div className="space-y-2">
+                    <p className="text-sm"><span className="font-medium">Titre:</span> {selectedActivity.title}</p>
+                    <p className="text-sm">
+                      <span className="font-medium">Type:</span> {' '}
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getActivityColor(selectedActivity.type)}`}>
+                        {selectedActivity.type}
+                      </span>
+                    </p>
+                    <p className="text-sm">
+                      <span className="font-medium">Statut:</span> {' '}
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        selectedActivity.status === 'COMPLETEE' ? 'bg-green-100 text-green-700' :
+                        selectedActivity.status === 'PLANIFIEE' ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {selectedActivity.status}
+                      </span>
+                    </p>
+                    <p className="text-sm">
+                      <span className="font-medium">Priorité:</span> {' '}
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        selectedActivity.priority === 'HAUTE' ? 'bg-red-100 text-red-700' :
+                        selectedActivity.priority === 'MOYENNE' ? 'bg-orange-100 text-orange-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {selectedActivity.priority}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Planning</h3>
+                  <div className="space-y-2">
+                    <p className="text-sm">
+                      <span className="font-medium">Date et heure:</span> {' '}
+                      {new Date(selectedActivity.scheduledAt).toLocaleString('fr-FR')}
+                    </p>
+                    {selectedActivity.duration && (
+                      <p className="text-sm">
+                        <span className="font-medium">Durée:</span> {selectedActivity.duration} minutes
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {selectedActivity.description && (
+                <div className="border-t pt-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Description</h3>
+                  <p className="text-sm text-gray-600">{selectedActivity.description}</p>
+                </div>
+              )}
+
+              {(selectedActivity.contact || selectedActivity.deal) && (
+                <div className="border-t pt-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Relations</h3>
+                  <div className="space-y-2">
+                    {selectedActivity.contact && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <User className="h-4 w-4 text-gray-400" />
+                        <span className="font-medium">Contact:</span>
+                        <span>{selectedActivity.contact.firstName} {selectedActivity.contact.lastName}</span>
+                        {selectedActivity.contact.email && (
+                          <span className="text-gray-600">({selectedActivity.contact.email})</span>
+                        )}
+                      </div>
+                    )}
+                    {selectedActivity.deal && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Building2 className="h-4 w-4 text-gray-400" />
+                        <span className="font-medium">Deal:</span>
+                        <span>{selectedActivity.deal.title}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setIsDetailModalOpen(false);
+                    setSelectedActivity(null);
+                  }}
+                  className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Fermer
+                </button>
+                {selectedActivity.status !== 'COMPLETEE' && (
+                  <button
+                    onClick={() => {
+                      handleMarkComplete(selectedActivity);
+                      setIsDetailModalOpen(false);
+                      setSelectedActivity(null);
+                    }}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center gap-2"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Marquer comme terminée
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </Modal>
       </div>
     </div>

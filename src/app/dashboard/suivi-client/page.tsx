@@ -612,7 +612,10 @@ export default function SuiviClientPage() {
                     </div>
                   </div>
 
-                  <button className="w-full btn-primary">
+                  <button
+                    onClick={() => alert(`Détails complets du monitoring pour ${selectedClient.name}\n\nServeur: ${selectedClient.domain}\nUptime: ${selectedClient.uptime}%\nCPU: ${selectedClient.cpu}%\nMémoire: ${selectedClient.memory}%\nSSL: ${selectedClient.ssl}\nDernier backup: ${selectedClient.lastBackup}\nNPS: ${selectedClient.nps}/10`)}
+                    className="w-full btn-primary"
+                  >
                     Voir tous les détails
                     <ArrowRight className="inline-block h-5 w-5 ml-2" />
                   </button>

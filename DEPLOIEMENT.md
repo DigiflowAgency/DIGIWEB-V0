@@ -9,11 +9,6 @@
 
 ## 🗄️ ÉTAPE 1 : Créer Base de Données MySQL
 
-### 1.1 Connexion au serveur
-```bash
-ssh user@votre-serveur.com
-```
-
 ### 1.2 Créer la base de données + user
 ```bash
 sudo mysql -u root -p
@@ -185,8 +180,3 @@ npx prisma db push
 
 **🎉 Base de données production prête !** 🚀
 
-**Prochaines étapes** (tu sais déjà faire) :
-- Déployer le code (git pull)
-- npm install + build
-- PM2 restart
-- Nginx config + SSL

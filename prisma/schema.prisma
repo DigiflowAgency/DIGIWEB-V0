@@ -63,6 +63,7 @@ model User {
   notes         Note[]
   formationProgress FormationProgress[]
   clients       Client[]
+  notifications Notification[]
 
   // NextAuth relations
   accounts      Account[]
@@ -1193,4 +1194,40 @@ model ClientMonitoring {
   updatedAt    DateTime @updatedAt
 
   @@map("client_monitoring")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+enum NotificationType {
+  ACTIVITY     // Nouvelle activité planifiée
+  DEAL         // Deal gagné/perdu ou changement de statut
+  QUOTE        // Devis accepté/refusé
+  INVOICE      // Facture payée/en retard
+  TICKET       // Nouveau ticket assigné
+  MENTION      // Mention dans une note
+  SYSTEM       // Notification système
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  link      String?          // Lien vers la ressource concernée
+
+  read      Boolean          @default(false)
+  readAt    DateTime?
+
+  // Métadonnées
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("notifications")
 }

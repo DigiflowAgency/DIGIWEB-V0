@@ -1,4 +1,5 @@
 import useSWR from 'swr';
+import { useState } from 'react';
 
 interface Workflow {
   id: string;
@@ -63,5 +64,69 @@ export function useWorkflows(options: UseWorkflowsOptions = {}): UseWorkflowsRet
     isLoading: !error && !data,
     isError: error,
     mutate,
+  };
+}
+
+export function useWorkflowMutations() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const createWorkflow = async (data: { name: string; description?: string; trigger: string; status: 'ACTIVE' | 'PAUSE' | 'ARCHIVED' }) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/workflows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors de la création');
+      }
+
+      return await response.json();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateWorkflowStatus = async (id: string, status: 'ACTIVE' | 'PAUSE' | 'ARCHIVED') => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/workflows/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erreur lors de la mise à jour');
+      }
+
+      return await response.json();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    createWorkflow,
+    updateWorkflowStatus,
+    loading,
+    error,
   };
 }

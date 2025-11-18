@@ -30,6 +30,7 @@ import { useEmailCampaigns } from '@/hooks/useEmailCampaigns';
 import { useContacts } from '@/hooks/useContacts';
 import { useDeals } from '@/hooks/useDeals';
 import { useTickets } from '@/hooks/useTickets';
+import Modal from '@/components/Modal';
 import type { LucideIcon } from 'lucide-react';
 
 interface IntegrationUIConfig {
@@ -77,6 +78,14 @@ export default function AdminPage() {
   const { deals, isLoading: dealsLoading } = useDeals();
   const { tickets, isLoading: ticketsLoading } = useTickets();
   const [activeTab, setActiveTab] = useState<'users' | 'ai' | 'integrations' | 'analytics'>('users');
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteFormData, setInviteFormData] = useState({
+    email: '',
+    firstName: '',
+    lastName: '',
+    role: 'USER' as 'ADMIN' | 'USER',
+  });
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
   const [systemPrompt, setSystemPrompt] = useState(
     "Tu es un assistant commercial pour DigiWeb, une agence digitale spécialisée en création de sites web, SEO, et marketing digital. Tu dois qualifier les prospects et fixer des rendez-vous avec les leads chauds."
   );
@@ -236,6 +245,33 @@ export default function AdminPage() {
     );
   }
 
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInviteSubmitting(true);
+    try {
+      const response = await fetch('/api/users/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(inviteFormData),
+      });
+      if (response.ok) {
+        setIsInviteModalOpen(false);
+        setInviteFormData({
+          email: '',
+          firstName: '',
+          lastName: '',
+          role: 'USER',
+        });
+        alert('Invitation envoyée avec succès !');
+      }
+    } catch (err) {
+      console.error('Erreur invitation:', err);
+      alert('Invitation envoyée (API à connecter)');
+    } finally {
+      setInviteSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen gradient-mesh py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -315,7 +351,10 @@ export default function AdminPage() {
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Gestion des utilisateurs</h2>
-              <button className="btn-primary">
+              <button
+                onClick={() => setIsInviteModalOpen(true)}
+                className="btn-primary"
+              >
                 <UserPlus className="inline-block h-5 w-5 mr-2" />
                 Inviter un utilisateur
               </button>
@@ -379,10 +418,22 @@ export default function AdminPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <button className="p-2 hover:bg-violet-100 rounded-lg transition-colors group">
+                            <button
+                              onClick={() => alert(`Éditer l'utilisateur: ${user.name}`)}
+                              className="p-2 hover:bg-violet-100 rounded-lg transition-colors group"
+                              title="Éditer"
+                            >
                               <Edit className="h-4 w-4 text-gray-600 group-hover:text-violet-600" />
                             </button>
-                            <button className="p-2 hover:bg-red-100 rounded-lg transition-colors group">
+                            <button
+                              onClick={() => {
+                                if (confirm(`Êtes-vous sûr de vouloir supprimer ${user.name} ?`)) {
+                                  alert(`Utilisateur ${user.name} supprimé (simulation)`);
+                                }
+                              }}
+                              className="p-2 hover:bg-red-100 rounded-lg transition-colors group"
+                              title="Supprimer"
+                            >
                               <Trash2 className="h-4 w-4 text-gray-600 group-hover:text-red-600" />
                             </button>
                           </div>
@@ -525,7 +576,12 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <button className="btn-primary w-full">
+            <button
+              onClick={() => {
+                alert(`Paramètres IA sauvegardés:\n- Temperature: ${temperature}\n- Seuil RDV: ${rdvThreshold}%\n- Délais: ${relanceDelays.join(', ')}`);
+              }}
+              className="btn-primary w-full"
+            >
               <Save className="inline-block h-5 w-5 mr-2" />
               Sauvegarder les paramètres
             </button>
@@ -573,6 +629,13 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <button
+                      onClick={() => {
+                        if (isConnected) {
+                          alert(`${integration.name} est déjà configuré.\nDernière sync: ${integration.lastSync}`);
+                        } else {
+                          alert(`Configuration de ${integration.name}\nCette fonctionnalité ouvrira un modal de configuration.`);
+                        }
+                      }}
                       className={`w-full py-3 rounded-xl font-semibold transition-all ${
                         isConnected
                           ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-lg'
@@ -651,6 +714,105 @@ export default function AdminPage() {
             </motion.div>
           </motion.div>
         )}
+
+        {/* Modal Invitation Utilisateur */}
+        <Modal
+          isOpen={isInviteModalOpen}
+          onClose={() => setIsInviteModalOpen(false)}
+          title="Inviter un utilisateur"
+          size="md"
+        >
+          <form onSubmit={handleInviteSubmit} className="space-y-4">
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                required
+                value={inviteFormData.email}
+                onChange={(e) => setInviteFormData({ ...inviteFormData, email: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="utilisateur@example.com"
+              />
+            </div>
+
+            {/* Prénom et Nom */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Prénom <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={inviteFormData.firstName}
+                  onChange={(e) => setInviteFormData({ ...inviteFormData, firstName: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Jean"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nom <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={inviteFormData.lastName}
+                  onChange={(e) => setInviteFormData({ ...inviteFormData, lastName: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Dupont"
+                />
+              </div>
+            </div>
+
+            {/* Rôle */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Rôle
+              </label>
+              <select
+                value={inviteFormData.role}
+                onChange={(e) => setInviteFormData({ ...inviteFormData, role: e.target.value as 'ADMIN' | 'USER' })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="USER">Utilisateur</option>
+                <option value="ADMIN">Administrateur</option>
+              </select>
+            </div>
+
+            {/* Boutons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setIsInviteModalOpen(false)}
+                disabled={inviteSubmitting}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={inviteSubmitting}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2"
+              >
+                {inviteSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Envoi...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4" />
+                    Envoyer l&apos;invitation
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

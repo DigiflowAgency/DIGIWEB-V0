@@ -2,15 +2,55 @@
 
 import { useState } from 'react';
 import { Send, Plus, Search, Play, Pause, Edit, Mail, Clock, Loader2 } from 'lucide-react';
-import { useSequences } from '@/hooks/useSequences';
+import { useSequences, useSequenceMutations } from '@/hooks/useSequences';
+import Modal from '@/components/Modal';
 
 export default function SequencesPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    status: 'ACTIVE' as 'ACTIVE' | 'PAUSE',
+  });
 
   // Utiliser le hook useSequences pour récupérer les données depuis l'API
-  const { sequences, stats, isLoading, isError } = useSequences({
+  const { sequences, stats, isLoading, isError, mutate } = useSequences({
     search: searchQuery || undefined,
   });
+
+  const { updateSequenceStatus, createSequence, loading: submitting, error: submitError } = useSequenceMutations();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleToggleStatus = async (sequence: any) => {
+    try {
+      const newStatus = sequence.status === 'ACTIVE' ? 'PAUSE' : 'ACTIVE';
+      await updateSequenceStatus(sequence.id, newStatus);
+      mutate();
+    } catch (err) {
+      console.error('Erreur changement statut:', err);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createSequence({
+        name: formData.name,
+        description: formData.description || undefined,
+        status: formData.status,
+      });
+      setIsModalOpen(false);
+      setFormData({
+        name: '',
+        description: '',
+        status: 'ACTIVE',
+      });
+      mutate();
+    } catch (err) {
+      console.error('Erreur création séquence:', err);
+    }
+  };
 
   // État de chargement
   if (isLoading) {
@@ -60,7 +100,10 @@ export default function SequencesPage() {
               </h1>
               <p className="text-gray-600 mt-1">Automatisez vos campagnes email</p>
             </div>
-            <button className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
+            >
               <Plus className="h-5 w-5" />
               Nouvelle Séquence
             </button>
@@ -130,14 +173,25 @@ export default function SequencesPage() {
               </div>
 
               <div className="flex gap-2">
-                <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                <button
+                  onClick={() => alert(`Éditer la séquence: ${sequence.name}`)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
                   <Edit className="h-4 w-4" />
                   Modifier
                 </button>
-                <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                <button
+                  onClick={() => handleToggleStatus(sequence)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  title={sequence.status === 'ACTIVE' ? 'Mettre en pause' : 'Activer'}
+                >
                   {sequence.status === 'ACTIVE' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </button>
-                <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                <button
+                  onClick={() => alert(`Historique de la séquence: ${sequence.name}\nTaux d'ouverture: ${sequence.openRate || 0}%\nTaux de réponse: ${sequence.replyRate || 0}%`)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  title="Voir l'historique"
+                >
                   <Clock className="h-4 w-4" />
                 </button>
               </div>
@@ -152,6 +206,92 @@ export default function SequencesPage() {
             <p className="text-gray-500 text-sm">Créez votre première séquence pour automatiser vos campagnes email</p>
           </div>
         )}
+
+        {/* Modal Nouvelle Séquence */}
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Nouvelle Séquence"
+          size="lg"
+        >
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {submitError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {submitError}
+              </div>
+            )}
+
+            {/* Nom */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Nom de la séquence <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Campagne de nurturing leads"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Description de la séquence..."
+                rows={3}
+              />
+            </div>
+
+            {/* Statut */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Statut initial
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'ACTIVE' | 'PAUSE' })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="ACTIVE">Active</option>
+                <option value="PAUSE">En pause</option>
+              </select>
+            </div>
+
+            {/* Boutons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                disabled={submitting}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Création...
+                  </>
+                ) : (
+                  'Créer la séquence'
+                )}
+              </button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

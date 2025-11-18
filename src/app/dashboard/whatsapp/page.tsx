@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Send, Search, Paperclip, MoreVertical, Phone, Video, Loader2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Send, Search, Paperclip, MoreVertical, Phone, Video, Loader2, X } from 'lucide-react';
 import { useWhatsApp, WhatsAppConversation } from '@/hooks/useWhatsApp';
 
 const getScoreBadge = (score: number) => {
@@ -16,6 +16,8 @@ export default function WhatsAppPage() {
   const [selectedConversation, setSelectedConversation] = useState<WhatsAppConversation | null>(null);
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (isLoading) {
     return (
@@ -42,11 +44,37 @@ export default function WhatsAppPage() {
     setSelectedConversation(filteredConversations[0]);
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Vérification de la taille (max 10MB pour WhatsApp)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('La taille du fichier ne doit pas dépasser 10MB');
+        return;
+      }
+      setAttachedFile(file);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setAttachedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSendMessage = () => {
-    if (message.trim()) {
+    if (message.trim() || attachedFile) {
       // Logique d'envoi du message (mock)
       console.log('Message envoyé:', message);
+      if (attachedFile) {
+        console.log('Fichier attaché:', attachedFile.name);
+      }
       setMessage('');
+      setAttachedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -148,13 +176,25 @@ export default function WhatsAppPage() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                  <button
+                    onClick={() => alert(`Appel vocal vers ${selectedConversation.name}`)}
+                    className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                    title="Appel vocal"
+                  >
                     <Phone className="h-5 w-5" />
                   </button>
-                  <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                  <button
+                    onClick={() => alert(`Appel vidéo vers ${selectedConversation.name}`)}
+                    className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                    title="Appel vidéo"
+                  >
                     <Video className="h-5 w-5" />
                   </button>
-                  <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                  <button
+                    onClick={() => alert('Options supplémentaires')}
+                    className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                    title="Plus d'options"
+                  >
                     <MoreVertical className="h-5 w-5" />
                   </button>
                 </div>
@@ -185,8 +225,36 @@ export default function WhatsAppPage() {
 
         {/* Message Input */}
         <div className="bg-white border-t border-gray-200 p-4">
+          {/* Attached File Preview */}
+          {attachedFile && (
+            <div className="mb-3 flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+              <div className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">{attachedFile.name}</span>
+                <span className="text-xs text-gray-500">({(attachedFile.size / 1024).toFixed(1)} KB)</span>
+              </div>
+              <button
+                onClick={handleRemoveFile}
+                className="p-1 hover:bg-gray-200 rounded-full transition"
+                title="Retirer le fichier"
+              >
+                <X className="h-4 w-4 text-gray-600" />
+              </button>
+            </div>
+          )}
           <div className="flex items-center space-x-3">
-            <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileChange}
+              className="hidden"
+              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              title="Attacher un fichier"
+            >
               <Paperclip className="h-5 w-5" />
             </button>
             <input
