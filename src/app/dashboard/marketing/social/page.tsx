@@ -15,7 +15,8 @@ import {
   MessageCircle,
   Loader2
 } from 'lucide-react';
-import { useSocialPosts } from '@/hooks/useSocialPosts';
+import { useSocialPosts, useSocialPostMutations } from '@/hooks/useSocialPosts';
+import Modal from '@/components/Modal';
 
 const getPlatformLabel = (platform: string) => {
   switch (platform) {
@@ -58,11 +59,36 @@ const getPlatformColor = (platform: string) => {
 
 export default function SocialPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    content: '',
+    platform: 'FACEBOOK' as 'FACEBOOK' | 'TWITTER' | 'INSTAGRAM' | 'LINKEDIN',
+    scheduledAt: '',
+  });
 
   // Utiliser le hook useSocialPosts pour récupérer les données depuis l'API
-  const { posts, stats, isLoading, isError } = useSocialPosts({
+  const { posts, stats, isLoading, isError, mutate } = useSocialPosts({
     search: searchQuery || undefined,
   });
+
+  const { createPost, loading: submitting, error: submitError } = useSocialPostMutations();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createPost({
+        content: formData.content,
+        platform: formData.platform,
+        scheduledAt: formData.scheduledAt || null,
+        status: formData.scheduledAt ? 'PLANIFIE' : 'BROUILLON',
+      });
+      setIsModalOpen(false);
+      setFormData({ content: '', platform: 'FACEBOOK', scheduledAt: '' });
+      mutate();
+    } catch (err) {
+      console.error('Erreur création post:', err);
+    }
+  };
 
   // État de chargement
   if (isLoading) {
@@ -112,7 +138,10 @@ export default function SocialPage() {
               </h1>
               <p className="text-gray-600 mt-1">Gérez votre présence sur les réseaux sociaux</p>
             </div>
-            <button className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
+            >
               <Plus className="h-5 w-5" />
               Nouveau Post
             </button>
@@ -198,6 +227,75 @@ export default function SocialPage() {
             );
           })}
         </div>
+
+        {/* Modal Nouveau Post */}
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nouveau Post" size="lg">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {submitError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{submitError}</div>}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Plateforme <span className="text-red-500">*</span></label>
+              <select
+                value={formData.platform}
+                onChange={(e) => setFormData({ ...formData, platform: e.target.value as 'FACEBOOK' | 'TWITTER' | 'INSTAGRAM' | 'LINKEDIN' })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="FACEBOOK">Facebook</option>
+                <option value="TWITTER">Twitter</option>
+                <option value="INSTAGRAM">Instagram</option>
+                <option value="LINKEDIN">LinkedIn</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Contenu <span className="text-red-500">*</span></label>
+              <textarea
+                required
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                rows={6}
+                placeholder="Rédigez votre post..."
+              />
+              <p className="text-sm text-gray-500 mt-1">{formData.content.length} caractères</p>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Programmer la publication (optionnel)</label>
+              <input
+                type="datetime-local"
+                value={formData.scheduledAt}
+                onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+              <p className="text-sm text-gray-500 mt-1">Si vide, sera sauvegardé en brouillon</p>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                disabled={submitting}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Création...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    Créer le post
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

@@ -2,11 +2,30 @@
 
 import { useState } from 'react';
 import { LayoutDashboard, Plus, Search, Eye, Edit, Copy, Star, Loader2 } from 'lucide-react';
-import { useDashboards } from '@/hooks/useDashboards';
+import { useDashboards, useDashboardMutations } from '@/hooks/useDashboards';
+import Modal from '@/components/Modal';
 
 export default function DashboardsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { dashboards, isLoading, isError } = useDashboards();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ name: '', description: '' });
+
+  const { dashboards, isLoading, isError, mutate } = useDashboards();
+  const { createDashboard, loading: submitting } = useDashboardMutations();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) return;
+
+    try {
+      await createDashboard(formData);
+      mutate(); // Revalider les données
+      setIsModalOpen(false);
+      setFormData({ name: '', description: '' });
+    } catch (err) {
+      console.error('Erreur création dashboard:', err);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -43,7 +62,10 @@ export default function DashboardsPage() {
               </h1>
               <p className="text-gray-600 mt-1">Créez et gérez vos tableaux de bord</p>
             </div>
-            <button className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
+            >
               <Plus className="h-5 w-5" />
               Nouveau Dashboard
             </button>
@@ -115,6 +137,71 @@ export default function DashboardsPage() {
             </div>
           ))}
         </div>
+
+        {/* Modal Nouveau Dashboard */}
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Nouveau Dashboard"
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Nom du Dashboard *
+              </label>
+              <input
+                type="text"
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+                placeholder="Ex: Dashboard Marketing Q1"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                Description (optionnel)
+              </label>
+              <textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                rows={3}
+                placeholder="Description de votre dashboard..."
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end pt-4">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || !formData.name.trim()}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Création...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    Créer
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

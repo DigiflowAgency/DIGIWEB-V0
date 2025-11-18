@@ -12,6 +12,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useDeals } from '@/hooks/useDeals';
+import { useRouter } from 'next/navigation';
 
 type DealStage = 'DECOUVERTE' | 'QUALIFICATION' | 'PROPOSITION' | 'NEGOCIATION' | 'GAGNE';
 
@@ -36,6 +37,7 @@ const getDaysInStage = (updatedAt: string) => {
 };
 
 export default function PipelinePage() {
+  const router = useRouter();
   const { deals, isLoading, isError } = useDeals();
 
   const pipelineStages = useMemo(() => {
@@ -119,7 +121,10 @@ export default function PipelinePage() {
               </h1>
               <p className="text-gray-600 mt-1">Visualisez et optimisez votre pipeline commercial</p>
             </div>
-            <button className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm">
+            <button
+              onClick={() => router.push('/dashboard/crm/deals')}
+              className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
+            >
               <Plus className="h-5 w-5" />
               Nouveau Deal
             </button>
@@ -201,7 +206,10 @@ export default function PipelinePage() {
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">Deals Récents</h2>
-              <button className="flex items-center gap-2 text-sm text-orange-600 hover:text-orange-700 font-semibold">
+              <button
+                onClick={() => router.push('/dashboard/crm/deals')}
+                className="flex items-center gap-2 text-sm text-orange-600 hover:text-orange-700 font-semibold"
+              >
                 Voir tout
                 <ChevronRight className="h-4 w-4" />
               </button>

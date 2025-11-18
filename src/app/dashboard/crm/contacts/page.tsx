@@ -22,9 +22,13 @@ import Modal from '@/components/Modal';
 export default function ContactsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Modal state
+  // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<any>(null);
   const [formData, setFormData] = useState<{
     firstName: string;
     lastName: string;
@@ -48,9 +52,9 @@ export default function ContactsPage() {
   });
 
   // Hook de mutations
-  const { createContact, loading: submitting, error: submitError } = useContactMutations();
+  const { createContact, updateContact, deleteContact, loading: submitting, error: submitError } = useContactMutations();
 
-  // Gestion du formulaire
+  // Gestion du formulaire création
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -69,6 +73,63 @@ export default function ContactsPage() {
     } catch (err) {
       console.error('Erreur création contact:', err);
     }
+  };
+
+  // Gestion édition
+  const handleEdit = (contact: any) => {
+    setSelectedContact(contact);
+    setFormData({
+      firstName: contact.firstName,
+      lastName: contact.lastName,
+      email: contact.email || '',
+      phone: contact.phone || '',
+      position: contact.position || '',
+      status: contact.status,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedContact) return;
+
+    try {
+      await updateContact(selectedContact.id, formData);
+      setIsEditModalOpen(false);
+      setSelectedContact(null);
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        position: '',
+        status: 'LEAD',
+      });
+      mutate();
+    } catch (err) {
+      console.error('Erreur mise à jour contact:', err);
+    }
+  };
+
+  // Gestion suppression
+  const handleDelete = async (contact: any) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${contact.firstName} ${contact.lastName} ?`)) return;
+
+    try {
+      await deleteContact(contact.id);
+      mutate();
+    } catch (err) {
+      console.error('Erreur suppression contact:', err);
+    }
+  };
+
+  // Pagination
+  const totalPages = Math.ceil(stats.total / 10);
+  const handlePreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
   const statsDisplay = [
@@ -162,7 +223,10 @@ export default function ContactsPage() {
               <option value="active">Actifs</option>
               <option value="inactive">Inactifs</option>
             </select>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <Filter className="h-5 w-5" />
               Filtres
             </button>
@@ -243,13 +307,25 @@ export default function ContactsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <button
+                          onClick={() => handleEdit(contact)}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Modifier"
+                        >
                           <Edit className="h-4 w-4 text-gray-600" />
                         </button>
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                          <Trash2 className="h-4 w-4 text-gray-600" />
+                        <button
+                          onClick={() => handleDelete(contact)}
+                          className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
                         </button>
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <button
+                          onClick={() => alert(`Actions pour ${contact.firstName} ${contact.lastName}:\n- Créer une activité\n- Envoyer un email\n- Créer un deal`)}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Plus d'actions"
+                        >
                           <MoreVertical className="h-4 w-4 text-gray-600" />
                         </button>
                       </div>
@@ -267,16 +343,31 @@ export default function ContactsPage() {
             Affichage de {contacts.length} sur {stats.total} contacts
           </p>
           <div className="flex gap-2">
-            <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+            <button
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Précédent
             </button>
-            <button className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium">
-              1
-            </button>
-            <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
-              2
-            </button>
-            <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).slice(0, 3).map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                  currentPage === page
+                    ? 'bg-orange-600 text-white'
+                    : 'border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Suivant
             </button>
           </div>
@@ -407,6 +498,125 @@ export default function ContactsPage() {
                   </>
                 ) : (
                   'Créer le contact'
+                )}
+              </button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Modal Édition Contact */}
+        <Modal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedContact(null);
+          }}
+          title="Modifier le Contact"
+          size="lg"
+        >
+          <form onSubmit={handleEditSubmit} className="space-y-6">
+            {submitError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {submitError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Prénom <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nom <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Téléphone</label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Poste</label>
+                <input
+                  type="text"
+                  value={formData.position}
+                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Statut</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'LEAD' | 'PROSPECT' | 'CLIENT' })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="LEAD">Lead</option>
+                  <option value="PROSPECT">Prospect</option>
+                  <option value="CLIENT">Client</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setSelectedContact(null);
+                }}
+                disabled={submitting}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Enregistrement...
+                  </>
+                ) : (
+                  'Enregistrer les modifications'
                 )}
               </button>
             </div>
