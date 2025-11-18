@@ -1,0 +1,1176 @@
+
+> digiweb-erp@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.33
+  - Local:        http://localhost:3000
+  - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 1456ms
+   Reload env: .env
+ ○ Compiling / ...
+ ✓ Compiled / in 4.1s (599 modules)
+ GET / 200 in 4650ms
+ ✓ Compiled in 471ms (286 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /api/auth/[...nextauth] in 5s (327 modules)
+ ✓ Compiled (564 modules)
+ GET /favicon.ico 200 in 6019ms
+ GET /favicon.ico 200 in 19ms
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+ GET /api/auth/session 200 in 4684ms
+ GET /api/auth/session 200 in 36ms
+ ✓ Compiled /login in 369ms (860 modules)
+ ✓ Compiled in 218ms (297 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+ GET /api/auth/providers 200 in 70ms
+ GET /api/auth/csrf 200 in 17ms
+prisma:query SELECT `digibe_app_prod`.`users`.`id`, `digibe_app_prod`.`users`.`email`, `digibe_app_prod`.`users`.`password`, `digibe_app_prod`.`users`.`firstName`, `digibe_app_prod`.`users`.`lastName`, `digibe_app_prod`.`users`.`role`, `digibe_app_prod`.`users`.`status`, `digibe_app_prod`.`users`.`avatar`, `digibe_app_prod`.`users`.`phone`, `digibe_app_prod`.`users`.`position`, `digibe_app_prod`.`users`.`department`, `digibe_app_prod`.`users`.`managerId`, `digibe_app_prod`.`users`.`monthlyGoal`, `digibe_app_prod`.`users`.`createdAt`, `digibe_app_prod`.`users`.`updatedAt`, `digibe_app_prod`.`users`.`lastLoginAt` FROM `digibe_app_prod`.`users` WHERE (`digibe_app_prod`.`users`.`email` = ? AND 1=1) LIMIT ? OFFSET ?
+ POST /api/auth/callback/credentials 200 in 204ms
+ GET /api/auth/session 200 in 18ms
+ ○ Compiling /src/middleware ...
+ ✓ Compiled /src/middleware in 654ms (174 modules)
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 3.1s (2865 modules)
+ ✓ Compiled /api/activities in 410ms (1604 modules)
+ ✓ Compiled (1679 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT `digibe_app_prod`.`deals`.`id`, `digibe_app_prod`.`deals`.`title`, `digibe_app_prod`.`deals`.`description`, `digibe_app_prod`.`deals`.`value`, `digibe_app_prod`.`deals`.`currency`, `digibe_app_prod`.`deals`.`stage`, `digibe_app_prod`.`deals`.`probability`, `digibe_app_prod`.`deals`.`expectedCloseDate`, `digibe_app_prod`.`deals`.`closedAt`, `digibe_app_prod`.`deals`.`contactId`, `digibe_app_prod`.`deals`.`companyId`, `digibe_app_prod`.`deals`.`ownerId`, `digibe_app_prod`.`deals`.`createdAt`, `digibe_app_prod`.`deals`.`updatedAt` FROM `digibe_app_prod`.`deals` WHERE 1=1 ORDER BY `digibe_app_prod`.`deals`.`expectedCloseDate` ASC, `digibe_app_prod`.`deals`.`createdAt` DESC
+prisma:query SELECT `digibe_app_prod`.`activities`.`id`, `digibe_app_prod`.`activities`.`title`, `digibe_app_prod`.`activities`.`description`, `digibe_app_prod`.`activities`.`type`, `digibe_app_prod`.`activities`.`status`, `digibe_app_prod`.`activities`.`priority`, `digibe_app_prod`.`activities`.`scheduledAt`, `digibe_app_prod`.`activities`.`duration`, `digibe_app_prod`.`activities`.`completedAt`, `digibe_app_prod`.`activities`.`contactId`, `digibe_app_prod`.`activities`.`dealId`, `digibe_app_prod`.`activities`.`assignedToId`, `digibe_app_prod`.`activities`.`aircallCallId`, `digibe_app_prod`.`activities`.`createdAt`, `digibe_app_prod`.`activities`.`updatedAt` FROM `digibe_app_prod`.`activities` WHERE 1=1 ORDER BY `digibe_app_prod`.`activities`.`scheduledAt` ASC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`deals`.`id` FROM `digibe_app_prod`.`deals` WHERE 1=1) AS `sub`
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`activities`.`id` FROM `digibe_app_prod`.`activities` WHERE 1=1) AS `sub`
+prisma:query SELECT SUM(`value`) AS `_sum$value` FROM (SELECT `digibe_app_prod`.`deals`.`value` FROM `digibe_app_prod`.`deals` WHERE 1=1) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 1497ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`activities`.`id` FROM `digibe_app_prod`.`activities` WHERE `digibe_app_prod`.`activities`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`deals`.`id` FROM `digibe_app_prod`.`deals` WHERE `digibe_app_prod`.`deals`.`stage` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`activities`.`id` FROM `digibe_app_prod`.`activities` WHERE `digibe_app_prod`.`activities`.`status` = ?) AS `sub`
+prisma:query SELECT SUM(`value`) AS `_sum$value` FROM (SELECT `digibe_app_prod`.`deals`.`value` FROM `digibe_app_prod`.`deals` WHERE `digibe_app_prod`.`deals`.`stage` = ?) AS `sub`
+ GET /api/activities?limit=10 200 in 1622ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`activities`.`id` FROM `digibe_app_prod`.`activities` WHERE (`digibe_app_prod`.`activities`.`scheduledAt` >= ? AND `digibe_app_prod`.`activities`.`scheduledAt` < ?)) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`deals`.`id` FROM `digibe_app_prod`.`deals` WHERE `digibe_app_prod`.`deals`.`stage` = ?) AS `sub`
+ GET /api/deals 200 in 1708ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`deals`.`id` FROM `digibe_app_prod`.`deals` WHERE `digibe_app_prod`.`deals`.`stage` IN (?,?,?,?)) AS `sub`
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 93ms
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 498ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 76ms
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 58ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 65ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 59ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 60ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 64ms
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 60ms
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 124ms
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 60ms
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 68ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ ✓ Compiled in 444ms (1298 modules)
+ ✓ Compiled in 222ms (1298 modules)
+ ✓ Compiled in 190ms (1298 modules)
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 71ms
+ ✓ Compiled in 191ms (1298 modules)
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 54ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ ✓ Compiled in 200ms (1298 modules)
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 53ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ ✓ Compiled in 209ms (1298 modules)
+ ✓ Compiled in 225ms (1298 modules)
+ ✓ Compiled in 167ms (1298 modules)
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 64ms
+ ✓ Compiled in 262ms (1298 modules)
+ ✓ Compiled in 247ms (1298 modules)
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 164ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ ✓ Compiled in 191ms (1298 modules)
+ ✓ Compiled in 165ms (1298 modules)
+ ✓ Compiled in 196ms (1298 modules)
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 55ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 62ms
+ ✓ Compiled in 357ms (1298 modules)
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 92ms
+prisma:query SELECT `digibe_app_prod`.`deals`.`id`, `digibe_app_prod`.`deals`.`title`, `digibe_app_prod`.`deals`.`description`, `digibe_app_prod`.`deals`.`value`, `digibe_app_prod`.`deals`.`currency`, `digibe_app_prod`.`deals`.`stage`, `digibe_app_prod`.`deals`.`probability`, `digibe_app_prod`.`deals`.`expectedCloseDate`, `digibe_app_prod`.`deals`.`closedAt`, `digibe_app_prod`.`deals`.`contactId`, `digibe_app_prod`.`deals`.`companyId`, `digibe_app_prod`.`deals`.`ownerId`, `digibe_app_prod`.`deals`.`createdAt`, `digibe_app_prod`.`deals`.`updatedAt` FROM `digibe_app_prod`.`deals` WHERE 1=1 ORDER BY `digibe_app_prod`.`deals`.`expectedCloseDate` ASC, `digibe_app_prod`.`deals`.`createdAt` DESC
+prisma:query SELECT `digibe_app_prod`.`activities`.`id`, `digibe_app_prod`.`activities`.`title`, `digibe_app_prod`.`activities`.`description`, `digibe_app_prod`.`activities`.`type`, `digibe_app_prod`.`activities`.`status`, `digibe_app_prod`.`activities`.`priority`, `digibe_app_prod`.`activities`.`scheduledAt`, `digibe_app_prod`.`activities`.`duration`, `digibe_app_prod`.`activities`.`completedAt`, `digibe_app_prod`.`activities`.`contactId`, `digibe_app_prod`.`activities`.`dealId`, `digibe_app_prod`.`activities`.`assignedToId`, `digibe_app_prod`.`activities`.`aircallCallId`, `digibe_app_prod`.`activities`.`createdAt`, `digibe_app_prod`.`activities`.`updatedAt` FROM `digibe_app_prod`.`activities` WHERE 1=1 ORDER BY `digibe_app_prod`.`activities`.`scheduledAt` ASC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`deals`.`id` FROM `digibe_app_prod`.`deals` WHERE 1=1) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`activities`.`id` FROM `digibe_app_prod`.`activities` WHERE 1=1) AS `sub`
+prisma:query SELECT SUM(`value`) AS `_sum$value` FROM (SELECT `digibe_app_prod`.`deals`.`value` FROM `digibe_app_prod`.`deals` WHERE 1=1) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`activities`.`id` FROM `digibe_app_prod`.`activities` WHERE `digibe_app_prod`.`activities`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`activities`.`id` FROM `digibe_app_prod`.`activities` WHERE `digibe_app_prod`.`activities`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`deals`.`id` FROM `digibe_app_prod`.`deals` WHERE `digibe_app_prod`.`deals`.`stage` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`activities`.`id` FROM `digibe_app_prod`.`activities` WHERE (`digibe_app_prod`.`activities`.`scheduledAt` >= ? AND `digibe_app_prod`.`activities`.`scheduledAt` < ?)) AS `sub`
+ GET /api/activities?limit=10 200 in 411ms
+prisma:query SELECT SUM(`value`) AS `_sum$value` FROM (SELECT `digibe_app_prod`.`deals`.`value` FROM `digibe_app_prod`.`deals` WHERE `digibe_app_prod`.`deals`.`stage` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`deals`.`id` FROM `digibe_app_prod`.`deals` WHERE `digibe_app_prod`.`deals`.`stage` = ?) AS `sub`
+ GET /api/deals 200 in 507ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`deals`.`id` FROM `digibe_app_prod`.`deals` WHERE `digibe_app_prod`.`deals`.`stage` IN (?,?,?,?)) AS `sub`
+ ○ Compiling /dashboard/service/tickets ...
+ ✓ Compiled /dashboard/service/tickets in 1030ms (2954 modules)
+ ✓ Compiled /dashboard/service/knowledge in 260ms (1662 modules)
+ ✓ Compiled in 629ms (1301 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT `digibe_app_prod`.`tickets`.`id`, `digibe_app_prod`.`tickets`.`number`, `digibe_app_prod`.`tickets`.`subject`, `digibe_app_prod`.`tickets`.`description`, `digibe_app_prod`.`tickets`.`type`, `digibe_app_prod`.`tickets`.`status`, `digibe_app_prod`.`tickets`.`priority`, `digibe_app_prod`.`tickets`.`createdById`, `digibe_app_prod`.`tickets`.`assignedToId`, `digibe_app_prod`.`tickets`.`clientName`, `digibe_app_prod`.`tickets`.`clientEmail`, `digibe_app_prod`.`tickets`.`resolvedAt`, `digibe_app_prod`.`tickets`.`responseTime`, `digibe_app_prod`.`tickets`.`createdAt`, `digibe_app_prod`.`tickets`.`updatedAt` FROM `digibe_app_prod`.`tickets` WHERE 1=1 ORDER BY `digibe_app_prod`.`tickets`.`createdAt` DESC
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE 1=1) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+ GET /api/tickets 200 in 1287ms
+prisma:query SELECT AVG(`responseTime`) AS `_avg$responseTime` FROM (SELECT `digibe_app_prod`.`tickets`.`responseTime` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`responseTime` IS NOT NULL) AS `sub`
+ ✓ Compiled /api/knowledge in 205ms (1673 modules)
+prisma:query SELECT `digibe_app_prod`.`knowledge_articles`.`id`, `digibe_app_prod`.`knowledge_articles`.`title`, `digibe_app_prod`.`knowledge_articles`.`category`, `digibe_app_prod`.`knowledge_articles`.`content`, `digibe_app_prod`.`knowledge_articles`.`views`, `digibe_app_prod`.`knowledge_articles`.`createdAt`, `digibe_app_prod`.`knowledge_articles`.`updatedAt` FROM `digibe_app_prod`.`knowledge_articles` WHERE 1=1 ORDER BY `digibe_app_prod`.`knowledge_articles`.`updatedAt` DESC
+ GET /api/knowledge 200 in 281ms
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`tickets`.`id`, `digibe_app_prod`.`tickets`.`number`, `digibe_app_prod`.`tickets`.`subject`, `digibe_app_prod`.`tickets`.`description`, `digibe_app_prod`.`tickets`.`type`, `digibe_app_prod`.`tickets`.`status`, `digibe_app_prod`.`tickets`.`priority`, `digibe_app_prod`.`tickets`.`createdById`, `digibe_app_prod`.`tickets`.`assignedToId`, `digibe_app_prod`.`tickets`.`clientName`, `digibe_app_prod`.`tickets`.`clientEmail`, `digibe_app_prod`.`tickets`.`resolvedAt`, `digibe_app_prod`.`tickets`.`responseTime`, `digibe_app_prod`.`tickets`.`createdAt`, `digibe_app_prod`.`tickets`.`updatedAt` FROM `digibe_app_prod`.`tickets` WHERE 1=1 ORDER BY `digibe_app_prod`.`tickets`.`createdAt` DESC
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE 1=1) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT AVG(`responseTime`) AS `_avg$responseTime` FROM (SELECT `digibe_app_prod`.`tickets`.`responseTime` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`responseTime` IS NOT NULL) AS `sub`
+ GET /api/tickets 200 in 232ms
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 307ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ ✓ Compiled in 264ms (1315 modules)
+ ✓ Compiled in 237ms (1315 modules)
+ ✓ Compiled in 230ms (1315 modules)
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 72ms
+ ✓ Compiled in 172ms (1315 modules)
+ ✓ Compiled in 179ms (1315 modules)
+ ✓ Compiled in 198ms (1315 modules)
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 69ms
+ ✓ Compiled in 260ms (1315 modules)
+ ✓ Compiled in 218ms (1315 modules)
+ ✓ Compiled in 185ms (1315 modules)
+ ✓ Compiled in 164ms (1315 modules)
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 53ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT 1
+ GET /api/notifications?unreadOnly=false 200 in 75ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+prisma:query SELECT `digibe_app_prod`.`tickets`.`id`, `digibe_app_prod`.`tickets`.`number`, `digibe_app_prod`.`tickets`.`subject`, `digibe_app_prod`.`tickets`.`description`, `digibe_app_prod`.`tickets`.`type`, `digibe_app_prod`.`tickets`.`status`, `digibe_app_prod`.`tickets`.`priority`, `digibe_app_prod`.`tickets`.`createdById`, `digibe_app_prod`.`tickets`.`assignedToId`, `digibe_app_prod`.`tickets`.`clientName`, `digibe_app_prod`.`tickets`.`clientEmail`, `digibe_app_prod`.`tickets`.`resolvedAt`, `digibe_app_prod`.`tickets`.`responseTime`, `digibe_app_prod`.`tickets`.`createdAt`, `digibe_app_prod`.`tickets`.`updatedAt` FROM `digibe_app_prod`.`tickets` WHERE 1=1 ORDER BY `digibe_app_prod`.`tickets`.`createdAt` DESC
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE 1=1) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`tickets`.`id` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`status` = ?) AS `sub`
+ ✓ Compiled in 214ms (1315 modules)
+prisma:query SELECT AVG(`responseTime`) AS `_avg$responseTime` FROM (SELECT `digibe_app_prod`.`tickets`.`responseTime` FROM `digibe_app_prod`.`tickets` WHERE `digibe_app_prod`.`tickets`.`responseTime` IS NOT NULL) AS `sub`
+ GET /api/tickets 200 in 427ms
+ ○ Compiling /dashboard/settings ...
+ ✓ Compiled /dashboard/settings in 872ms (2986 modules)
+ ✓ Compiled /api/users in 210ms (1679 modules)
+prisma:query SELECT `digibe_app_prod`.`users`.`id`, `digibe_app_prod`.`users`.`firstName`, `digibe_app_prod`.`users`.`lastName`, `digibe_app_prod`.`users`.`email`, `digibe_app_prod`.`users`.`role`, `digibe_app_prod`.`users`.`createdAt`, `digibe_app_prod`.`users`.`updatedAt` FROM `digibe_app_prod`.`users` WHERE 1=1 ORDER BY `digibe_app_prod`.`users`.`createdAt` DESC
+ GET /api/users 200 in 295ms
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 126ms
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 64ms
+ ✓ Compiled in 388ms (1323 modules)
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 70ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ ✓ Compiled in 228ms (1323 modules)
+ ✓ Compiled in 211ms (1323 modules)
+ ✓ Compiled in 197ms (1323 modules)
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 67ms
+ ✓ Compiled in 174ms (1323 modules)
+ ✓ Compiled in 186ms (1323 modules)
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 72ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ ✓ Compiled in 175ms (1323 modules)
+ ✓ Compiled in 187ms (1323 modules)
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 120ms
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 75ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 74ms
+ ✓ Compiled in 643ms (1323 modules)
+ ✓ Compiled in 365ms (1600 modules)
+ ✓ Compiled in 239ms (1323 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 112ms
+ ✓ Compiled in 178ms (1600 modules)
+ ✓ Compiled in 161ms (1600 modules)
+ ✓ Compiled in 207ms (1323 modules)
+ ✓ Compiled in 216ms (1323 modules)
+ ✓ Compiled in 169ms (1600 modules)
+ ✓ Compiled in 205ms (1600 modules)
+ ✓ Compiled in 223ms (1323 modules)
+ ✓ Compiled in 185ms (1323 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 101ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ ✓ Compiled in 159ms (1600 modules)
+ ✓ Compiled in 218ms (1323 modules)
+ ○ Compiling /api/users ...
+ ✓ Compiled /api/users in 559ms (1602 modules)
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`users`.`id`, `digibe_app_prod`.`users`.`firstName`, `digibe_app_prod`.`users`.`lastName`, `digibe_app_prod`.`users`.`email`, `digibe_app_prod`.`users`.`role`, `digibe_app_prod`.`users`.`createdAt`, `digibe_app_prod`.`users`.`updatedAt` FROM `digibe_app_prod`.`users` WHERE 1=1 ORDER BY `digibe_app_prod`.`users`.`createdAt` DESC
+ GET /api/users 200 in 636ms
+ ✓ Compiled in 310ms (1602 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 71ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ ✓ Compiled in 246ms (1323 modules)
+ ✓ Compiled in 177ms (1602 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 72ms
+ ✓ Compiled in 203ms (1323 modules)
+ ✓ Compiled in 165ms (1602 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 87ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ ✓ Compiled in 280ms (1323 modules)
+ ✓ Compiled in 189ms (1600 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 83ms
+prisma:query SELECT 1
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notifications?unreadOnly=false 200 in 145ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ ✓ Compiled /api/users in 487ms (1602 modules)
+prisma:query SELECT `digibe_app_prod`.`users`.`id`, `digibe_app_prod`.`users`.`firstName`, `digibe_app_prod`.`users`.`lastName`, `digibe_app_prod`.`users`.`email`, `digibe_app_prod`.`users`.`role`, `digibe_app_prod`.`users`.`createdAt`, `digibe_app_prod`.`users`.`updatedAt` FROM `digibe_app_prod`.`users` WHERE 1=1 ORDER BY `digibe_app_prod`.`users`.`createdAt` DESC
+ GET /api/users 200 in 615ms
+ ✓ Compiled in 449ms (1323 modules)
+ ✓ Compiled in 241ms (1323 modules)
+ ✓ Compiled in 212ms (1323 modules)
+ ✓ Compiled in 341ms (1323 modules)
+ ✓ Compiled in 175ms (1323 modules)
+ ✓ Compiled in 263ms (1323 modules)
+ ○ Compiling /api/users ...
+ ✓ Compiled /api/users in 883ms (1578 modules)
+ ✓ Compiled (1604 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+ GET /api/auth/session 200 in 1263ms
+prisma:query SELECT `digibe_app_prod`.`users`.`id`, `digibe_app_prod`.`users`.`firstName`, `digibe_app_prod`.`users`.`lastName`, `digibe_app_prod`.`users`.`email`, `digibe_app_prod`.`users`.`role`, `digibe_app_prod`.`users`.`createdAt`, `digibe_app_prod`.`users`.`updatedAt` FROM `digibe_app_prod`.`users` WHERE 1=1 ORDER BY `digibe_app_prod`.`users`.`createdAt` DESC
+ GET /api/users 200 in 1374ms
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 1483ms
+ ✓ Compiled in 409ms (1323 modules)
+ ✓ Compiled in 263ms (1323 modules)
+ ✓ Compiled in 307ms (1323 modules)
+ ✓ Compiled in 257ms (1323 modules)
+ ✓ Compiled in 418ms (1323 modules)
+ ✓ Compiled in 268ms (1323 modules)
+ ✓ Compiled in 245ms (1323 modules)
+ ✓ Compiled in 314ms (1323 modules)
+ ✓ Compiled in 235ms (1323 modules)
+ ✓ Compiled in 326ms (1323 modules)
+ ✓ Compiled in 234ms (1323 modules)
+ ✓ Compiled in 293ms (1323 modules)
+ ✓ Compiled in 212ms (1323 modules)
+ ✓ Compiled in 186ms (1323 modules)
+ ✓ Compiled in 233ms (1323 modules)
+ ✓ Compiled in 340ms (1323 modules)
+ ✓ Compiled in 244ms (1323 modules)
+ ✓ Compiled in 187ms (1323 modules)
+ ✓ Compiled in 187ms (1323 modules)
+ ✓ Compiled in 268ms (1323 modules)
+ ✓ Compiled in 283ms (1323 modules)
+ ✓ Compiled in 285ms (1323 modules)
+ ✓ Compiled in 202ms (1323 modules)
+ ✓ Compiled in 1740ms (2660 modules)
+ ✓ Compiled in 257ms (1322 modules)
+ ✓ Compiled /api/users in 202ms (1577 modules)
+ ✓ Compiled (1603 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+ GET /api/auth/session 200 in 541ms
+prisma:query SELECT `digibe_app_prod`.`users`.`id`, `digibe_app_prod`.`users`.`firstName`, `digibe_app_prod`.`users`.`lastName`, `digibe_app_prod`.`users`.`email`, `digibe_app_prod`.`users`.`role`, `digibe_app_prod`.`users`.`createdAt`, `digibe_app_prod`.`users`.`updatedAt` FROM `digibe_app_prod`.`users` WHERE 1=1 ORDER BY `digibe_app_prod`.`users`.`createdAt` DESC
+ GET /api/users 200 in 659ms
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ GET /api/notifications?unreadOnly=false 200 in 746ms
+   Reload env: .env
+ GET /dashboard/settings 200 in 190ms
+ ✓ Compiled /favicon.ico in 809ms (3114 modules)
+ GET /favicon.ico 200 in 533ms
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+ GET /api/auth/session 200 in 109ms
+ GET /api/auth/session 200 in 29ms
+prisma:query SELECT `digibe_app_prod`.`notifications`.`id`, `digibe_app_prod`.`notifications`.`userId`, `digibe_app_prod`.`notifications`.`type`, `digibe_app_prod`.`notifications`.`title`, `digibe_app_prod`.`notifications`.`message`, `digibe_app_prod`.`notifications`.`link`, `digibe_app_prod`.`notifications`.`read`, `digibe_app_prod`.`notifications`.`readAt`, `digibe_app_prod`.`notifications`.`createdAt` FROM `digibe_app_prod`.`notifications` WHERE `digibe_app_prod`.`notifications`.`userId` = ? ORDER BY `digibe_app_prod`.`notifications`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `digibe_app_prod`.`users`.`id`, `digibe_app_prod`.`users`.`firstName`, `digibe_app_prod`.`users`.`lastName`, `digibe_app_prod`.`users`.`email`, `digibe_app_prod`.`users`.`role`, `digibe_app_prod`.`users`.`createdAt`, `digibe_app_prod`.`users`.`updatedAt` FROM `digibe_app_prod`.`users` WHERE 1=1 ORDER BY `digibe_app_prod`.`users`.`createdAt` DESC
+ GET /api/users 200 in 87ms
+ GET /api/notifications?unreadOnly=false 200 in 139ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`notifications`.`id` FROM `digibe_app_prod`.`notifications` WHERE (`digibe_app_prod`.`notifications`.`userId` = ? AND `digibe_app_prod`.`notifications`.`read` = ?)) AS `sub`
+ ✓ Compiled /api/activities in 257ms (1705 modules)
+ ✓ Compiled (1707 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT `digibe_app_prod`.`deals`.`id`, `digibe_app_prod`.`deals`.`title`, `digibe_app_prod`.`deals`.`description`, `digibe_app_prod`.`deals`.`value`, `digibe_app_prod`.`deals`.`currency`, `digibe_app_prod`.`deals`.`stage`, `digibe_app_prod`.`deals`.`probability`, `digibe_app_prod`.`deals`.`expectedCloseDate`, `digibe_app_prod`.`deals`.`closedAt`, `digibe_app_prod`.`deals`.`contactId`, `digibe_app_prod`.`deals`.`companyId`, `digibe_app_prod`.`deals`.`ownerId`, `digibe_app_prod`.`deals`.`createdAt`, `digibe_app_prod`.`deals`.`updatedAt` FROM `digibe_app_prod`.`deals` WHERE 1=1 ORDER BY `digibe_app_prod`.`deals`.`expectedCloseDate` ASC, `digibe_app_prod`.`deals`.`createdAt` DESC
+prisma:query SELECT `digibe_app_prod`.`activities`.`id`, `digibe_app_prod`.`activities`.`title`, `digibe_app_prod`.`activities`.`description`, `digibe_app_prod`.`activities`.`type`, `digibe_app_prod`.`activities`.`status`, `digibe_app_prod`.`activities`.`priority`, `digibe_app_prod`.`activities`.`scheduledAt`, `digibe_app_prod`.`activities`.`duration`, `digibe_app_prod`.`activities`.`completedAt`, `digibe_app_prod`.`activities`.`contactId`, `digibe_app_prod`.`activities`.`dealId`, `digibe_app_prod`.`activities`.`assignedToId`, `digibe_app_prod`.`activities`.`aircallCallId`, `digibe_app_prod`.`activities`.`createdAt`, `digibe_app_prod`.`activities`.`updatedAt` FROM `digibe_app_prod`.`activities` WHERE 1=1 ORDER BY `digibe_app_prod`.`activities`.`scheduledAt` ASC LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`activities`.`id` FROM `digibe_app_prod`.`activities` WHERE 1=1) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`deals`.`id` FROM `digibe_app_prod`.`deals` WHERE 1=1) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`activities`.`id` FROM `digibe_app_prod`.`activities` WHERE `digibe_app_prod`.`activities`.`status` = ?) AS `sub`
+prisma:query SELECT SUM(`value`) AS `_sum$value` FROM (SELECT `digibe_app_prod`.`deals`.`value` FROM `digibe_app_prod`.`deals` WHERE 1=1) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`activities`.`id` FROM `digibe_app_prod`.`activities` WHERE `digibe_app_prod`.`activities`.`status` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`deals`.`id` FROM `digibe_app_prod`.`deals` WHERE `digibe_app_prod`.`deals`.`stage` = ?) AS `sub`
+ GET /api/activities?limit=10 200 in 797ms
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`activities`.`id` FROM `digibe_app_prod`.`activities` WHERE (`digibe_app_prod`.`activities`.`scheduledAt` >= ? AND `digibe_app_prod`.`activities`.`scheduledAt` < ?)) AS `sub`
+prisma:query SELECT SUM(`value`) AS `_sum$value` FROM (SELECT `digibe_app_prod`.`deals`.`value` FROM `digibe_app_prod`.`deals` WHERE `digibe_app_prod`.`deals`.`stage` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`deals`.`id` FROM `digibe_app_prod`.`deals` WHERE `digibe_app_prod`.`deals`.`stage` = ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `digibe_app_prod`.`deals`.`id` FROM `digibe_app_prod`.`deals` WHERE `digibe_app_prod`.`deals`.`stage` IN (?,?,?,?)) AS `sub`
+ GET /api/deals 200 in 913ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 808ms (3018 modules)
+ GET /api/notifications?unreadOnly=false 404 in 951ms
+ ✓ Compiled in 415ms (1324 modules)
+ GET /_next/static/css/app/layout.css?v=1763469758789 404 in 30ms
+ ⨯ Error: Cannot find module './8948.js'
+Require stack:
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/_not-found/page.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js
+    at Function.<anonymous> (node:internal/modules/cjs/loader:1365:15)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1021:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1026:22)
+    at Function._load (node:internal/modules/cjs/loader:1175:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at __webpack_require__.f.require (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:203:28)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:116:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:115:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:167:22)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/api/notifications/route.js:1:4179
+    at Object.<anonymous> (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/api/notifications/route.js:1:4231)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14)
+    at Object..js (node:internal/modules/cjs/loader:1820:10)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at requirePage (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js:109:84)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/_not-found/page.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/api/notifications'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 2.1s (3258 modules)
+ GET /api/notifications?unreadOnly=false 500 in 2496ms
+ ⨯ Error: Cannot find module './8948.js'
+Require stack:
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/pages/_document.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js
+    at Function.<anonymous> (node:internal/modules/cjs/loader:1365:15)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1021:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1026:22)
+    at Function._load (node:internal/modules/cjs/loader:1175:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at __webpack_require__.f.require (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:203:28)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:116:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:115:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:167:22)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/dashboard/page.js:1:22868
+    at Object.<anonymous> (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/dashboard/page.js:1:22936)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14)
+    at Object..js (node:internal/modules/cjs/loader:1820:10)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at requirePage (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js:109:84)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/pages/_document.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/dashboard'
+}
+ ⨯ Error: Cannot find module './8948.js'
+Require stack:
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/pages/_document.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js
+    at Function.<anonymous> (node:internal/modules/cjs/loader:1365:15)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1021:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1026:22)
+    at Function._load (node:internal/modules/cjs/loader:1175:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at __webpack_require__.f.require (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:203:28)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:116:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:115:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:167:22)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/dashboard/page.js:1:22868
+    at Object.<anonymous> (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/dashboard/page.js:1:22936)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14)
+    at Object..js (node:internal/modules/cjs/loader:1820:10)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at requirePage (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js:109:84)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/pages/_document.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/dashboard'
+}
+ ⨯ Error: Cannot find module './8948.js'
+Require stack:
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/pages/_document.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js
+    at Function.<anonymous> (node:internal/modules/cjs/loader:1365:15)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1021:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1026:22)
+    at Function._load (node:internal/modules/cjs/loader:1175:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at __webpack_require__.f.require (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:203:28)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:116:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:115:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:167:22)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/dashboard/page.js:1:22868
+    at Object.<anonymous> (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/dashboard/page.js:1:22936)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14)
+    at Object..js (node:internal/modules/cjs/loader:1820:10)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at requirePage (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js:109:84)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/pages/_document.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/dashboard'
+}
+ ⨯ Error: Cannot find module './8948.js'
+Require stack:
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/pages/_document.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js
+    at Function.<anonymous> (node:internal/modules/cjs/loader:1365:15)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1021:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1026:22)
+    at Function._load (node:internal/modules/cjs/loader:1175:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at __webpack_require__.f.require (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:203:28)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:116:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:115:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:167:22)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/dashboard/page.js:1:22868
+    at Object.<anonymous> (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/dashboard/page.js:1:22936)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14)
+    at Object..js (node:internal/modules/cjs/loader:1820:10)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at requirePage (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js:109:84)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/pages/_document.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/dashboard'
+}
+ GET /dashboard 500 in 28ms
+ ✓ Compiled in 537ms (1510 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⨯ Error: Cannot find module './8948.js'
+Require stack:
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/pages/_document.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js
+    at Function.<anonymous> (node:internal/modules/cjs/loader:1365:15)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1021:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1026:22)
+    at Function._load (node:internal/modules/cjs/loader:1175:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at __webpack_require__.f.require (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:203:28)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:116:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:115:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:167:22)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/dashboard/page.js:1:22868
+    at Object.<anonymous> (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/dashboard/page.js:1:22936)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14)
+    at Object..js (node:internal/modules/cjs/loader:1820:10)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at requirePage (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js:109:84)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/pages/_document.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/dashboard'
+}
+ GET /dashboard 500 in 63ms
+ ⨯ Error: Cannot find module './8948.js'
+Require stack:
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/pages/_document.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js
+    at Function.<anonymous> (node:internal/modules/cjs/loader:1365:15)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1021:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1026:22)
+    at Function._load (node:internal/modules/cjs/loader:1175:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at __webpack_require__.f.require (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:203:28)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:116:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:115:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:167:22)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/favicon.ico/route.js:12:16110
+    at Object.<anonymous> (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/favicon.ico/route.js:12:16153)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14)
+    at Object..js (node:internal/modules/cjs/loader:1820:10)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at requirePage (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js:109:84)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/pages/_document.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/favicon.ico'
+}
+ GET /favicon.ico 500 in 38ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 1492ms (2886 modules)
+ GET /dashboard 200 in 1153ms
+ ✓ Compiled /_not-found in 374ms (2875 modules)
+ GET /_next/static/css/app/layout.css?v=1763469843982 404 in 549ms
+ GET /_next/static/chunks/main-app.js?v=1763469843982 404 in 416ms
+ GET /_next/static/chunks/app/dashboard/layout.js 404 in 410ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 416ms
+ GET /_next/static/chunks/app/dashboard/page.js 404 in 414ms
+ ✓ Compiled /favicon.ico in -553ms (1411 modules)
+ ⨯ Error: Cannot find module './8948.js'
+Require stack:
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/favicon.ico/route.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js
+    at Function.<anonymous> (node:internal/modules/cjs/loader:1365:15)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1021:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1026:22)
+    at Function._load (node:internal/modules/cjs/loader:1175:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at __webpack_require__.f.require (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:203:28)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:116:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:115:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:167:22)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/favicon.ico/route.js:12:16110
+    at Object.<anonymous> (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/favicon.ico/route.js:12:16153)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14)
+    at Object..js (node:internal/modules/cjs/loader:1820:10)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at requirePage (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js:109:84)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/favicon.ico/route.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/favicon.ico'
+}
+ GET /favicon.ico 500 in -503ms
+ ⨯ Error: Cannot find module './8948.js'
+Require stack:
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/favicon.ico/route.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js
+- /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js
+    at Function.<anonymous> (node:internal/modules/cjs/loader:1365:15)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1021:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1026:22)
+    at Function._load (node:internal/modules/cjs/loader:1175:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at __webpack_require__.f.require (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:203:28)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:116:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:115:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js:167:22)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/favicon.ico/route.js:12:16110
+    at Object.<anonymous> (/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/favicon.ico/route.js:12:16153)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14)
+    at Object..js (node:internal/modules/cjs/loader:1820:10)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1445:12)
+    at mod.require (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:135:16)
+    at requirePage (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js:109:84)
+    at /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/base-server.js:818:17)
+    at async /home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/webpack-runtime.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/.next/server/app/favicon.ico/route.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/require.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/load-components.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/build/utils.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/router-server.js',
+    '/home/pierr/projects/digiweb/DIGIWEB-V0/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/favicon.ico'
+}
+ GET /favicon.ico 500 in 34ms
+ ✓ Compiled in 440ms (2921 modules)
+ ✓ Compiled in 203ms (1510 modules)
+ ✓ Compiled in 175ms (1411 modules)
+ ✓ Compiled in 817ms (2923 modules)
+ ✓ Compiled in 222ms (1511 modules)
+ ✓ Compiled in 175ms (1412 modules)
+ ✓ Compiled in 481ms (1509 modules)
+ ✓ Compiled in 245ms (1509 modules)
+ ✓ Compiled in 211ms (1509 modules)
+ ✓ Compiled in 190ms (1509 modules)
+ ✓ Compiled in 238ms (1509 modules)
+ ✓ Compiled in 209ms (1509 modules)
+ ✓ Compiled in 212ms (1509 modules)
+ ✓ Compiled in 217ms (1509 modules)
+ ✓ Compiled in 209ms (1509 modules)
+ ✓ Compiled in 203ms (1509 modules)
+ ✓ Compiled in 216ms (1509 modules)
+ ✓ Compiled in 202ms (1509 modules)
+ ✓ Compiled in 185ms (1509 modules)
+ ✓ Compiled in 216ms (1509 modules)
+ ✓ Compiled in 200ms (1509 modules)
+ ✓ Compiled in 184ms (1509 modules)
+ ✓ Compiled in 208ms (1509 modules)
+ ✓ Compiled in 202ms (1509 modules)
+ ✓ Compiled in 182ms (1509 modules)
+ ✓ Compiled in 181ms (1509 modules)
+ ✓ Compiled in 220ms (1509 modules)
+ ✓ Compiled in 233ms (1509 modules)
+ ✓ Compiled in 210ms (1509 modules)
+ ✓ Compiled in 235ms (1509 modules)
+ ✓ Compiled in 235ms (1509 modules)
+ ✓ Compiled in 311ms (1509 modules)
+ ✓ Compiled in 264ms (1509 modules)
+ ✓ Compiled in 242ms (1509 modules)
+ ✓ Compiled in 601ms (1509 modules)
+ ✓ Compiled in 549ms (1509 modules)
+ ✓ Compiled in 236ms (1509 modules)
+ ✓ Compiled in 187ms (1509 modules)
+ ✓ Compiled in 227ms (1509 modules)
+ ✓ Compiled in 212ms (1509 modules)
+ ✓ Compiled in 211ms (1509 modules)
+ ✓ Compiled in 262ms (1509 modules)
+ ✓ Compiled in 235ms (1509 modules)
+ ✓ Compiled in 212ms (1509 modules)
+ ✓ Compiled in 201ms (1509 modules)
+ ✓ Compiled in 246ms (1509 modules)
+ ✓ Compiled in 246ms (1509 modules)
+ ✓ Compiled in 234ms (1509 modules)
+ ✓ Compiled in 770ms (2888 modules)
+ ✓ Compiled in 261ms (1509 modules)
+ ✓ Compiled in 192ms (1379 modules)
+ ✓ Compiled in 539ms (2888 modules)
+ ✓ Compiled in 195ms (1509 modules)
+ ✓ Compiled in 267ms (1509 modules)
+ ✓ Compiled in 200ms (1509 modules)
+ ✓ Compiled in 187ms (1509 modules)
+ ✓ Compiled in 252ms (1509 modules)
+ ✓ Compiled in 223ms (1509 modules)
+ ✓ Compiled in 178ms (1509 modules)
+ ✓ Compiled in 286ms (1509 modules)
+ ✓ Compiled in 657ms (1509 modules)
+ ✓ Compiled in 344ms (1509 modules)
+ ✓ Compiled in 296ms (1509 modules)
+ ✓ Compiled in 298ms (1509 modules)
+ ✓ Compiled in 292ms (1509 modules)
+ ✓ Compiled in 274ms (1509 modules)
+ ✓ Compiled in 373ms (1509 modules)
+ ✓ Compiled in 257ms (1509 modules)
+ ✓ Compiled in 200ms (1509 modules)
+ ✓ Compiled in 447ms (1509 modules)
+ ✓ Compiled in 228ms (1509 modules)
+ ✓ Compiled in 220ms (1509 modules)
+ ✓ Compiled in 212ms (1509 modules)
+ ✓ Compiled in 728ms (2888 modules)
+ ✓ Compiled in 1303ms (2888 modules)
+ ✓ Compiled in 437ms (1509 modules)
+ ✓ Compiled in 258ms (1509 modules)
+ ✓ Compiled in 227ms (1509 modules)
+ ✓ Compiled in 271ms (1509 modules)
+ ✓ Compiled in 237ms (1509 modules)

@@ -40,7 +40,11 @@ jobs:
           else
             npm install
           fi
-          
+
+          # Générer le client Prisma
+          echo "🔧 Génération du client Prisma..."
+          npx prisma generate
+
           # Build si nécessaire
           if [ -f "package.json" ] && grep -q '"build"' package.json; then
             echo "🔨 Build en cours..."
