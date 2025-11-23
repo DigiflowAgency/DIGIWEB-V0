@@ -77,7 +77,7 @@ async function main() {
     const hoursAgo = i * 2; // Espacer de 2 heures
     const lastMessageAt = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
 
-    const conversation = await prisma.whatsAppConversation.create({
+    const conversation = await prisma.whatsapp_conversations.create({
       data: {
         name: convData.name,
         phone: convData.phone,
@@ -86,7 +86,7 @@ async function main() {
         lastMessage: lastMessage.text,
         lastMessageAt,
         unread: lastMessage.sender === 'client' ? Math.floor(Math.random() * 3) : 0,
-      },
+      } as any,
     });
 
     // Créer les messages
@@ -95,13 +95,13 @@ async function main() {
       const minutesAgo = (i * 60) + (j * 5); // Espacer les messages
       const sentAt = new Date(now.getTime() - minutesAgo * 60 * 1000);
 
-      await prisma.whatsAppMessage.create({
+      await prisma.whatsapp_messages.create({
         data: {
           conversationId: conversation.id,
           text: msgData.text,
           sender: msgData.sender,
           sentAt,
-        },
+        } as any,
       });
     }
 

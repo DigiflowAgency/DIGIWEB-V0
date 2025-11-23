@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const campaigns = await prisma.emailCampaign.findMany({
+    const campaigns = await prisma.email_campaigns.findMany({
       orderBy: { createdAt: 'desc' },
     });
     return NextResponse.json({ campaigns });

@@ -16,12 +16,31 @@ const quoteSchema = z.object({
   validityDays: z.number().int().positive().default(30),
   paymentTerms: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  // Calculator fields
+  commitmentPeriod: z.string().optional().nullable(),
+  isPartner: z.boolean().optional().default(false),
+  engagementDiscount: z.number().optional().default(0),
+  partnerDiscount: z.number().optional().default(0),
+  oneTimeTotal: z.number().optional().default(0),
+  monthlyTotal: z.number().optional().default(0),
+  products: z.array(z.object({
+    name: z.string(),
+    description: z.string().optional(),
+    quantity: z.number().int().positive().default(1),
+    unitPrice: z.number(),
+    totalPrice: z.number(),
+    serviceId: z.string().optional(),
+    serviceType: z.string().optional(),
+    period: z.string().optional(),
+    channel: z.string().optional(),
+    discount: z.number().optional().default(0),
+  })).optional(),
 });
 
 // Fonction pour générer un numéro de devis unique
 async function generateQuoteNumber(): Promise<string> {
   const year = new Date().getFullYear();
-  const count = await prisma.quote.count({
+  const count = await prisma.quotes.count({
     where: {
       number: {
         startsWith: `QU-${year}-`,
@@ -49,7 +68,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: Prisma.QuoteWhereInput = {};
+    const where: Prisma.quotesWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
@@ -71,10 +90,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les devis
-    const quotes = await prisma.quote.findMany({
+    const quotes = await prisma.quotes.findMany({
       where,
       include: {
-        contact: {
+        contacts: {
           select: {
             id: true,
             firstName: true,
@@ -82,7 +101,7 @@ export async function GET(request: NextRequest) {
             email: true,
           },
         },
-        owner: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -90,7 +109,7 @@ export async function GET(request: NextRequest) {
             email: true,
           },
         },
-        products: true,
+        quote_products: true,
       },
       orderBy: [
         { createdAt: 'desc' },
@@ -100,11 +119,11 @@ export async function GET(request: NextRequest) {
 
     // Calculer des stats
     const stats = {
-      total: await prisma.quote.count({ where }),
-      brouillon: await prisma.quote.count({ where: { ...where, status: 'BROUILLON' } }),
-      envoye: await prisma.quote.count({ where: { ...where, status: 'ENVOYE' } }),
-      accepte: await prisma.quote.count({ where: { ...where, status: 'ACCEPTE' } }),
-      totalValue: await prisma.quote.aggregate({
+      total: await prisma.quotes.count({ where }),
+      brouillon: await prisma.quotes.count({ where: { ...where, status: 'BROUILLON' } }),
+      envoye: await prisma.quotes.count({ where: { ...where, status: 'ENVOYE' } }),
+      accepte: await prisma.quotes.count({ where: { ...where, status: 'ACCEPTE' } }),
+      totalValue: await prisma.quotes.aggregate({
         where,
         _sum: { total: true },
       }).then(result => result._sum.total || 0),
@@ -138,7 +157,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier que le contact existe (s'il est fourni)
     if (validatedData.contactId) {
-      const contact = await prisma.contact.findUnique({
+      const contact = await prisma.contacts.findUnique({
         where: { id: validatedData.contactId },
       });
 
@@ -161,18 +180,39 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + validatedData.validityDays);
 
-    // Créer le devis
-    const quote = await prisma.quote.create({
+    // Extraire les products du validatedData pour les gérer séparément
+    const { products: productsData, ...quoteData } = validatedData;
+
+    // Créer le devis avec les products associés
+    const quote = await prisma.quotes.create({
       data: {
         number: quoteNumber,
-        ...validatedData,
+        ...quoteData,
         taxAmount,
         total,
         expiresAt,
         ownerId: session.user.id,
-      },
+        // Créer les products si fournis
+        ...(productsData && productsData.length > 0 && {
+          quote_products: {
+            create: productsData.map((product) => ({
+              id: `QP-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              name: product.name,
+              description: product.description || null,
+              quantity: product.quantity,
+              unitPrice: product.unitPrice,
+              totalPrice: product.totalPrice,
+              serviceId: product.serviceId || null,
+              serviceType: product.serviceType || null,
+              period: product.period || null,
+              channel: product.channel || null,
+              discount: product.discount || 0,
+            })),
+          },
+        }),
+      } as any,
       include: {
-        contact: {
+        contacts: {
           select: {
             id: true,
             firstName: true,
@@ -180,7 +220,7 @@ export async function POST(request: NextRequest) {
             email: true,
           },
         },
-        owner: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -188,7 +228,7 @@ export async function POST(request: NextRequest) {
             email: true,
           },
         },
-        products: true,
+        quote_products: true,
       },
     });
 

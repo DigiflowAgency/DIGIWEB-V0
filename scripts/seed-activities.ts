@@ -6,9 +6,9 @@ async function main() {
   console.log('🌱 Seeding activities...');
 
   // Récupérer les contacts, deals et user existants
-  const contacts = await prisma.contact.findMany();
-  const deals = await prisma.deal.findMany();
-  const user = await prisma.user.findFirst();
+  const contacts = await prisma.contacts.findMany();
+  const deals = await prisma.deals.findMany();
+  const user = await prisma.users.findFirst();
 
   if (!user) {
     console.error('❌ Aucun utilisateur trouvé. Exécutez seed-contacts.ts d\'abord.');
@@ -22,7 +22,7 @@ async function main() {
 
   // Créer des activités variées
   const now = new Date();
-  const activities: Prisma.ActivityUncheckedCreateInput[] = [
+  const activities = [
     {
       title: 'Appel de découverte',
       description: 'Premier contact pour comprendre les besoins',
@@ -166,7 +166,7 @@ async function main() {
   ];
 
   for (const activityData of activities) {
-    await prisma.activity.create({ data: activityData });
+    await prisma.activities.create({ data: activityData as any });
   }
 
   console.log(`✅ ${activities.length} activités créées avec succès`);

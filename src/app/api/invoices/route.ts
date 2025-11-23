@@ -19,7 +19,7 @@ const invoiceSchema = z.object({
 // Fonction pour générer un numéro de facture unique
 async function generateInvoiceNumber(): Promise<string> {
   const year = new Date().getFullYear();
-  const count = await prisma.invoice.count({
+  const count = await prisma.invoices.count({
     where: {
       number: {
         startsWith: `FA-${year}-`,
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: Prisma.InvoiceWhereInput = {};
+    const where: Prisma.invoicesWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
@@ -63,10 +63,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les factures
-    const invoices = await prisma.invoice.findMany({
+    const invoices = await prisma.invoices.findMany({
       where,
       include: {
-        owner: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
             email: true,
           },
         },
-        products: true,
+        invoice_products: true,
       },
       orderBy: [
         { createdAt: 'desc' },
@@ -84,20 +84,20 @@ export async function GET(request: NextRequest) {
 
     // Calculer des stats
     const stats = {
-      total: await prisma.invoice.count({ where }),
-      brouillon: await prisma.invoice.count({ where: { ...where, status: 'BROUILLON' } }),
-      envoye: await prisma.invoice.count({ where: { ...where, status: 'EN_ATTENTE' } }),
-      paye: await prisma.invoice.count({ where: { ...where, status: 'PAYEE' } }),
-      enRetard: await prisma.invoice.count({ where: { ...where, status: 'EN_RETARD' } }),
-      totalValue: await prisma.invoice.aggregate({
+      total: await prisma.invoices.count({ where }),
+      brouillon: await prisma.invoices.count({ where: { ...where, status: 'BROUILLON' } }),
+      envoye: await prisma.invoices.count({ where: { ...where, status: 'EN_ATTENTE' } }),
+      paye: await prisma.invoices.count({ where: { ...where, status: 'PAYEE' } }),
+      enRetard: await prisma.invoices.count({ where: { ...where, status: 'EN_RETARD' } }),
+      totalValue: await prisma.invoices.aggregate({
         where,
         _sum: { total: true },
       }).then(result => result._sum.total || 0),
-      totalPaid: await prisma.invoice.aggregate({
+      totalPaid: await prisma.invoices.aggregate({
         where: { ...where, status: 'PAYEE' },
         _sum: { total: true },
       }).then(result => result._sum.total || 0),
-      totalUnpaid: await prisma.invoice.aggregate({
+      totalUnpaid: await prisma.invoices.aggregate({
         where: { ...where, status: { in: ['EN_ATTENTE', 'EN_RETARD', 'ENVOYEE'] } },
         _sum: { total: true },
       }).then(result => result._sum.total || 0),
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       : new Date(issuedAt.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 jours par défaut
 
     // Créer la facture
-    const invoice = await prisma.invoice.create({
+    const invoice = await prisma.invoices.create({
       data: {
         number: invoiceNumber,
         clientName: validatedData.clientName,
@@ -157,9 +157,9 @@ export async function POST(request: NextRequest) {
         dueAt,
         paymentMethod: validatedData.paymentMethod,
         ownerId: session.user.id,
-      },
+      } as any,
       include: {
-        owner: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
             email: true,
           },
         },
-        products: true,
+        invoice_products: true,
       },
     });
 

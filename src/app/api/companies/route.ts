@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: Prisma.CompanyWhereInput = {};
+    const where: Prisma.companiesWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les entreprises
-    const companies = await prisma.company.findMany({
+    const companies = await prisma.companies.findMany({
       where,
       include: {
         contacts: {
@@ -97,10 +97,10 @@ export async function GET(request: NextRequest) {
 
     // Calculer des stats
     const stats = {
-      total: await prisma.company.count({ where }),
-      clients: await prisma.company.count({ where: { ...where, status: 'CLIENT' } }),
-      prospects: await prisma.company.count({ where: { ...where, status: 'PROSPECT' } }),
-      leads: await prisma.company.count({ where: { ...where, status: 'LEAD' } }),
+      total: await prisma.companies.count({ where }),
+      clients: await prisma.companies.count({ where: { ...where, status: 'CLIENT' } }),
+      prospects: await prisma.companies.count({ where: { ...where, status: 'PROSPECT' } }),
+      leads: await prisma.companies.count({ where: { ...where, status: 'LEAD' } }),
     };
 
     return NextResponse.json({
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier si le SIRET existe déjà (s'il est fourni)
     if (validatedData.siret) {
-      const existingCompany = await prisma.company.findFirst({
+      const existingCompany = await prisma.companies.findFirst({
         where: { siret: validatedData.siret },
       });
 
@@ -144,8 +144,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer l'entreprise
-    const company = await prisma.company.create({
-      data: validatedData,
+    const company = await prisma.companies.create({
+      data: validatedData as any,
       include: {
         contacts: {
           select: {

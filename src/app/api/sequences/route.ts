@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const status = searchParams.get('status');
 
-    const sequences = await prisma.sequence.findMany({
+    const sequences = await prisma.sequences.findMany({
       where: {
         ...(search && {
           name: {
@@ -60,14 +60,14 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
 
-    const sequence = await prisma.sequence.create({
+    const sequence = await prisma.sequences.create({
       data: {
         name: data.name,
         description: data.description,
         emailsCount: data.emailsCount || 0,
         config: JSON.stringify(data.config || {}),
         status: data.status || 'ACTIVE',
-      },
+      } as any,
     });
 
     return NextResponse.json(sequence, { status: 201 });

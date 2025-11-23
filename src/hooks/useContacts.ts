@@ -12,12 +12,12 @@ export interface Contact {
   status: 'LEAD' | 'PROSPECT' | 'CLIENT';
   qualityScore: number | null;
   city: string | null;
-  company?: {
+  companies?: {
     id: string;
     name: string;
     siret: string | null;
   } | null;
-  assignedTo?: {
+  users?: {
     id: string;
     firstName: string;
     lastName: string;

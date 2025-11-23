@@ -33,7 +33,7 @@ export async function GET(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const review = await prisma.review.findUnique({
+    const review = await prisma.reviews.findUnique({
       where: { id: params.id },
     });
 
@@ -66,7 +66,7 @@ export async function PUT(
     }
 
     // Vérifier que l'avis existe
-    const existingReview = await prisma.review.findUnique({
+    const existingReview = await prisma.reviews.findUnique({
       where: { id: params.id },
     });
 
@@ -82,7 +82,7 @@ export async function PUT(
     const validatedData = reviewUpdateSchema.parse(body);
 
     // Préparer les données de mise à jour
-    const updateData: Prisma.ReviewUpdateInput = { ...validatedData };
+    const updateData: Prisma.reviewsUpdateInput = { ...validatedData };
 
     // Convertir les dates string en Date si elles existent
     if (validatedData.reviewDate) {
@@ -98,7 +98,7 @@ export async function PUT(
     }
 
     // Mettre à jour l'avis
-    const updatedReview = await prisma.review.update({
+    const updatedReview = await prisma.reviews.update({
       where: { id: params.id },
       data: updateData,
     });
@@ -133,7 +133,7 @@ export async function DELETE(
     }
 
     // Vérifier que l'avis existe
-    const existingReview = await prisma.review.findUnique({
+    const existingReview = await prisma.reviews.findUnique({
       where: { id: params.id },
     });
 
@@ -145,7 +145,7 @@ export async function DELETE(
     }
 
     // Supprimer l'avis
-    await prisma.review.delete({
+    await prisma.reviews.delete({
       where: { id: params.id },
     });
 

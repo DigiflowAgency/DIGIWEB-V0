@@ -163,8 +163,8 @@ async function main() {
 
   let created = 0;
   for (const workflowData of workflowsData) {
-    await prisma.workflow.create({
-      data: workflowData,
+    await prisma.workflows.create({
+      data: workflowData as any,
     });
     created++;
   }

@@ -11,7 +11,7 @@ export async function PUT(
     const body = await request.json();
     const { title, category, content } = body;
 
-    const article = await prisma.knowledgeArticle.update({
+    const article = await prisma.knowledge_articles.update({
       where: { id },
       data: {
         ...(title !== undefined && { title }),
@@ -38,7 +38,7 @@ export async function DELETE(
   try {
     const { id } = params;
 
-    await prisma.knowledgeArticle.delete({
+    await prisma.knowledge_articles.delete({
       where: { id },
     });
 

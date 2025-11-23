@@ -20,7 +20,7 @@ export async function PATCH(
     const { read } = body;
 
     // Vérifier que la notification appartient à l'utilisateur
-    const existing = await prisma.notification.findUnique({
+    const existing = await prisma.notifications.findUnique({
       where: { id },
     });
 
@@ -32,7 +32,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
     }
 
-    const notification = await prisma.notification.update({
+    const notification = await prisma.notifications.update({
       where: { id },
       data: {
         read,
@@ -65,7 +65,7 @@ export async function DELETE(
     const { id } = params;
 
     // Vérifier que la notification appartient à l'utilisateur
-    const existing = await prisma.notification.findUnique({
+    const existing = await prisma.notifications.findUnique({
       where: { id },
     });
 
@@ -77,7 +77,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
     }
 
-    await prisma.notification.delete({
+    await prisma.notifications.delete({
       where: { id },
     });
 

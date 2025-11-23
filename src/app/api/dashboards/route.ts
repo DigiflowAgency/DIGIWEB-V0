@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 // GET /api/dashboards - Récupérer tous les dashboards
 export async function GET() {
   try {
-    const dashboards = await prisma.customDashboard.findMany({
+    const dashboards = await prisma.custom_dashboards.findMany({
       orderBy: { updatedAt: 'desc' },
     });
 
@@ -31,13 +31,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const dashboard = await prisma.customDashboard.create({
+    const dashboard = await prisma.custom_dashboards.create({
       data: {
         name,
         description,
         widgets: 0,
         favorite: false,
-      },
+      } as any,
     });
 
     return NextResponse.json(dashboard, { status: 201 });

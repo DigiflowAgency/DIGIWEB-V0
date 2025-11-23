@@ -38,11 +38,11 @@ export async function GET(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const contact = await prisma.contact.findUnique({
+    const contact = await prisma.contacts.findUnique({
       where: { id: params.id },
       include: {
-        company: true,
-        assignedTo: {
+        companies: true,
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -102,7 +102,7 @@ export async function PUT(
     }
 
     // Vérifier que le contact existe
-    const existingContact = await prisma.contact.findUnique({
+    const existingContact = await prisma.contacts.findUnique({
       where: { id: params.id },
     });
 
@@ -119,7 +119,7 @@ export async function PUT(
 
     // Vérifier l'unicité de l'email si changé
     if (validatedData.email && validatedData.email !== existingContact.email) {
-      const emailExists = await prisma.contact.findFirst({
+      const emailExists = await prisma.contacts.findFirst({
         where: {
           email: validatedData.email,
           id: { not: params.id },
@@ -135,12 +135,12 @@ export async function PUT(
     }
 
     // Mettre à jour le contact
-    const updatedContact = await prisma.contact.update({
+    const updatedContact = await prisma.contacts.update({
       where: { id: params.id },
       data: validatedData,
       include: {
-        company: true,
-        assignedTo: {
+        companies: true,
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -181,7 +181,7 @@ export async function DELETE(
     }
 
     // Vérifier que le contact existe
-    const existingContact = await prisma.contact.findUnique({
+    const existingContact = await prisma.contacts.findUnique({
       where: { id: params.id },
     });
 
@@ -193,7 +193,7 @@ export async function DELETE(
     }
 
     // Supprimer le contact
-    await prisma.contact.delete({
+    await prisma.contacts.delete({
       where: { id: params.id },
     });
 

@@ -17,7 +17,7 @@ async function main() {
   ];
 
   for (const data of dashboards) {
-    await prisma.customDashboard.create({ data });
+    await prisma.custom_dashboards.create({ data: data as any });
   }
 
   console.log(`✅ ${dashboards.length} dashboards créés`);

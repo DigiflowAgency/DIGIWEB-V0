@@ -1,716 +1,300 @@
 'use client';
 
+import { useDeals } from '@/hooks/useDeals';
 import { useState } from 'react';
-import {
-  TrendingUp,
-  Plus,
-  Search,
-  Calendar,
-  User,
-  Building2,
-  MoreVertical,
-  ArrowRight,
-  Loader2,
-  Filter
-} from 'lucide-react';
-import { useDeals, useDealMutations } from '@/hooks/useDeals';
-import { useContacts } from '@/hooks/useContacts';
 import Modal from '@/components/Modal';
+import { Loader2, Mail, Phone, MapPin, Calendar, Euro } from 'lucide-react';
 
-const stages = [
-  { name: 'DECOUVERTE', displayName: 'Découverte', color: 'bg-purple-100 border-purple-300', textColor: 'text-purple-700' },
-  { name: 'QUALIFICATION', displayName: 'Qualification', color: 'bg-blue-100 border-blue-300', textColor: 'text-blue-700' },
-  { name: 'PROPOSITION', displayName: 'Proposition', color: 'bg-yellow-100 border-yellow-300', textColor: 'text-yellow-700' },
-  { name: 'NEGOCIATION', displayName: 'Négociation', color: 'bg-orange-100 border-orange-300', textColor: 'text-orange-700' },
-  { name: 'GAGNE', displayName: 'Gagné', color: 'bg-green-100 border-green-300', textColor: 'text-green-700' },
+type ProductionStage = 'PREMIER_RDV' | 'EN_PRODUCTION' | 'LIVRE' | 'ENCAISSE';
+
+const productionColumns: { id: ProductionStage | null; title: string; color: string; description: string }[] = [
+  { id: null, title: 'À Démarrer', color: 'bg-gray-100 border-gray-300', description: 'Deals CLOSING sans production' },
+  { id: 'PREMIER_RDV', title: 'Premier RDV', color: 'bg-blue-50 border-blue-300', description: 'Premier rendez-vous de production' },
+  { id: 'EN_PRODUCTION', title: 'En Production', color: 'bg-violet-50 border-violet-300', description: 'Projet en cours de réalisation' },
+  { id: 'LIVRE', title: 'Livré', color: 'bg-orange-50 border-orange-300', description: 'Livraison effectuée, en attente d\'encaissement' },
+  { id: 'ENCAISSE', title: 'Encaissé', color: 'bg-green-50 border-green-300', description: 'Paiement reçu - intégré au dashboard' },
 ];
 
 export default function DealsPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const { deals, isLoading, isError } = useDeals();
+  const [isDragModalOpen, setIsDragModalOpen] = useState(false);
+  const [selectedDeal, setSelectedDeal] = useState<any>(null);
+  const [targetStage, setTargetStage] = useState<ProductionStage | null>(null);
 
-  // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [_selectedDeal, _setSelectedDeal] = useState<any>(null);
-  const [advancedFilters, setAdvancedFilters] = useState({
-    stage: 'all',
-    valueMin: '',
-    valueMax: '',
-    probabilityMin: '',
-    probabilityMax: '',
-    closeDateFrom: '',
-    closeDateTo: '',
-  });
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    value: '',
-    contactId: '',
-    stage: 'DECOUVERTE',
-    probability: '50',
-    expectedCloseDate: '',
-  });
+  // Filtrer uniquement les deals qui ont atteint le stage CLOSING
+  const closingDeals = deals.filter((deal) => deal.stage === 'CLOSING');
 
-  // Utiliser le hook useDeals pour récupérer les données depuis l'API
-  const { deals, stats, isLoading, isError, mutate } = useDeals({
-    search: searchQuery || undefined,
-  });
-
-  // Hook de mutations
-  const { createDeal, updateDeal, deleteDeal, loading: submitting, error: submitError } = useDealMutations();
-
-  // Récupérer les contacts pour le dropdown
-  const { contacts } = useContacts({});
-
-  // Filtres avancés
-  const filteredDeals = deals.filter(deal => {
-    if (advancedFilters.stage !== 'all' && deal.stage !== advancedFilters.stage) return false;
-    if (advancedFilters.valueMin && deal.value < parseFloat(advancedFilters.valueMin)) return false;
-    if (advancedFilters.valueMax && deal.value > parseFloat(advancedFilters.valueMax)) return false;
-    if (advancedFilters.probabilityMin && deal.probability < parseFloat(advancedFilters.probabilityMin)) return false;
-    if (advancedFilters.probabilityMax && deal.probability > parseFloat(advancedFilters.probabilityMax)) return false;
-    if (advancedFilters.closeDateFrom && deal.expectedCloseDate && new Date(deal.expectedCloseDate) < new Date(advancedFilters.closeDateFrom)) return false;
-    if (advancedFilters.closeDateTo && deal.expectedCloseDate && new Date(deal.expectedCloseDate) > new Date(advancedFilters.closeDateTo)) return false;
-    return true;
-  });
-
-  const handleApplyFilters = () => {
-    setIsFilterModalOpen(false);
-  };
-
-  const handleResetFilters = () => {
-    setAdvancedFilters({
-      stage: 'all',
-      valueMin: '',
-      valueMax: '',
-      probabilityMin: '',
-      probabilityMax: '',
-      closeDateFrom: '',
-      closeDateTo: '',
-    });
-  };
-
-  // Handlers pour les actions - Commentés car non utilisés actuellement
-  const _handleView = (deal: any) => {
-    _setSelectedDeal(deal);
-  };
-
-  const _handleEdit = (deal: any) => {
-    _setSelectedDeal(deal);
-    setFormData({
-      title: deal.title,
-      description: deal.description || '',
-      value: deal.value.toString(),
-      contactId: deal.contactId || '',
-      stage: deal.stage,
-      probability: deal.probability.toString(),
-      expectedCloseDate: deal.expectedCloseDate ? new Date(deal.expectedCloseDate).toISOString().split('T')[0] : '',
-    });
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const _handleDelete = async (deal: any) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer le deal "${deal.title}" ?`)) return;
-
-    try {
-      await deleteDeal(deal.id);
-      mutate();
-    } catch (err) {
-      console.error('Erreur suppression deal:', err);
-    }
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const _handleMoveStage = async (deal: any, newStage: string) => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await updateDeal(deal.id, { stage: newStage as any });
-      mutate();
-    } catch (err) {
-      console.error('Erreur changement étape:', err);
-    }
-  };
-
-  // Éviter les warnings de variables non utilisées
-  void _handleView;
-  void _handleEdit;
-  void _handleDelete;
-  void _handleMoveStage;
-
-  // Gestion du formulaire
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      await createDeal({
-        title: formData.title,
-        description: formData.description || null,
-        value: parseFloat(formData.value),
-        contactId: formData.contactId || null,
-        stage: formData.stage as 'DECOUVERTE' | 'QUALIFICATION' | 'PROPOSITION' | 'NEGOCIATION' | 'GAGNE' | 'PERDU',
-        probability: parseInt(formData.probability),
-        expectedCloseDate: formData.expectedCloseDate || null,
-      });
-      setIsModalOpen(false);
-      setFormData({
-        title: '',
-        description: '',
-        value: '',
-        contactId: '',
-        stage: 'DECOUVERTE',
-        probability: '50',
-        expectedCloseDate: '',
-      });
-      mutate(); // Revalider les données
-    } catch (err) {
-      console.error('Erreur création deal:', err);
-    }
-  };
-
-  const statsDisplay = [
-    { label: 'Valeur Totale', value: `${stats.totalValue.toLocaleString()}€`, color: 'text-orange-600' },
-    { label: 'Deals Actifs', value: stats.active, color: 'text-blue-600' },
-    { label: 'Deals Gagnés', value: stats.won, color: 'text-green-600' },
-    { label: 'Taux de Conversion', value: stats.total > 0 ? `${Math.round((stats.won / stats.total) * 100)}%` : '0%', color: 'text-purple-600' },
-  ];
-
-  // État de chargement
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-violet-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Chargement des deals...</p>
-        </div>
+        <Loader2 className="h-12 w-12 animate-spin text-violet-600" />
       </div>
     );
   }
 
-  // État d'erreur
   if (isError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600">Erreur lors du chargement des deals</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 btn-primary"
-          >
-            Réessayer
-          </button>
-        </div>
+        <p className="text-red-600">Erreur lors du chargement</p>
       </div>
     );
   }
 
+  const getDealsByProductionStage = (stage: ProductionStage | null) => {
+    return closingDeals.filter((deal) => deal.productionStage === stage);
+  };
+
+  const handleDragStart = (deal: any) => {
+    setSelectedDeal(deal);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (stage: ProductionStage | null) => {
+    if (!selectedDeal) return;
+
+    setTargetStage(stage);
+    setIsDragModalOpen(true);
+  };
+
+  const confirmStageChange = async () => {
+    if (!selectedDeal || targetStage === undefined) return;
+
+    try {
+      const response = await fetch(`/api/deals/${selectedDeal.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productionStage: targetStage }),
+      });
+
+      if (response.ok) {
+        window.location.reload();
+      } else {
+        alert('Erreur lors de la mise à jour du stage de production');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Erreur lors de la mise à jour');
+    } finally {
+      setIsDragModalOpen(false);
+      setSelectedDeal(null);
+      setTargetStage(null);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen gradient-mesh py-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <TrendingUp className="h-8 w-8 text-orange-600" />
-                Deals
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-700 to-orange-500 bg-clip-text text-transparent">
+                Deals en Production
               </h1>
-              <p className="text-gray-600 mt-1">Gérez votre pipeline de ventes</p>
+              <p className="mt-2 text-gray-600">
+                Suivi des deals CLOSING - Du premier RDV à l'encaissement
+              </p>
             </div>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
-            >
-              <Plus className="h-5 w-5" />
-              Nouveau Deal
-            </button>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {statsDisplay.map((stat, index) => (
-            <div key={index} className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
-              <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Rechercher par titre ou entreprise..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
-            <button
-              onClick={() => setIsFilterModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Filter className="h-5 w-5" />
-              Filtres Avancés
-            </button>
-            <div className="flex gap-2 border border-gray-300 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode('kanban')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === 'kanban' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                Kanban
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === 'list' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                Liste
-              </button>
+            <div className="text-right">
+              <p className="text-sm text-gray-500">Total Deals CLOSING</p>
+              <p className="text-3xl font-bold text-violet-700">{closingDeals.length}</p>
             </div>
           </div>
         </div>
 
-        {/* Kanban Board */}
-        {viewMode === 'kanban' && (
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {stages.map((stage) => {
-              const stageDeals = filteredDeals.filter(deal => deal.stage === stage.name);
-              const stageValue = stageDeals.reduce((sum, deal) => sum + deal.value, 0);
+        {/* Stats Cards */}
+        <div className="grid grid-cols-5 gap-4 mb-8">
+          {productionColumns.map((column) => {
+            const columnDeals = getDealsByProductionStage(column.id);
+            const totalValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
 
-              return (
-                <div key={stage.name} className="flex-shrink-0 w-80">
-                  <div className={`${stage.color} border-2 rounded-lg p-4 mb-3`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className={`font-semibold ${stage.textColor}`}>{stage.displayName}</h3>
-                      <span className={`text-sm font-semibold ${stage.textColor}`}>
-                        {stageDeals.length}
-                      </span>
+            return (
+              <div key={column.id || 'null'} className="bg-white rounded-lg border-2 border-gray-200 p-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-1">{column.title}</h3>
+                <p className="text-2xl font-bold text-violet-700 mb-1">{columnDeals.length}</p>
+                <p className="text-xs text-gray-500">{totalValue.toLocaleString()} €</p>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Production Pipeline Kanban */}
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {productionColumns.map((column) => {
+            const columnDeals = getDealsByProductionStage(column.id);
+            const totalValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
+
+            return (
+              <div
+                key={column.id || 'null'}
+                className="flex-shrink-0 w-80 bg-gray-50 rounded-xl border-2 border-dashed"
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(column.id)}
+              >
+                {/* Column Header */}
+                <div className={`px-4 py-3 rounded-t-xl ${column.color}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">{column.title}</h3>
+                      <p className="text-xs text-gray-600">{column.description}</p>
                     </div>
-                    <p className="text-sm text-gray-600">
-                      {stageValue.toLocaleString()}€
-                    </p>
+                    <span className="px-2 py-1 text-xs font-bold bg-white rounded-full">
+                      {columnDeals.length}
+                    </span>
                   </div>
+                  <p className="text-xs text-gray-600 font-medium">
+                    {totalValue.toLocaleString()} €
+                  </p>
+                </div>
 
-                  <div className="space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
-                    {stageDeals.map((deal) => (
-                      <div key={deal.id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => _handleView(deal)}>
+                {/* Column Content */}
+                <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
+                  {columnDeals.map((deal) => {
+                    const contactName = deal.contacts
+                      ? `${deal.contacts.firstName} ${deal.contacts.lastName}`
+                      : 'Contact non défini';
+                    const companyName = deal.companies?.name || deal.title;
+                    const city = deal.companies?.city || '';
+
+                    return (
+                      <div
+                        key={deal.id}
+                        draggable
+                        onDragStart={() => handleDragStart(deal)}
+                        className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition cursor-move border border-gray-200"
+                      >
+                        {/* Deal Header */}
                         <div className="flex items-start justify-between mb-3">
-                          <h4 className="font-semibold text-gray-900 text-sm">{deal.title}</h4>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              _handleEdit(deal);
-                            }}
-                            className="p-1 hover:bg-gray-100 rounded"
-                            title="Modifier"
-                          >
-                            <MoreVertical className="h-4 w-4 text-gray-600" />
-                          </button>
+                          <h4 className="text-sm font-semibold text-gray-900 flex-1 pr-2">
+                            {companyName}
+                          </h4>
+                          <span className="px-2 py-0.5 text-xs font-bold text-white bg-violet-600 rounded flex-shrink-0">
+                            {deal.probability}%
+                          </span>
                         </div>
 
-                        <div className="space-y-2 mb-3">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Building2 className="h-4 w-4" />
-                            <span>{deal.company?.name || 'Sans entreprise'}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <User className="h-4 w-4" />
-                            <span>{deal.contact ? `${deal.contact.firstName} ${deal.contact.lastName}` : 'Sans contact'}</span>
-                          </div>
-                          {deal.expectedCloseDate && (
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Calendar className="h-4 w-4" />
-                              <span>{new Date(deal.expectedCloseDate).toLocaleDateString('fr-FR')}</span>
+                        {/* Contact Info */}
+                        <div className="space-y-1.5 mb-3">
+                          <p className="text-sm font-medium text-gray-700">{contactName}</p>
+                          {deal.contacts?.email && (
+                            <div className="flex items-center text-xs text-gray-600">
+                              <Mail className="h-3.5 w-3.5 mr-1.5" />
+                              <span className="truncate">{deal.contacts.email}</span>
+                            </div>
+                          )}
+                          {deal.contacts?.phone && (
+                            <div className="flex items-center text-xs text-gray-600">
+                              <Phone className="h-3.5 w-3.5 mr-1.5" />
+                              <span>{deal.contacts.phone}</span>
+                            </div>
+                          )}
+                          {city && (
+                            <div className="flex items-center text-xs text-gray-600">
+                              <MapPin className="h-3.5 w-3.5 mr-1.5" />
+                              <span>{city}</span>
                             </div>
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                          <span className="text-lg font-bold text-orange-600">
-                            {deal.value.toLocaleString()}€
+                        {/* Expected Close Date */}
+                        {deal.expectedCloseDate && (
+                          <div className="flex items-center text-xs text-gray-500 mb-3">
+                            <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                            <span>
+                              Clôture prévue: {new Date(deal.expectedCloseDate).toLocaleDateString('fr-FR')}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Value */}
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                          <span className="text-xs text-gray-500 truncate flex-1 pr-2">
+                            {deal.description || deal.title}
                           </span>
-                          <span className="text-sm text-gray-600">
-                            {deal.probability}%
-                          </span>
+                          <div className="flex items-center text-sm font-bold text-violet-700 flex-shrink-0">
+                            <Euro className="h-4 w-4 mr-1" />
+                            <span>{deal.value.toLocaleString()} {deal.currency}</span>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
+
+                  {columnDeals.length === 0 && (
+                    <div className="text-center py-8 text-gray-400 text-sm">
+                      Aucun deal dans cette colonne
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
+              </div>
+            );
+          })}
+        </div>
 
-        {/* List View */}
-        {viewMode === 'list' && (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Deal</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Entreprise</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Valeur</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Étape</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Probabilité</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date Clôture</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredDeals.map((deal) => (
-                    <tr key={deal.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <p className="font-semibold text-gray-900">{deal.title}</p>
-                          <p className="text-sm text-gray-500">
-                            {deal.contact ? `${deal.contact.firstName} ${deal.contact.lastName}` : 'Sans contact'}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-900">{deal.company?.name || 'Sans entreprise'}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-lg font-bold text-orange-600">
-                          {deal.value.toLocaleString()}€
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          deal.stage === 'DECOUVERTE' ? 'bg-purple-100 text-purple-700' :
-                          deal.stage === 'QUALIFICATION' ? 'bg-blue-100 text-blue-700' :
-                          deal.stage === 'PROPOSITION' ? 'bg-yellow-100 text-yellow-700' :
-                          deal.stage === 'NEGOCIATION' ? 'bg-orange-100 text-orange-700' :
-                          deal.stage === 'GAGNE' ? 'bg-green-100 text-green-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {stages.find(s => s.name === deal.stage)?.displayName || deal.stage}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 bg-gray-200 rounded-full h-2 w-20">
-                            <div
-                              className="bg-orange-600 h-2 rounded-full"
-                              style={{ width: `${deal.probability}%` }}
-                            />
-                          </div>
-                          <span className="text-sm font-semibold text-gray-900">{deal.probability}%</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Calendar className="h-4 w-4" />
-                          {deal.expectedCloseDate ? new Date(deal.expectedCloseDate).toLocaleDateString('fr-FR') : 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <button
-                          onClick={() => _handleView(deal)}
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Voir détails"
-                        >
-                          <ArrowRight className="h-4 w-4 text-gray-600" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* Info Box */}
+        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">i</span>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-blue-900 mb-1">
+                Workflow de Production
+              </h3>
+              <p className="text-sm text-blue-700">
+                Cette page affiche uniquement les deals qui ont atteint le stade <strong>CLOSING</strong>.
+                Glissez-déposez les cartes pour mettre à jour le statut de production.
+                Les deals <strong>ENCAISSÉS</strong> sont automatiquement intégrés au dashboard principal.
+              </p>
             </div>
           </div>
-        )}
-
-        {/* Modal Nouveau Deal */}
-        <Modal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          title="Nouveau Deal"
-          size="lg"
-        >
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Erreur globale */}
-            {submitError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                {submitError}
-              </div>
-            )}
-
-            {/* Titre */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Titre du Deal <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                placeholder="Vente logiciel CRM"
-              />
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                placeholder="Détails sur l'opportunité..."
-                rows={3}
-              />
-            </div>
-
-            {/* Valeur et Contact */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Valeur (€) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  step="0.01"
-                  value={formData.value}
-                  onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="15000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Contact <span className="text-red-500">*</span>
-                </label>
-                <select
-                  required
-                  value={formData.contactId}
-                  onChange={(e) => setFormData({ ...formData, contactId: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="">Sélectionner un contact</option>
-                  {contacts.map((contact) => (
-                    <option key={contact.id} value={contact.id}>
-                      {contact.firstName} {contact.lastName} {contact.email ? `(${contact.email})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Étape et Probabilité */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Étape
-                </label>
-                <select
-                  value={formData.stage}
-                  onChange={(e) => setFormData({ ...formData, stage: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  {stages.map((stage) => (
-                    <option key={stage.name} value={stage.name}>
-                      {stage.displayName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Probabilité (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.probability}
-                  onChange={(e) => setFormData({ ...formData, probability: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-            </div>
-
-            {/* Date de clôture attendue */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Date de clôture attendue
-              </label>
-              <input
-                type="date"
-                value={formData.expectedCloseDate}
-                onChange={(e) => setFormData({ ...formData, expectedCloseDate: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
-
-            {/* Boutons */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                disabled={submitting}
-                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold disabled:opacity-50 flex items-center gap-2"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Création...
-                  </>
-                ) : (
-                  'Créer le deal'
-                )}
-              </button>
-            </div>
-          </form>
-        </Modal>
-
-        {/* Modal Filtres Avancés */}
-        <Modal
-          isOpen={isFilterModalOpen}
-          onClose={() => setIsFilterModalOpen(false)}
-          title="Filtres Avancés"
-          size="md"
-        >
-          <div className="space-y-4">
-            {/* Étape */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Étape
-              </label>
-              <select
-                value={advancedFilters.stage}
-                onChange={(e) => setAdvancedFilters({ ...advancedFilters, stage: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-              >
-                <option value="all">Toutes les étapes</option>
-                {stages.map((stage) => (
-                  <option key={stage.name} value={stage.name}>
-                    {stage.displayName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Valeur */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Valeur (€)
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={advancedFilters.valueMin}
-                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, valueMin: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Min"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={advancedFilters.valueMax}
-                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, valueMax: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Max"
-                />
-              </div>
-            </div>
-
-            {/* Probabilité */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Probabilité (%)
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={advancedFilters.probabilityMin}
-                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, probabilityMin: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Min"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={advancedFilters.probabilityMax}
-                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, probabilityMax: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Max"
-                />
-              </div>
-            </div>
-
-            {/* Date de clôture */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Date de clôture attendue
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                <input
-                  type="date"
-                  value={advancedFilters.closeDateFrom}
-                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, closeDateFrom: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Du"
-                />
-                <input
-                  type="date"
-                  value={advancedFilters.closeDateTo}
-                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, closeDateTo: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Au"
-                />
-              </div>
-            </div>
-
-            {/* Boutons */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-              <button
-                onClick={handleResetFilters}
-                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-              >
-                Réinitialiser
-              </button>
-              <button
-                onClick={handleApplyFilters}
-                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold"
-              >
-                Appliquer
-              </button>
-            </div>
-          </div>
-        </Modal>
+        </div>
       </div>
+
+      {/* Modal de confirmation */}
+      <Modal
+        isOpen={isDragModalOpen}
+        onClose={() => {
+          setIsDragModalOpen(false);
+          setSelectedDeal(null);
+          setTargetStage(null);
+        }}
+        title="Confirmer le changement de stage"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Voulez-vous déplacer le deal <strong>{selectedDeal?.company?.name || selectedDeal?.title}</strong> vers le stage{' '}
+            <strong>
+              {productionColumns.find((c) => c.id === targetStage)?.title || 'À Démarrer'}
+            </strong> ?
+          </p>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button
+              onClick={() => {
+                setIsDragModalOpen(false);
+                setSelectedDeal(null);
+                setTargetStage(null);
+              }}
+              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={confirmStageChange}
+              className="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors font-semibold"
+            >
+              Confirmer
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

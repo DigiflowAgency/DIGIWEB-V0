@@ -22,7 +22,7 @@ const ticketSchema = z.object({
 // Fonction pour générer un numéro de ticket unique
 async function generateTicketNumber(): Promise<string> {
   const year = new Date().getFullYear();
-  const count = await prisma.ticket.count({
+  const count = await prisma.tickets.count({
     where: { number: { startsWith: `TK-${year}-` } },
   });
   const nextNumber = (count + 1).toString().padStart(3, '0');
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: Prisma.TicketWhereInput = {};
+    const where: Prisma.ticketsWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
@@ -75,13 +75,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les tickets avec les relations
-    const tickets = await prisma.ticket.findMany({
+    const tickets = await prisma.tickets.findMany({
       where,
       include: {
-        createdBy: {
+        users_tickets_createdByIdTousers: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
-        assignedTo: {
+        users_tickets_assignedToIdTousers: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
       },
@@ -93,14 +93,14 @@ export async function GET(request: NextRequest) {
 
     // Calculer des stats
     const stats = {
-      total: await prisma.ticket.count({ where }),
-      ouvert: await prisma.ticket.count({ where: { ...where, status: 'OUVERT' } }),
-      enCours: await prisma.ticket.count({ where: { ...where, status: 'EN_COURS' } }),
-      enAttente: await prisma.ticket.count({ where: { ...where, status: 'EN_ATTENTE' } }),
-      escalade: await prisma.ticket.count({ where: { ...where, status: 'ESCALADE' } }),
-      resolu: await prisma.ticket.count({ where: { ...where, status: 'RESOLU' } }),
-      ferme: await prisma.ticket.count({ where: { ...where, status: 'FERME' } }),
-      avgResponseTime: await prisma.ticket.aggregate({
+      total: await prisma.tickets.count({ where }),
+      ouvert: await prisma.tickets.count({ where: { ...where, status: 'OUVERT' } }),
+      enCours: await prisma.tickets.count({ where: { ...where, status: 'EN_COURS' } }),
+      enAttente: await prisma.tickets.count({ where: { ...where, status: 'EN_ATTENTE' } }),
+      escalade: await prisma.tickets.count({ where: { ...where, status: 'ESCALADE' } }),
+      resolu: await prisma.tickets.count({ where: { ...where, status: 'RESOLU' } }),
+      ferme: await prisma.tickets.count({ where: { ...where, status: 'FERME' } }),
+      avgResponseTime: await prisma.tickets.aggregate({
         where: { ...where, responseTime: { not: null } },
         _avg: { responseTime: true },
       }).then(result => result._avg.responseTime || 0),
@@ -136,10 +136,10 @@ export async function POST(request: NextRequest) {
     const number = await generateTicketNumber();
 
     // Convertir les dates string en Date si elles existent
-    const data: Prisma.TicketCreateInput = {
+    const data: any = {
       ...validatedData,
       number,
-      createdBy: {
+      users_tickets_createdByIdTousers: {
         connect: { id: session.user.id }
       },
     };
@@ -149,13 +149,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer le ticket
-    const ticket = await prisma.ticket.create({
+    const ticket = await prisma.tickets.create({
       data,
       include: {
-        createdBy: {
+        users_tickets_createdByIdTousers: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
-        assignedTo: {
+        users_tickets_assignedToIdTousers: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
       },

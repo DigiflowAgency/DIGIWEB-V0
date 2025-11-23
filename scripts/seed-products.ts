@@ -105,12 +105,12 @@ async function main() {
   ];
 
   for (const product of products) {
-    await prisma.product.create({
-      data: product,
+    await prisma.products.create({
+      data: product as any,
     });
   }
 
-  const count = await prisma.product.count();
+  const count = await prisma.products.count();
   console.log(`✅ ${count} produits créés avec succès!`);
 }
 

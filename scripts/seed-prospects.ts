@@ -142,8 +142,8 @@ async function main() {
 
   let created = 0;
   for (const prospectData of prospectsData) {
-    await prisma.prospect.create({
-      data: prospectData,
+    await prisma.prospects.create({
+      data: prospectData as any,
     });
     created++;
   }

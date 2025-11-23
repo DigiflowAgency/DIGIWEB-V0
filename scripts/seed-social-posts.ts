@@ -196,8 +196,8 @@ async function main() {
 
   let created = 0;
   for (const post of socialPosts) {
-    await prisma.socialPost.create({
-      data: post,
+    await prisma.social_posts.create({
+      data: post as any,
     });
     created++;
   }

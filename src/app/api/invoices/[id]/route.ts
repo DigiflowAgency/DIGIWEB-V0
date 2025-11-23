@@ -33,10 +33,10 @@ export async function GET(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const invoice = await prisma.invoice.findUnique({
+    const invoice = await prisma.invoices.findUnique({
       where: { id: params.id },
       include: {
-        owner: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -45,7 +45,7 @@ export async function GET(
             avatar: true,
           },
         },
-        products: true,
+        invoice_products: true,
       },
     });
 
@@ -78,7 +78,7 @@ export async function PUT(
     }
 
     // Vérifier que la facture existe
-    const existingInvoice = await prisma.invoice.findUnique({
+    const existingInvoice = await prisma.invoices.findUnique({
       where: { id: params.id },
     });
 
@@ -94,7 +94,7 @@ export async function PUT(
     const validatedData = invoiceUpdateSchema.parse(body);
 
     // Préparer les données de mise à jour
-    const updateData: Prisma.InvoiceUpdateInput = { ...validatedData };
+    const updateData: Prisma.invoicesUpdateInput = { ...validatedData };
 
     // Recalculer les montants si subtotal ou taxRate change
     if (validatedData.subtotal !== undefined || validatedData.taxRate !== undefined) {
@@ -120,11 +120,11 @@ export async function PUT(
     }
 
     // Mettre à jour la facture
-    const updatedInvoice = await prisma.invoice.update({
+    const updatedInvoice = await prisma.invoices.update({
       where: { id: params.id },
       data: updateData,
       include: {
-        owner: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -132,7 +132,7 @@ export async function PUT(
             email: true,
           },
         },
-        products: true,
+        invoice_products: true,
       },
     });
 
@@ -166,10 +166,10 @@ export async function DELETE(
     }
 
     // Vérifier que la facture existe
-    const existingInvoice = await prisma.invoice.findUnique({
+    const existingInvoice = await prisma.invoices.findUnique({
       where: { id: params.id },
       include: {
-        products: true,
+        invoice_products: true,
       },
     });
 
@@ -189,14 +189,14 @@ export async function DELETE(
     }
 
     // Supprimer d'abord les produits associés
-    if (existingInvoice.products.length > 0) {
-      await prisma.invoiceProduct.deleteMany({
+    if (existingInvoice.invoice_products.length > 0) {
+      await prisma.invoice_products.deleteMany({
         where: { invoiceId: params.id },
       });
     }
 
     // Supprimer la facture
-    await prisma.invoice.delete({
+    await prisma.invoices.delete({
       where: { id: params.id },
     });
 

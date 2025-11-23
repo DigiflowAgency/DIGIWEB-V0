@@ -34,16 +34,16 @@ export async function GET(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const ticket = await prisma.ticket.findUnique({
+    const ticket = await prisma.tickets.findUnique({
       where: { id: params.id },
       include: {
-        createdBy: {
+        users_tickets_createdByIdTousers: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
-        assignedTo: {
+        users_tickets_assignedToIdTousers: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
-        replies: {
+        ticket_replies: {
           orderBy: { createdAt: 'asc' },
         },
       },
@@ -78,7 +78,7 @@ export async function PUT(
     }
 
     // Vérifier que le ticket existe
-    const existingTicket = await prisma.ticket.findUnique({
+    const existingTicket = await prisma.tickets.findUnique({
       where: { id: params.id },
     });
 
@@ -94,7 +94,7 @@ export async function PUT(
     const validatedData = ticketUpdateSchema.parse(body);
 
     // Préparer les données de mise à jour
-    const updateData: Prisma.TicketUpdateInput = { ...validatedData };
+    const updateData: Prisma.ticketsUpdateInput = { ...validatedData };
 
     // Convertir les dates string en Date si elles existent
     if (validatedData.resolvedAt) {
@@ -115,14 +115,14 @@ export async function PUT(
     }
 
     // Mettre à jour le ticket
-    const updatedTicket = await prisma.ticket.update({
+    const updatedTicket = await prisma.tickets.update({
       where: { id: params.id },
       data: updateData,
       include: {
-        createdBy: {
+        users_tickets_createdByIdTousers: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
-        assignedTo: {
+        users_tickets_assignedToIdTousers: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
       },
@@ -158,7 +158,7 @@ export async function DELETE(
     }
 
     // Vérifier que le ticket existe
-    const existingTicket = await prisma.ticket.findUnique({
+    const existingTicket = await prisma.tickets.findUnique({
       where: { id: params.id },
     });
 
@@ -170,7 +170,7 @@ export async function DELETE(
     }
 
     // Supprimer le ticket (cascade supprimera aussi les replies)
-    await prisma.ticket.delete({
+    await prisma.tickets.delete({
       where: { id: params.id },
     });
 

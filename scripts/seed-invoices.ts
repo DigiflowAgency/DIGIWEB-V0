@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 // Fonction pour générer un numéro de facture unique
 async function generateInvoiceNumber(): Promise<string> {
   const year = new Date().getFullYear();
-  const count = await prisma.invoice.count({
+  const count = await prisma.invoices.count({
     where: {
       number: {
         startsWith: `FA-${year}-`,
@@ -20,8 +20,8 @@ async function main() {
   console.log('🌱 Seeding invoices...');
 
   // Récupérer les contacts et user existants
-  const contacts = await prisma.contact.findMany();
-  const user = await prisma.user.findFirst();
+  const contacts = await prisma.contacts.findMany();
+  const user = await prisma.users.findFirst();
 
   if (!user) {
     console.error('❌ Aucun utilisateur trouvé. Exécutez seed-contacts.ts d\'abord.');
@@ -265,7 +265,7 @@ async function main() {
 
   for (const invoiceData of invoices) {
     const number = await generateInvoiceNumber();
-    await prisma.invoice.create({ data: { ...invoiceData, number } });
+    await prisma.invoices.create({ data: { ...invoiceData, number } as any });
   }
 
   console.log(`✅ ${invoices.length} factures créées avec succès`);

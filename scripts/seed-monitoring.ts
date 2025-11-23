@@ -6,7 +6,7 @@ async function main() {
   console.log('🌱 Seeding monitoring data...');
 
   // Get existing clients
-  const clients = await prisma.client.findMany({
+  const clients = await prisma.clients.findMany({
     take: 10,
   });
 
@@ -119,15 +119,15 @@ async function main() {
   ];
 
   for (let i = 0; i < Math.min(clients.length, monitoringData.length); i++) {
-    await prisma.clientMonitoring.create({
+    await prisma.client_monitoring.create({
       data: {
         clientId: clients[i].id,
         ...monitoringData[i],
-      },
+      } as any,
     });
   }
 
-  const count = await prisma.clientMonitoring.count();
+  const count = await prisma.client_monitoring.count();
   console.log(`✅ ${count} monitoring records created successfully!`);
 }
 

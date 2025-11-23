@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 // Fonction pour générer un numéro de devis unique
 async function generateQuoteNumber(): Promise<string> {
   const year = new Date().getFullYear();
-  const count = await prisma.quote.count({
+  const count = await prisma.quotes.count({
     where: {
       number: {
         startsWith: `QU-${year}-`,
@@ -20,8 +20,8 @@ async function main() {
   console.log('🌱 Seeding quotes...');
 
   // Récupérer les contacts et user existants
-  const contacts = await prisma.contact.findMany();
-  const user = await prisma.user.findFirst();
+  const contacts = await prisma.contacts.findMany();
+  const user = await prisma.users.findFirst();
 
   if (!user) {
     console.error('❌ Aucun utilisateur trouvé. Exécutez seed-contacts.ts d\'abord.');
@@ -201,7 +201,7 @@ async function main() {
 
   for (const quoteData of quotesWithDates) {
     const number = await generateQuoteNumber();
-    await prisma.quote.create({ data: { ...quoteData, number } });
+    await prisma.quotes.create({ data: { ...quoteData, number } as any });
   }
 
   console.log(`✅ ${quotesWithDates.length} devis créés avec succès`);

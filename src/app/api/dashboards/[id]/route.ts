@@ -11,7 +11,7 @@ export async function PUT(
     const body = await request.json();
     const { name, description, favorite } = body;
 
-    const dashboard = await prisma.customDashboard.update({
+    const dashboard = await prisma.custom_dashboards.update({
       where: { id },
       data: {
         ...(name !== undefined && { name }),
@@ -38,7 +38,7 @@ export async function DELETE(
   try {
     const { id } = params;
 
-    await prisma.customDashboard.delete({
+    await prisma.custom_dashboards.delete({
       where: { id },
     });
 

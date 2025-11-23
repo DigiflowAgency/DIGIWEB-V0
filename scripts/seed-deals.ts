@@ -6,9 +6,9 @@ async function main() {
   console.log('🌱 Seeding deals...');
 
   // Récupérer les contacts et companies existants
-  const contacts = await prisma.contact.findMany({ include: { company: true } });
-  const companies = await prisma.company.findMany();
-  const user = await prisma.user.findFirst();
+  const contacts = await prisma.contacts.findMany();
+  const companies = await prisma.companies.findMany();
+  const user = await prisma.users.findFirst();
 
   if (!user) {
     console.error('❌ Aucun utilisateur trouvé. Exécutez seed-contacts.ts d\'abord.');
@@ -21,7 +21,7 @@ async function main() {
   }
 
   // Créer des deals variés
-  const deals: Prisma.DealUncheckedCreateInput[] = [
+  const deals = [
     {
       title: 'Site Web E-commerce',
       description: 'Développement d\'un site e-commerce avec panier et paiement en ligne',
@@ -135,7 +135,7 @@ async function main() {
   ];
 
   for (const dealData of deals) {
-    await prisma.deal.create({ data: dealData });
+    await prisma.deals.create({ data: dealData as any });
   }
 
   console.log(`✅ ${deals.length} deals créés avec succès`);

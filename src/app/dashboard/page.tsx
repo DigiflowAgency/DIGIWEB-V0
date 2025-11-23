@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   ArrowUpRight,
   Activity,
-  Zap,
   Sun,
   Phone,
   Mail,
@@ -23,32 +22,33 @@ import {
 import { useDeals } from '@/hooks/useDeals';
 import { useActivities } from '@/hooks/useActivities';
 
-const quickActions = [
-  {
-    name: 'Nouveau Lead',
-    icon: Users,
-    color: 'from-violet-600 to-violet-700',
-    description: 'Créer un lead',
-  },
-  {
-    name: 'Planifier RDV',
-    icon: Calendar,
-    color: 'from-orange-500 to-orange-600',
-    description: 'Ajouter un rendez-vous',
-  },
-  {
-    name: 'Envoyer devis',
-    icon: Mail,
-    color: 'from-blue-500 to-blue-600',
-    description: 'Créer un devis',
-  },
-  {
-    name: 'Appeler',
-    icon: Phone,
-    color: 'from-green-500 to-green-600',
-    description: 'Lancer un appel',
-  },
-];
+// V2 - Actions rapides désactivées pour l'instant
+// const quickActions = [
+//   {
+//     name: 'Nouveau Lead',
+//     icon: Users,
+//     color: 'from-violet-600 to-violet-700',
+//     description: 'Créer un lead',
+//   },
+//   {
+//     name: 'Planifier RDV',
+//     icon: Calendar,
+//     color: 'from-orange-500 to-orange-600',
+//     description: 'Ajouter un rendez-vous',
+//   },
+//   {
+//     name: 'Envoyer devis',
+//     icon: Mail,
+//     color: 'from-blue-500 to-blue-600',
+//     description: 'Créer un devis',
+//   },
+//   {
+//     name: 'Appeler',
+//     icon: Phone,
+//     color: 'from-green-500 to-green-600',
+//     description: 'Lancer un appel',
+//   },
+// ];
 
 const getActivityIcon = (type: string) => {
   switch (type) {
@@ -97,14 +97,14 @@ export default function DashboardPage() {
 
   // Calculer les stats principales
   const stats = useMemo(() => {
-    const activeDeals = deals.filter(d => d.stage !== 'GAGNE' && d.stage !== 'PERDU');
+    const activeDeals = deals.filter(d => d.productionStage !== 'ENCAISSE');
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
 
     const dealsThisMonth = deals.filter(d => new Date(d.createdAt) >= monthStart);
     const wonDealsThisMonth = deals.filter(
-      d => d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= monthStart
+      d => d.productionStage === 'ENCAISSE' && d.closedAt && new Date(d.closedAt) >= monthStart
     );
     const caThisMonth = wonDealsThisMonth.reduce((sum, d) => sum + d.value, 0);
 
@@ -160,13 +160,13 @@ export default function DashboardPage() {
   // Hot leads (deals avec haute probabilité)
   const hotLeads = useMemo(() => {
     return deals
-      .filter(d => d.probability >= 75 && d.stage !== 'GAGNE' && d.stage !== 'PERDU')
+      .filter(d => d.probability >= 75 && d.productionStage !== 'ENCAISSE')
       .sort((a, b) => b.probability - a.probability)
       .slice(0, 3)
       .map(d => ({
         id: d.id,
-        name: d.company?.name || d.title,
-        contact: d.contact ? `${d.contact.firstName} ${d.contact.lastName}` : 'Contact non défini',
+        name: d.companies?.name || d.title,
+        contact: d.contacts ? `${d.contacts.firstName} ${d.contacts.lastName}` : 'Contact non défini',
         score: d.probability,
         activity: d.description || d.title,
         value: `${d.value.toLocaleString()} €`,
@@ -229,7 +229,7 @@ export default function DashboardPage() {
     monthStart.setHours(0, 0, 0, 0);
 
     const wonDealsThisMonth = deals.filter(
-      d => d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= monthStart
+      d => d.productionStage === 'ENCAISSE' && d.closedAt && new Date(d.closedAt) >= monthStart
     );
     const caThisMonth = wonDealsThisMonth.reduce((sum, d) => sum + d.value, 0);
 
@@ -392,7 +392,7 @@ export default function DashboardPage() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.6 }}
-            className="lg:col-span-2 card-premium overflow-hidden"
+            className="lg:col-span-3 card-premium overflow-hidden"
           >
             <div className="px-6 py-5 border-b border-gray-200/50">
               <div className="flex items-center justify-between">
@@ -451,8 +451,8 @@ export default function DashboardPage() {
             </div>
           </motion.div>
 
-          {/* Quick Actions */}
-          <motion.div
+          {/* V2 - Quick Actions section désactivée pour l'instant */}
+          {/* <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.7 }}
@@ -491,7 +491,7 @@ export default function DashboardPage() {
                 );
               })}
             </div>
-          </motion.div>
+          </motion.div> */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

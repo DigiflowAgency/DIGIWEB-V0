@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const integrations = await prisma.integration.findMany({
+    const integrations = await prisma.integrations.findMany({
       orderBy: {
         createdAt: 'desc',
       },
@@ -25,12 +25,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { name, status, config } = body;
 
-    const integration = await prisma.integration.create({
+    const integration = await prisma.integrations.create({
       data: {
         name,
         status: status || 'DISCONNECTED',
         config: JSON.stringify(config || {}),
-      },
+      } as any,
     });
 
     return NextResponse.json(integration);

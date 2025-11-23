@@ -64,7 +64,7 @@ export default function PerformancesPage() {
     monthStart.setHours(0, 0, 0, 0);
 
     const wonDealsThisMonth = deals.filter(
-      d => d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= monthStart
+      d => d.productionStage === 'ENCAISSE' && d.closedAt && new Date(d.closedAt) >= monthStart
     );
     const caThisMonth = wonDealsThisMonth.reduce((sum, d) => sum + d.value, 0);
 
@@ -109,13 +109,13 @@ export default function PerformancesPage() {
 
     // Grouper les deals par owner
     const dealsByOwner = deals.reduce((acc, deal) => {
-      if (!deal.owner) return acc;
+      if (!deal.users) return acc;
 
-      const ownerId = deal.owner.id;
+      const ownerId = deal.users.id;
       if (!acc[ownerId]) {
         acc[ownerId] = {
           id: ownerId,
-          name: `${deal.owner.firstName} ${deal.owner.lastName}`,
+          name: `${deal.users.firstName} ${deal.users.lastName}`,
           deals: [],
         };
       }
@@ -175,13 +175,13 @@ export default function PerformancesPage() {
 
     // Deal Master: 10 deals signés ce mois
     const dealsThisMonth = deals.filter(
-      d => d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= monthStart
+      d => d.productionStage === 'ENCAISSE' && d.closedAt && new Date(d.closedAt) >= monthStart
     ).length;
     const dealMasterProgress = Math.min(Math.round((dealsThisMonth / 10) * 100), 100);
 
     // Speed Closer: 5 deals signés en 1 semaine
     const dealsThisWeek = deals.filter(
-      d => d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= weekStart
+      d => d.productionStage === 'ENCAISSE' && d.closedAt && new Date(d.closedAt) >= weekStart
     ).length;
     const speedCloserProgress = Math.min(Math.round((dealsThisWeek / 5) * 100), 100);
 

@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import NotificationDropdown from '@/components/NotificationDropdown';
+import MotivationBanner from '@/components/MotivationBanner';
 import {
   LayoutDashboard,
   Users,
-  Building2,
   Briefcase,
   Calendar,
   TrendingUp,
@@ -29,18 +29,29 @@ import {
   ChevronDown,
   ChevronRight,
   PanelLeftClose,
+  GraduationCap,
+  Target,
+  ClipboardCheck,
+  AppWindow,
+  ExternalLink,
+  MessageCircle,
+  Trophy,
 } from 'lucide-react';
 
 interface SubNavItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  disabled?: boolean;
+  isExternal?: boolean;
+  adminOnly?: boolean;
 }
 
 interface NavCategory {
   name: string;
   icon: React.ComponentType<{ className?: string }>;
   subItems: SubNavItem[];
+  disabled?: boolean;
 }
 
 const navigationCategories: NavCategory[] = [
@@ -50,13 +61,20 @@ const navigationCategories: NavCategory[] = [
     subItems: [],
   },
   {
+    name: 'Analytics',
+    icon: BarChart3,
+    subItems: [
+      { name: 'Vue d\'ensemble', href: '/dashboard/analytics', icon: BarChart3, adminOnly: true },
+    ],
+  },
+  {
     name: 'CRM',
     icon: Users,
     subItems: [
-      { name: 'Contacts', href: '/dashboard/crm/contacts', icon: Users },
-      { name: 'Entreprises', href: '/dashboard/crm/companies', icon: Building2 },
-      { name: 'Deals', href: '/dashboard/crm/deals', icon: Briefcase },
-      { name: 'Activités', href: '/dashboard/crm/activities', icon: Calendar },
+      { name: 'Pipeline', href: '/dashboard/crm', icon: Users },
+      { name: 'Production', href: '/dashboard/crm/deals', icon: Briefcase },
+      { name: 'Prospection', href: '/dashboard/crm/prospection', icon: Target },
+      { name: 'Activités', href: '/dashboard/crm/activities', icon: Calendar, disabled: true },
     ],
   },
   {
@@ -65,13 +83,51 @@ const navigationCategories: NavCategory[] = [
     subItems: [
       { name: 'Pipeline', href: '/dashboard/sales/pipeline', icon: TrendingUp },
       { name: 'Devis', href: '/dashboard/sales/quotes', icon: FileText },
-      { name: 'Facturation', href: '/dashboard/sales/invoices', icon: CreditCard },
+      { name: 'Facturation', href: '/dashboard/sales/invoices', icon: CreditCard, disabled: true },
       { name: 'Suivi commercial', href: '/dashboard/sales/tracking', icon: BarChart3 },
+    ],
+  },
+  {
+    name: 'Objectifs',
+    icon: Target,
+    subItems: [
+      { name: 'Mes objectifs', href: '/dashboard/objectives', icon: Target },
+      { name: 'Mes primes', href: '/dashboard/mes-primes', icon: TrendingUp },
+    ],
+  },
+  {
+    name: 'Check-in',
+    icon: ClipboardCheck,
+    subItems: [
+      { name: 'Mon check-in', href: '/dashboard/checkin', icon: ClipboardCheck },
+      { name: 'Suivi collaborateur', href: '/dashboard/admin/team-tracking', icon: Users, adminOnly: true },
+    ],
+  },
+  {
+    name: 'Courses',
+    icon: Trophy,
+    subItems: [
+      { name: 'Classements', href: '/dashboard/courses', icon: Trophy },
+    ],
+  },
+  {
+    name: 'Administration',
+    icon: Settings,
+    subItems: [
+      { name: 'Gestion utilisateurs', href: '/dashboard/admin/users', icon: Users, adminOnly: true },
+    ],
+  },
+  {
+    name: 'Messagerie',
+    icon: MessageCircle,
+    subItems: [
+      { name: 'Mes conversations', href: '/dashboard/messages', icon: MessageCircle },
     ],
   },
   {
     name: 'Marketing',
     icon: Megaphone,
+    disabled: true,
     subItems: [
       { name: 'Campagnes', href: '/dashboard/marketing/campaigns', icon: Megaphone },
       { name: 'Email', href: '/dashboard/marketing/email', icon: Mail },
@@ -82,6 +138,7 @@ const navigationCategories: NavCategory[] = [
   {
     name: 'Service',
     icon: Ticket,
+    disabled: true,
     subItems: [
       { name: 'Tickets', href: '/dashboard/service/tickets', icon: Ticket },
       { name: 'Base de connaissances', href: '/dashboard/service/knowledge', icon: BookOpen },
@@ -91,6 +148,7 @@ const navigationCategories: NavCategory[] = [
   {
     name: 'Automatisation',
     icon: Zap,
+    disabled: true,
     subItems: [
       { name: 'Workflows', href: '/dashboard/automation/workflows', icon: Workflow },
       { name: 'Séquences', href: '/dashboard/automation/sequences', icon: Zap },
@@ -99,9 +157,26 @@ const navigationCategories: NavCategory[] = [
   {
     name: 'Rapports',
     icon: BarChart3,
+    disabled: true,
     subItems: [
       { name: 'Analytics', href: '/dashboard/reports/analytics', icon: BarChart3 },
       { name: 'Tableaux de bord', href: '/dashboard/reports/dashboards', icon: LayoutDashboard },
+    ],
+  },
+  {
+    name: 'Mes applications',
+    icon: AppWindow,
+    subItems: [
+      { name: 'Payfit', href: 'https://app.payfit.fr', icon: ExternalLink, isExternal: true },
+      { name: 'Alan', href: 'https://alan.com/app', icon: ExternalLink, isExternal: true },
+    ],
+  },
+  {
+    name: 'Formation',
+    icon: GraduationCap,
+    subItems: [
+      { name: 'Mes formations', href: '/dashboard/formations', icon: GraduationCap },
+      { name: 'Gestion formations', href: '/dashboard/admin/formations', icon: BookOpen, adminOnly: true },
     ],
   },
 ];
@@ -205,6 +280,7 @@ export default function DashboardLayout({
                   {/* Category Header */}
                   <button
                     onClick={() => {
+                      if (category.disabled) return;
                       if (isDashboard) {
                         router.push('/dashboard');
                       } else {
@@ -216,22 +292,25 @@ export default function DashboardLayout({
                         }
                       }
                     }}
+                    disabled={category.disabled}
                     className={`w-full group flex items-center justify-center ${sidebarCollapsed ? 'px-0 py-3' : 'justify-between px-3 py-2.5'} text-sm font-medium rounded-lg transition-all ${
-                      isDashboardActive
+                      category.disabled
+                        ? 'text-blue-300/50 cursor-not-allowed opacity-50'
+                        : isDashboardActive
                         ? 'bg-blue-700/50 text-white'
                         : 'text-blue-100 hover:bg-blue-800/50'
                     }`}
                     title={sidebarCollapsed ? category.name : ''}
                   >
                     {sidebarCollapsed ? (
-                      <CategoryIcon className={`h-6 w-6 ${isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
+                      <CategoryIcon className={`h-6 w-6 ${category.disabled ? 'text-blue-300/50' : isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
                     ) : (
                       <>
                         <div className="flex items-center">
-                          <CategoryIcon className={`h-5 w-5 mr-3 ${isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
+                          <CategoryIcon className={`h-5 w-5 mr-3 ${category.disabled ? 'text-blue-300/50' : isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
                           <span>{category.name}</span>
                         </div>
-                        {!isDashboard && category.subItems.length > 0 && (
+                        {!isDashboard && category.subItems.length > 0 && !category.disabled && (
                           isExpanded ? (
                             <ChevronDown className="h-4 w-4 text-blue-200" />
                           ) : (
@@ -243,23 +322,38 @@ export default function DashboardLayout({
                   </button>
 
                   {/* Sub Items */}
-                  {!sidebarCollapsed && isExpanded && category.subItems.length > 0 && (
+                  {!sidebarCollapsed && isExpanded && category.subItems.length > 0 && !category.disabled && (
                     <div className="ml-4 mt-1 space-y-0.5">
                       {category.subItems.map((subItem) => {
                         const SubIcon = subItem.icon;
-                        const isActive = pathname === subItem.href;
+                        const isActive = !subItem.isExternal && pathname === subItem.href;
+                        const shouldHide = subItem.adminOnly && session?.user?.role !== 'ADMIN';
+
+                        if (shouldHide) return null;
+
                         return (
                           <button
                             key={subItem.href}
-                            onClick={() => router.push(subItem.href)}
+                            onClick={() => {
+                              if (subItem.disabled) return;
+                              if (subItem.isExternal) {
+                                window.open(subItem.href, '_blank');
+                              } else {
+                                router.push(subItem.href);
+                              }
+                            }}
+                            disabled={subItem.disabled}
                             className={`w-full group flex items-center px-3 py-2 text-sm rounded-lg transition-all ${
-                              isActive
+                              subItem.disabled
+                                ? 'text-blue-300/50 cursor-not-allowed opacity-50'
+                                : isActive
                                 ? 'bg-blue-700/50 text-white font-medium'
                                 : 'text-blue-100 hover:bg-blue-800/50'
                             }`}
                           >
-                            <SubIcon className={`mr-3 h-4 w-4 ${isActive ? 'text-white' : 'text-blue-300'}`} />
+                            <SubIcon className={`mr-3 h-4 w-4 ${subItem.disabled ? 'text-blue-300/50' : isActive ? 'text-white' : 'text-blue-300'}`} />
                             {subItem.name}
+                            {subItem.isExternal && <ExternalLink className="ml-auto h-3 w-3 text-blue-300" />}
                           </button>
                         );
                       })}
@@ -272,19 +366,25 @@ export default function DashboardLayout({
             {/* Settings at the bottom */}
             <div className="pt-4 mt-4 border-t border-blue-800/50">
               <button
-                onClick={() => router.push('/dashboard/settings')}
+                onClick={() => {
+                  if (session?.user?.role === 'VENTE') return;
+                  router.push('/dashboard/settings');
+                }}
+                disabled={session?.user?.role === 'VENTE'}
                 className={`w-full group flex items-center justify-center ${sidebarCollapsed ? 'px-0 py-3' : 'px-3 py-2.5'} text-sm font-medium rounded-lg transition-all ${
-                  pathname === '/dashboard/settings'
+                  session?.user?.role === 'VENTE'
+                    ? 'text-blue-300/50 cursor-not-allowed opacity-50'
+                    : pathname === '/dashboard/settings'
                     ? 'bg-blue-700/50 text-white'
                     : 'text-blue-100 hover:bg-blue-800/50'
                 }`}
-                title={sidebarCollapsed ? 'Paramètres' : ''}
+                title={sidebarCollapsed ? (session?.user?.role === 'VENTE' ? 'Accès réservé aux administrateurs' : 'Paramètres') : ''}
               >
                 {sidebarCollapsed ? (
-                  <Settings className="h-6 w-6 text-blue-200" />
+                  <Settings className={`h-6 w-6 ${session?.user?.role === 'VENTE' ? 'text-blue-300/50' : 'text-blue-200'}`} />
                 ) : (
                   <>
-                    <Settings className="h-5 w-5 mr-3 text-blue-200" />
+                    <Settings className={`h-5 w-5 mr-3 ${session?.user?.role === 'VENTE' ? 'text-blue-300/50' : 'text-blue-200'}`} />
                     Paramètres
                   </>
                 )}
@@ -357,6 +457,7 @@ export default function DashboardLayout({
                   <div key={category.name}>
                     <button
                       onClick={() => {
+                        if (category.disabled) return;
                         if (isDashboard) {
                           router.push('/dashboard');
                           setSidebarOpen(false);
@@ -364,17 +465,20 @@ export default function DashboardLayout({
                           toggleCategory(category.name);
                         }
                       }}
+                      disabled={category.disabled}
                       className={`w-full group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                        isDashboardActive
+                        category.disabled
+                          ? 'text-blue-300/50 cursor-not-allowed opacity-50'
+                          : isDashboardActive
                           ? 'bg-blue-700/50 text-white'
                           : 'text-blue-100 hover:bg-blue-800/50'
                       }`}
                     >
                       <div className="flex items-center">
-                        <CategoryIcon className={`mr-3 h-5 w-5 ${isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
+                        <CategoryIcon className={`mr-3 h-5 w-5 ${category.disabled ? 'text-blue-300/50' : isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
                         <span>{category.name}</span>
                       </div>
-                      {!isDashboard && category.subItems.length > 0 && (
+                      {!isDashboard && category.subItems.length > 0 && !category.disabled && (
                         isExpanded ? (
                           <ChevronDown className="h-4 w-4 text-blue-200" />
                         ) : (
@@ -383,26 +487,39 @@ export default function DashboardLayout({
                       )}
                     </button>
 
-                    {isExpanded && category.subItems.length > 0 && (
+                    {isExpanded && category.subItems.length > 0 && !category.disabled && (
                       <div className="ml-4 mt-1 space-y-0.5">
                         {category.subItems.map((subItem) => {
                           const SubIcon = subItem.icon;
-                          const isActive = pathname === subItem.href;
+                          const isActive = !subItem.isExternal && pathname === subItem.href;
+                          const shouldHide = subItem.adminOnly && session?.user?.role !== 'ADMIN';
+
+                          if (shouldHide) return null;
+
                           return (
                             <button
                               key={subItem.href}
                               onClick={() => {
-                                router.push(subItem.href);
-                                setSidebarOpen(false);
+                                if (subItem.disabled) return;
+                                if (subItem.isExternal) {
+                                  window.open(subItem.href, '_blank');
+                                } else {
+                                  router.push(subItem.href);
+                                  setSidebarOpen(false);
+                                }
                               }}
+                              disabled={subItem.disabled}
                               className={`w-full group flex items-center px-3 py-2 text-sm rounded-lg transition-all ${
-                                isActive
+                                subItem.disabled
+                                  ? 'text-blue-300/50 cursor-not-allowed opacity-50'
+                                  : isActive
                                   ? 'bg-blue-700/50 text-white font-medium'
                                   : 'text-blue-100 hover:bg-blue-800/50'
                               }`}
                             >
-                              <SubIcon className={`mr-3 h-4 w-4 ${isActive ? 'text-white' : 'text-blue-300'}`} />
+                              <SubIcon className={`mr-3 h-4 w-4 ${subItem.disabled ? 'text-blue-300/50' : isActive ? 'text-white' : 'text-blue-300'}`} />
                               {subItem.name}
+                              {subItem.isExternal && <ExternalLink className="ml-auto h-3 w-3 text-blue-300" />}
                             </button>
                           );
                         })}
@@ -416,16 +533,20 @@ export default function DashboardLayout({
               <div className="pt-4 mt-4 border-t border-blue-800/50">
                 <button
                   onClick={() => {
+                    if (session?.user?.role === 'VENTE') return;
                     router.push('/dashboard/settings');
                     setSidebarOpen(false);
                   }}
+                  disabled={session?.user?.role === 'VENTE'}
                   className={`w-full group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                    pathname === '/dashboard/settings'
+                    session?.user?.role === 'VENTE'
+                      ? 'text-blue-300/50 cursor-not-allowed opacity-50'
+                      : pathname === '/dashboard/settings'
                       ? 'bg-blue-700/50 text-white'
                       : 'text-blue-100 hover:bg-blue-800/50'
                   }`}
                 >
-                  <Settings className="mr-3 h-5 w-5 text-blue-200" />
+                  <Settings className={`mr-3 h-5 w-5 ${session?.user?.role === 'VENTE' ? 'text-blue-300/50' : 'text-blue-200'}`} />
                   Paramètres
                 </button>
               </div>
@@ -464,6 +585,9 @@ export default function DashboardLayout({
             </div>
           </div>
         </div>
+
+        {/* Motivation Banner */}
+        <MotivationBanner />
 
         {/* Page Content */}
         <main className="flex-1">

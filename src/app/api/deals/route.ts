@@ -11,7 +11,8 @@ const dealSchema = z.object({
   description: z.string().optional().nullable(),
   value: z.number().positive('Le montant doit être positif'),
   currency: z.string().default('EUR'),
-  stage: z.enum(['DECOUVERTE', 'QUALIFICATION', 'PROPOSITION', 'NEGOCIATION', 'GAGNE', 'PERDU']).default('DECOUVERTE'),
+  stage: z.enum(['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING', 'REFUSE']).default('A_CONTACTER'),
+  productionStage: z.enum(['PREMIER_RDV', 'EN_PRODUCTION', 'LIVRE', 'ENCAISSE']).optional().nullable(),
   probability: z.number().int().min(0).max(100).default(50),
   expectedCloseDate: z.string().datetime().optional().nullable(),
   contactId: z.string().optional().nullable(),
@@ -36,22 +37,22 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: Prisma.DealWhereInput = {};
+    const where: Prisma.dealsWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
       where.OR = [
         { title: { contains: search } },
         { description: { contains: search } },
-        { contact: { firstName: { contains: search } } },
-        { contact: { lastName: { contains: search } } },
-        { company: { name: { contains: search } } },
+        { contacts: { firstName: { contains: search } } },
+        { contacts: { lastName: { contains: search } } },
+        { companies: { name: { contains: search } } },
       ];
     }
 
     // Filtre par étape
-    if (stage && ['DECOUVERTE', 'QUALIFICATION', 'PROPOSITION', 'NEGOCIATION', 'GAGNE', 'PERDU'].includes(stage)) {
-      where.stage = stage as 'DECOUVERTE' | 'QUALIFICATION' | 'PROPOSITION' | 'NEGOCIATION' | 'GAGNE' | 'PERDU';
+    if (stage && ['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING', 'REFUSE'].includes(stage)) {
+      where.stage = stage as 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING' | 'REFUSE';
     }
 
     // Filtre par contact
@@ -65,25 +66,26 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les deals
-    const deals = await prisma.deal.findMany({
+    const deals = await prisma.deals.findMany({
       where,
       include: {
-        contact: {
+        contacts: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
             email: true,
+            phone: true,
           },
         },
-        company: {
+        companies: {
           select: {
             id: true,
             name: true,
             city: true,
           },
         },
-        owner: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -101,22 +103,22 @@ export async function GET(request: NextRequest) {
 
     // Calculer des stats
     const stats = {
-      total: await prisma.deal.count({ where }),
-      totalValue: await prisma.deal.aggregate({
+      total: await prisma.deals.count({ where }),
+      totalValue: await prisma.deals.aggregate({
         where,
         _sum: { value: true },
       }).then(result => result._sum.value || 0),
-      won: await prisma.deal.count({ where: { ...where, stage: 'GAGNE' } }),
-      wonValue: await prisma.deal.aggregate({
-        where: { ...where, stage: 'GAGNE' },
+      won: await prisma.deals.count({ where: { ...where, stage: 'CLOSING' } }),
+      wonValue: await prisma.deals.aggregate({
+        where: { ...where, stage: 'CLOSING' },
         _sum: { value: true },
       }).then(result => result._sum.value || 0),
-      lost: await prisma.deal.count({ where: { ...where, stage: 'PERDU' } }),
-      active: await prisma.deal.count({
+      lost: await prisma.deals.count({ where: { ...where, stage: 'REFUSE' } }),
+      active: await prisma.deals.count({
         where: {
           ...where,
           stage: {
-            in: ['DECOUVERTE', 'QUALIFICATION', 'PROPOSITION', 'NEGOCIATION']
+            in: ['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT']
           }
         }
       }),
@@ -150,7 +152,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier que le contact existe (s'il est fourni)
     if (validatedData.contactId) {
-      const contact = await prisma.contact.findUnique({
+      const contact = await prisma.contacts.findUnique({
         where: { id: validatedData.contactId },
       });
 
@@ -164,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier que l'entreprise existe (s'il est fournie)
     if (validatedData.companyId) {
-      const company = await prisma.company.findUnique({
+      const company = await prisma.companies.findUnique({
         where: { id: validatedData.companyId },
       });
 
@@ -177,29 +179,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer le deal
-    const deal = await prisma.deal.create({
+    const deal = await prisma.deals.create({
       data: {
         ...validatedData,
         expectedCloseDate: validatedData.expectedCloseDate ? new Date(validatedData.expectedCloseDate) : null,
         ownerId: session.user.id, // Assigner au user connecté
-      },
+      } as any,
       include: {
-        contact: {
+        contacts: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
             email: true,
+            phone: true,
           },
         },
-        company: {
+        companies: {
           select: {
             id: true,
             name: true,
             city: true,
           },
         },
-        owner: {
+        users: {
           select: {
             id: true,
             firstName: true,

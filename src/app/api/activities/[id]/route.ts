@@ -33,17 +33,17 @@ export async function GET(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const activity = await prisma.activity.findUnique({
+    const activity = await prisma.activities.findUnique({
       where: { id: params.id },
       include: {
-        contact: {
+        contacts: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
             email: true,
             phone: true,
-            company: {
+            companies: {
               select: {
                 id: true,
                 name: true,
@@ -51,7 +51,7 @@ export async function GET(
             },
           },
         },
-        deal: {
+        deals: {
           select: {
             id: true,
             title: true,
@@ -60,7 +60,7 @@ export async function GET(
             probability: true,
           },
         },
-        assignedTo: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -101,7 +101,7 @@ export async function PUT(
     }
 
     // Vérifier que l'activité existe
-    const existingActivity = await prisma.activity.findUnique({
+    const existingActivity = await prisma.activities.findUnique({
       where: { id: params.id },
     });
 
@@ -118,7 +118,7 @@ export async function PUT(
 
     // Vérifier que le contact existe (s'il est fourni)
     if (validatedData.contactId) {
-      const contact = await prisma.contact.findUnique({
+      const contact = await prisma.contacts.findUnique({
         where: { id: validatedData.contactId },
       });
 
@@ -132,7 +132,7 @@ export async function PUT(
 
     // Vérifier que le deal existe (s'il est fourni)
     if (validatedData.dealId) {
-      const deal = await prisma.deal.findUnique({
+      const deal = await prisma.deals.findUnique({
         where: { id: validatedData.dealId },
       });
 
@@ -145,7 +145,7 @@ export async function PUT(
     }
 
     // Préparer les données de mise à jour
-    const updateData: Prisma.ActivityUpdateInput = { ...validatedData };
+    const updateData: Prisma.activitiesUpdateInput = { ...validatedData };
 
     // Si le statut devient COMPLETEE, définir completedAt
     if (validatedData.status === 'COMPLETEE' && !existingActivity.completedAt) {
@@ -158,11 +158,11 @@ export async function PUT(
     }
 
     // Mettre à jour l'activité
-    const updatedActivity = await prisma.activity.update({
+    const updatedActivity = await prisma.activities.update({
       where: { id: params.id },
       data: updateData,
       include: {
-        contact: {
+        contacts: {
           select: {
             id: true,
             firstName: true,
@@ -170,7 +170,7 @@ export async function PUT(
             email: true,
           },
         },
-        deal: {
+        deals: {
           select: {
             id: true,
             title: true,
@@ -178,7 +178,7 @@ export async function PUT(
             stage: true,
           },
         },
-        assignedTo: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -219,7 +219,7 @@ export async function DELETE(
     }
 
     // Vérifier que l'activité existe
-    const existingActivity = await prisma.activity.findUnique({
+    const existingActivity = await prisma.activities.findUnique({
       where: { id: params.id },
     });
 
@@ -231,7 +231,7 @@ export async function DELETE(
     }
 
     // Supprimer l'activité
-    await prisma.activity.delete({
+    await prisma.activities.delete({
       where: { id: params.id },
     });
 

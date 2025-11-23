@@ -16,7 +16,7 @@ export default function AnalyticsReportPage() {
     if (!deals || !contacts) return [];
 
     // CA Total (deals gagnés)
-    const wonDeals = deals.filter(d => d.stage === 'GAGNE');
+    const wonDeals = deals.filter(d => d.productionStage === 'ENCAISSE');
     const totalCA = wonDeals.reduce((sum, d) => sum + d.value, 0);
 
     // Nouveaux clients (ce mois)
@@ -54,7 +54,7 @@ export default function AnalyticsReportPage() {
       const year = currentMonth - 11 + i < 0 ? currentYear - 1 : currentYear;
 
       const monthDeals = deals.filter(d => {
-        if (d.stage !== 'GAGNE' || !d.closedAt) return false;
+        if (d.productionStage !== 'ENCAISSE' || !d.closedAt) return false;
         const dealDate = new Date(d.closedAt);
         return dealDate.getMonth() === monthIndex && dealDate.getFullYear() === year;
       });
@@ -71,12 +71,12 @@ export default function AnalyticsReportPage() {
     if (!deals) return [];
 
     return [...deals]
-      .filter(d => d.stage === 'GAGNE')
+      .filter(d => d.productionStage === 'ENCAISSE')
       .sort((a, b) => b.value - a.value)
       .slice(0, 5)
       .map(d => ({
         name: d.title,
-        company: d.company?.name || 'N/A',
+        company: d.companies?.name || 'N/A',
         revenue: d.value,
       }));
   }, [deals]);

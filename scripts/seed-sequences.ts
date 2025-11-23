@@ -158,8 +158,8 @@ async function main() {
 
   let created = 0;
   for (const sequenceData of sequencesData) {
-    await prisma.sequence.create({
-      data: sequenceData,
+    await prisma.sequences.create({
+      data: sequenceData as any,
     });
     created++;
   }

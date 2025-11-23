@@ -20,7 +20,7 @@ async function main() {
 
   let created = 0;
   for (const articleData of articlesData) {
-    await prisma.knowledgeArticle.create({ data: articleData });
+    await prisma.knowledge_articles.create({ data: articleData as any });
     created++;
   }
 

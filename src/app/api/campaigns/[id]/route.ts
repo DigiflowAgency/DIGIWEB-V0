@@ -34,7 +34,7 @@ export async function GET(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const campaign = await prisma.campaign.findUnique({
+    const campaign = await prisma.campaigns.findUnique({
       where: { id: params.id },
     });
 
@@ -67,7 +67,7 @@ export async function PUT(
     }
 
     // Vérifier que la campagne existe
-    const existingCampaign = await prisma.campaign.findUnique({
+    const existingCampaign = await prisma.campaigns.findUnique({
       where: { id: params.id },
     });
 
@@ -83,7 +83,7 @@ export async function PUT(
     const validatedData = campaignUpdateSchema.parse(body);
 
     // Préparer les données de mise à jour
-    const updateData: Prisma.CampaignUpdateInput = { ...validatedData };
+    const updateData: Prisma.campaignsUpdateInput = { ...validatedData };
 
     // Convertir les dates string en Date si elles existent
     if (validatedData.startDate) {
@@ -94,7 +94,7 @@ export async function PUT(
     }
 
     // Mettre à jour la campagne
-    const updatedCampaign = await prisma.campaign.update({
+    const updatedCampaign = await prisma.campaigns.update({
       where: { id: params.id },
       data: updateData,
     });
@@ -129,7 +129,7 @@ export async function DELETE(
     }
 
     // Vérifier que la campagne existe
-    const existingCampaign = await prisma.campaign.findUnique({
+    const existingCampaign = await prisma.campaigns.findUnique({
       where: { id: params.id },
     });
 
@@ -141,7 +141,7 @@ export async function DELETE(
     }
 
     // Supprimer la campagne
-    await prisma.campaign.delete({
+    await prisma.campaigns.delete({
       where: { id: params.id },
     });
 

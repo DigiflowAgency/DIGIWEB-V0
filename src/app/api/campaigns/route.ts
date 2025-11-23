@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: Prisma.CampaignWhereInput = {};
+    const where: Prisma.campaignsWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les campagnes
-    const campaigns = await prisma.campaign.findMany({
+    const campaigns = await prisma.campaigns.findMany({
       where,
       orderBy: [
         { createdAt: 'desc' },
@@ -66,27 +66,27 @@ export async function GET(request: NextRequest) {
 
     // Calculer des stats
     const stats = {
-      total: await prisma.campaign.count({ where }),
-      active: await prisma.campaign.count({ where: { ...where, status: 'ACTIVE' } }),
-      planifiee: await prisma.campaign.count({ where: { ...where, status: 'PLANIFIEE' } }),
-      terminee: await prisma.campaign.count({ where: { ...where, status: 'TERMINEE' } }),
-      totalBudget: await prisma.campaign.aggregate({
+      total: await prisma.campaigns.count({ where }),
+      active: await prisma.campaigns.count({ where: { ...where, status: 'ACTIVE' } }),
+      planifiee: await prisma.campaigns.count({ where: { ...where, status: 'PLANIFIEE' } }),
+      terminee: await prisma.campaigns.count({ where: { ...where, status: 'TERMINEE' } }),
+      totalBudget: await prisma.campaigns.aggregate({
         where,
         _sum: { budget: true },
       }).then(result => result._sum.budget || 0),
-      totalSpent: await prisma.campaign.aggregate({
+      totalSpent: await prisma.campaigns.aggregate({
         where,
         _sum: { spent: true },
       }).then(result => result._sum.spent || 0),
-      totalReach: await prisma.campaign.aggregate({
+      totalReach: await prisma.campaigns.aggregate({
         where,
         _sum: { reach: true },
       }).then(result => result._sum.reach || 0),
-      totalClicks: await prisma.campaign.aggregate({
+      totalClicks: await prisma.campaigns.aggregate({
         where,
         _sum: { clicks: true },
       }).then(result => result._sum.clicks || 0),
-      totalConversions: await prisma.campaign.aggregate({
+      totalConversions: await prisma.campaigns.aggregate({
         where,
         _sum: { conversions: true },
       }).then(result => result._sum.conversions || 0),
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     const validatedData = campaignSchema.parse(body);
 
     // Convertir les dates string en Date si elles existent
-    const data: Prisma.CampaignCreateInput = { ...validatedData };
+    const data: any = { ...validatedData };
     if (validatedData.startDate) {
       data.startDate = new Date(validatedData.startDate);
     }
@@ -128,8 +128,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer la campagne
-    const campaign = await prisma.campaign.create({
-      data,
+    const campaign = await prisma.campaigns.create({
+      data: data as any,
     });
 
     return NextResponse.json(campaign, { status: 201 });

@@ -10,7 +10,7 @@ export async function PUT(
     const data = await request.json();
     const { id } = params;
 
-    const prospect = await prisma.prospect.update({
+    const prospect = await prisma.prospects.update({
       where: { id },
       data: {
         ...(data.name && { name: data.name }),
@@ -49,7 +49,7 @@ export async function DELETE(
   try {
     const { id } = params;
 
-    await prisma.prospect.delete({
+    await prisma.prospects.delete({
       where: { id },
     });
 

@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: Prisma.SocialPostWhereInput = {};
+    const where: Prisma.social_postsWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les posts
-    const posts = await prisma.socialPost.findMany({
+    const posts = await prisma.social_posts.findMany({
       where,
       orderBy: [
         { createdAt: 'desc' },
@@ -67,23 +67,23 @@ export async function GET(request: NextRequest) {
 
     // Calculer des stats
     const stats = {
-      total: await prisma.socialPost.count({ where }),
-      publie: await prisma.socialPost.count({ where: { ...where, status: 'PUBLIE' } }),
-      planifie: await prisma.socialPost.count({ where: { ...where, status: 'PLANIFIE' } }),
-      brouillon: await prisma.socialPost.count({ where: { ...where, status: 'BROUILLON' } }),
-      totalLikes: await prisma.socialPost.aggregate({
+      total: await prisma.social_posts.count({ where }),
+      publie: await prisma.social_posts.count({ where: { ...where, status: 'PUBLIE' } }),
+      planifie: await prisma.social_posts.count({ where: { ...where, status: 'PLANIFIE' } }),
+      brouillon: await prisma.social_posts.count({ where: { ...where, status: 'BROUILLON' } }),
+      totalLikes: await prisma.social_posts.aggregate({
         where,
         _sum: { likes: true },
       }).then(result => result._sum.likes || 0),
-      totalComments: await prisma.socialPost.aggregate({
+      totalComments: await prisma.social_posts.aggregate({
         where,
         _sum: { comments: true },
       }).then(result => result._sum.comments || 0),
-      totalShares: await prisma.socialPost.aggregate({
+      totalShares: await prisma.social_posts.aggregate({
         where,
         _sum: { shares: true },
       }).then(result => result._sum.shares || 0),
-      totalReach: await prisma.socialPost.aggregate({
+      totalReach: await prisma.social_posts.aggregate({
         where,
         _sum: { reach: true },
       }).then(result => result._sum.reach || 0),
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     const validatedData = socialPostSchema.parse(body);
 
     // Convertir les dates string en Date si elles existent
-    const data: Prisma.SocialPostCreateInput = { ...validatedData };
+    const data: any = { ...validatedData };
     if (validatedData.scheduledAt) {
       data.scheduledAt = new Date(validatedData.scheduledAt);
     }
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer le post
-    const post = await prisma.socialPost.create({
+    const post = await prisma.social_posts.create({
       data,
     });
 

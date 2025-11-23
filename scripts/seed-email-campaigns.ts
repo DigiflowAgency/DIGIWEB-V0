@@ -19,7 +19,7 @@ async function main() {
   ];
 
   for (const data of campaigns) {
-    await prisma.emailCampaign.create({ data });
+    await prisma.email_campaigns.create({ data: data as any });
   }
 
   console.log(`✅ ${campaigns.length} campagnes créées`);

@@ -17,6 +17,25 @@ const quoteUpdateSchema = z.object({
   paymentTerms: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   status: z.enum(['BROUILLON', 'ENVOYE', 'ACCEPTE', 'REFUSE', 'EXPIRE']).optional(),
+  // Calculator fields
+  commitmentPeriod: z.string().optional().nullable(),
+  isPartner: z.boolean().optional(),
+  engagementDiscount: z.number().optional(),
+  partnerDiscount: z.number().optional(),
+  oneTimeTotal: z.number().optional(),
+  monthlyTotal: z.number().optional(),
+  products: z.array(z.object({
+    name: z.string(),
+    description: z.string().optional(),
+    quantity: z.number().int().positive().default(1),
+    unitPrice: z.number(),
+    totalPrice: z.number(),
+    serviceId: z.string().optional(),
+    serviceType: z.string().optional(),
+    period: z.string().optional(),
+    channel: z.string().optional(),
+    discount: z.number().optional().default(0),
+  })).optional(),
 });
 
 type RouteContext = {
@@ -34,17 +53,17 @@ export async function GET(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const quote = await prisma.quote.findUnique({
+    const quote = await prisma.quotes.findUnique({
       where: { id: params.id },
       include: {
-        contact: {
+        contacts: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
             email: true,
             phone: true,
-            company: {
+            companies: {
               select: {
                 id: true,
                 name: true,
@@ -52,7 +71,7 @@ export async function GET(
             },
           },
         },
-        owner: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -61,7 +80,7 @@ export async function GET(
             avatar: true,
           },
         },
-        products: true,
+        quote_products: true,
       },
     });
 
@@ -94,7 +113,7 @@ export async function PUT(
     }
 
     // Vérifier que le devis existe
-    const existingQuote = await prisma.quote.findUnique({
+    const existingQuote = await prisma.quotes.findUnique({
       where: { id: params.id },
     });
 
@@ -111,7 +130,7 @@ export async function PUT(
 
     // Vérifier que le contact existe (s'il est fourni)
     if (validatedData.contactId) {
-      const contact = await prisma.contact.findUnique({
+      const contact = await prisma.contacts.findUnique({
         where: { id: validatedData.contactId },
       });
 
@@ -123,8 +142,11 @@ export async function PUT(
       }
     }
 
+    // Extraire les products du validatedData pour les gérer séparément
+    const { products: productsData, ...quoteDataToUpdate } = validatedData;
+
     // Préparer les données de mise à jour
-    const updateData: Prisma.QuoteUpdateInput = { ...validatedData };
+    const updateData: Prisma.quotesUpdateInput = { ...quoteDataToUpdate };
 
     // Recalculer les montants si subtotal ou taxRate change
     if (validatedData.subtotal !== undefined || validatedData.taxRate !== undefined) {
@@ -141,15 +163,42 @@ export async function PUT(
       updateData.expiresAt = expiresAt;
     }
 
+    // Gérer les products si fournis
+    if (productsData !== undefined) {
+      // Supprimer les anciens products
+      await prisma.quote_products.deleteMany({
+        where: { quoteId: params.id },
+      });
+
+      // Ajouter les nouveaux products
+      if (productsData.length > 0) {
+        updateData.quote_products = {
+          create: productsData.map((product) => ({
+            id: `QP-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            name: product.name,
+            description: product.description || null,
+            quantity: product.quantity,
+            unitPrice: product.unitPrice,
+            totalPrice: product.totalPrice,
+            serviceId: product.serviceId || null,
+            serviceType: product.serviceType || null,
+            period: product.period || null,
+            channel: product.channel || null,
+            discount: product.discount || 0,
+          })),
+        };
+      }
+    }
+
     // Si le statut devient ACCEPTE, on peut créer une facture automatiquement plus tard
     // (logique métier à implémenter si besoin)
 
     // Mettre à jour le devis
-    const updatedQuote = await prisma.quote.update({
+    const updatedQuote = await prisma.quotes.update({
       where: { id: params.id },
       data: updateData,
       include: {
-        contact: {
+        contacts: {
           select: {
             id: true,
             firstName: true,
@@ -157,7 +206,7 @@ export async function PUT(
             email: true,
           },
         },
-        owner: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -165,7 +214,7 @@ export async function PUT(
             email: true,
           },
         },
-        products: true,
+        quote_products: true,
       },
     });
 
@@ -199,10 +248,10 @@ export async function DELETE(
     }
 
     // Vérifier que le devis existe
-    const existingQuote = await prisma.quote.findUnique({
+    const existingQuote = await prisma.quotes.findUnique({
       where: { id: params.id },
       include: {
-        products: true,
+        quote_products: true,
       },
     });
 
@@ -222,14 +271,14 @@ export async function DELETE(
     }
 
     // Supprimer d'abord les produits associés
-    if (existingQuote.products.length > 0) {
-      await prisma.quoteProduct.deleteMany({
+    if (existingQuote.quote_products.length > 0) {
+      await prisma.quote_products.deleteMany({
         where: { quoteId: params.id },
       });
     }
 
     // Supprimer le devis
-    await prisma.quote.delete({
+    await prisma.quotes.delete({
       where: { id: params.id },
     });
 

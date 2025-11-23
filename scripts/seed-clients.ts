@@ -6,11 +6,11 @@ async function main() {
   console.log('🌱 Seeding clients...');
 
   // Get existing users and companies
-  const users = await prisma.user.findMany({
+  const users = await prisma.users.findMany({
     take: 5,
   });
 
-  const companies = await prisma.company.findMany({
+  const companies = await prisma.companies.findMany({
     take: 10,
   });
 
@@ -128,16 +128,16 @@ async function main() {
   ];
 
   for (let i = 0; i < clients.length; i++) {
-    await prisma.client.create({
+    await prisma.clients.create({
       data: {
         ...clients[i],
         ownerId: users[i % users.length].id,
         companyId: i < companies.length ? companies[i].id : companies[0].id,
-      },
+      } as any,
     });
   }
 
-  const count = await prisma.client.count();
+  const count = await prisma.clients.count();
   console.log(`✅ ${count} clients créés avec succès!`);
 }
 

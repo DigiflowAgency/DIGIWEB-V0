@@ -21,13 +21,13 @@ export async function GET(request: NextRequest) {
       where.read = false;
     }
 
-    const notifications = await prisma.notification.findMany({
+    const notifications = await prisma.notifications.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
 
-    const unreadCount = await prisma.notification.count({
+    const unreadCount = await prisma.notifications.count({
       where: {
         userId: session.user.id,
         read: false,
@@ -59,14 +59,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { type, title, message, link } = body;
 
-    const notification = await prisma.notification.create({
+    const notification = await prisma.notifications.create({
       data: {
         userId: session.user.id,
         type,
         title,
         message,
         link,
-      },
+      } as any,
     });
 
     return NextResponse.json(notification, { status: 201 });

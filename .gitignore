@@ -48,3 +48,6 @@ static-mime-config.js
 start-*.sh
 fix-*.sh
 deploy-*.sh
+
+# Uploads
+/public/uploads/

@@ -10,7 +10,7 @@ export async function PUT(
     const data = await request.json();
     const { id } = params;
 
-    const sequence = await prisma.sequence.update({
+    const sequence = await prisma.sequences.update({
       where: { id },
       data: {
         ...(data.name && { name: data.name }),
@@ -44,7 +44,7 @@ export async function DELETE(
   try {
     const { id } = params;
 
-    await prisma.sequence.delete({
+    await prisma.sequences.delete({
       where: { id },
     });
 

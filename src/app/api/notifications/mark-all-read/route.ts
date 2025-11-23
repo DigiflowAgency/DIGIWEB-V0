@@ -12,7 +12,7 @@ export async function POST(_request: NextRequest) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
-    await prisma.notification.updateMany({
+    await prisma.notifications.updateMany({
       where: {
         userId: session.user.id,
         read: false,

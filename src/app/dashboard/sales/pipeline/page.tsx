@@ -14,14 +14,15 @@ import {
 import { useDeals } from '@/hooks/useDeals';
 import { useRouter } from 'next/navigation';
 
-type DealStage = 'DECOUVERTE' | 'QUALIFICATION' | 'PROPOSITION' | 'NEGOCIATION' | 'GAGNE';
+type DealStage = 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING';
 
 const stageConfig = [
-  { id: 'DECOUVERTE' as DealStage, name: 'Découverte', color: 'bg-purple-500' },
-  { id: 'QUALIFICATION' as DealStage, name: 'Qualification', color: 'bg-blue-500' },
-  { id: 'PROPOSITION' as DealStage, name: 'Proposition', color: 'bg-yellow-500' },
-  { id: 'NEGOCIATION' as DealStage, name: 'Négociation', color: 'bg-orange-500' },
-  { id: 'GAGNE' as DealStage, name: 'Gagné', color: 'bg-green-500' },
+  { id: 'A_CONTACTER' as DealStage, name: 'À Contacter', color: 'bg-gray-500' },
+  { id: 'EN_DISCUSSION' as DealStage, name: 'En Discussion', color: 'bg-blue-500' },
+  { id: 'A_RELANCER' as DealStage, name: 'À Relancer', color: 'bg-yellow-500' },
+  { id: 'RDV_PRIS' as DealStage, name: 'RDV Pris', color: 'bg-violet-500' },
+  { id: 'NEGO_HOT' as DealStage, name: 'Négo Hot 🔥', color: 'bg-orange-500' },
+  { id: 'CLOSING' as DealStage, name: 'Closing', color: 'bg-green-500' },
 ];
 
 const getStageLabel = (stage: string) => {
@@ -55,13 +56,15 @@ export default function PipelinePage() {
 
   const recentDeals = useMemo(() => {
     return deals
-      .filter(d => d.stage !== 'PERDU' && d.stage !== 'GAGNE')
+      .filter(d => d.stage !== 'REFUSE' && d.stage !== 'CLOSING')
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 8)
       .map(d => ({
         ...d,
         daysInStage: getDaysInStage(d.updatedAt),
         trend: d.probability >= 70 ? 'up' as const : d.probability <= 40 ? 'down' as const : 'stable' as const,
+        contactName: d.contacts ? `${d.contacts.firstName} ${d.contacts.lastName}` : 'N/A',
+        companyName: d.companies?.name || d.title,
       }));
   }, [deals]);
 
@@ -220,8 +223,11 @@ export default function PipelinePage() {
                 <div key={deal.id} className="p-4 border border-gray-200 rounded-lg hover:border-orange-300 transition-colors cursor-pointer">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 mb-1">{deal.title}</h3>
-                      <span className="text-sm text-gray-600">{getStageLabel(deal.stage)}</span>
+                      <h3 className="font-semibold text-gray-900 mb-1">{deal.companyName}</h3>
+                      <p className="text-xs text-gray-500">{deal.contactName}</p>
+                      <span className="inline-block mt-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                        {getStageLabel(deal.stage)}
+                      </span>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-orange-600">{deal.value.toLocaleString()}€</p>

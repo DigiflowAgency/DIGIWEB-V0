@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get('category');
 
-    const products = await prisma.product.findMany({
+    const products = await prisma.products.findMany({
       where: {
         active: true,
         ...(category && { category }),
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, category, description, price, monthlyPrice, features, popular } = body;
 
-    const product = await prisma.product.create({
+    const product = await prisma.products.create({
       data: {
         name,
         category,
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
         monthlyPrice,
         features,
         popular: popular || false,
-      },
+      } as any,
     });
 
     return NextResponse.json(product, { status: 201 });

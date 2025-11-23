@@ -1,79 +1,118 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-// GET /api/prospects - Récupérer tous les prospects ou rechercher
+// GET /api/prospects - Liste des prospects
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const activity = searchParams.get('activity');
-    const city = searchParams.get('city');
-    const imported = searchParams.get('imported');
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
 
-    const prospects = await prisma.prospect.findMany({
-      where: {
-        ...(activity && {
-          activity: {
-            contains: activity,
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    const assignedToId = searchParams.get('assignedToId');
+    const importBatchId = searchParams.get('importBatchId');
+
+    // Filtrer selon le rôle
+    const where: any = {};
+
+    if (session.user.role !== 'ADMIN') {
+      // Les commerciaux ne voient que leurs prospects
+      where.assignedToId = session.user.id;
+    } else {
+      // Les admins peuvent filtrer par commercial
+      if (assignedToId) {
+        where.assignedToId = assignedToId;
+      }
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (importBatchId) {
+      where.importBatchId = importBatchId;
+    }
+
+    const prospects = await prisma.prospects.findMany({
+      where,
+      include: {
+        users: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
           },
-        }),
-        ...(city && {
-          city: {
-            contains: city,
+        },
+        import_batches: {
+          select: {
+            id: true,
+            fileName: true,
+            createdAt: true,
           },
-        }),
-        ...(imported !== null && {
-          imported: imported === 'true',
-        }),
+        },
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    // Calculer les statistiques
-    const stats = {
-      total: prospects.length,
-      imported: prospects.filter((p) => p.imported).length,
-      notImported: prospects.filter((p) => !p.imported).length,
-      avgRating: prospects.length > 0
-        ? prospects.reduce((sum, p) => sum + (p.rating || 0), 0) / prospects.length
-        : 0,
-    };
-
-    return NextResponse.json({ prospects, stats });
+    return NextResponse.json({ prospects });
   } catch (error) {
-    console.error('Error fetching prospects:', error);
+    console.error('Erreur GET /api/prospects:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch prospects' },
+      { error: 'Erreur serveur' },
       { status: 500 }
     );
   }
 }
 
-// POST /api/prospects - Créer un nouveau prospect (ou rechercher via API externe)
+// POST /api/prospects - Créer un prospect manuellement
 export async function POST(request: NextRequest) {
   try {
-    const data = await request.json();
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
 
-    const prospect = await prisma.prospect.create({
+    const body = await request.json();
+
+    const prospect = await prisma.prospects.create({
       data: {
-        name: data.name,
-        activity: data.activity,
-        address: data.address,
-        city: data.city,
-        phone: data.phone,
-        email: data.email,
-        website: data.website,
-        employees: data.employees,
-        rating: data.rating,
+        id: `PROS-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        name: body.name,
+        siret: body.siret || null,
+        activity: body.activity,
+        address: body.address || '',
+        city: body.city || '',
+        postalCode: body.postalCode || null,
+        phone: body.phone || null,
+        email: body.email || null,
+        website: body.website || null,
+        assignedToId: body.assignedToId || session.user.id,
+        source: 'manual',
+        status: 'A_TRAITER',
+      } as any,
+      include: {
+        users: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
       },
     });
 
-    return NextResponse.json(prospect, { status: 201 });
+    return NextResponse.json({ prospect });
   } catch (error) {
-    console.error('Error creating prospect:', error);
+    console.error('Erreur POST /api/prospects:', error);
     return NextResponse.json(
-      { error: 'Failed to create prospect' },
+      { error: 'Erreur serveur' },
       { status: 500 }
     );
   }

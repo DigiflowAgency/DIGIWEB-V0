@@ -15,11 +15,13 @@ import {
   XCircle,
   Calendar,
   Loader2,
-  Filter
+  Filter,
+  AlertCircle
 } from 'lucide-react';
 import { useQuotes, useQuoteMutations } from '@/hooks/useQuotes';
 import { useContacts } from '@/hooks/useContacts';
 import Modal from '@/components/Modal';
+import ServiceCalculator from '@/components/ServiceCalculator';
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -80,6 +82,9 @@ export default function QuotesPage() {
     validityDays: '30',
     contactId: '',
   });
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [selectedContactForFill, setSelectedContactForFill] = useState<string>('');
+  const [calculatorData, setCalculatorData] = useState<any>(null);
 
   // Utiliser le hook useQuotes pour récupérer les données depuis l'API
   const { quotes, stats, isLoading, isError, mutate } = useQuotes({
@@ -91,7 +96,48 @@ export default function QuotesPage() {
   const { createQuote, updateQuote, deleteQuote, loading: submitting, error: submitError } = useQuoteMutations();
 
   // Récupérer les contacts pour le dropdown
-  const { contacts } = useContacts({});
+  const { contacts, isLoading: contactsLoading, isError: contactsError } = useContacts({});
+
+  // Fonction pour remplir le formulaire avec les données du contact
+  const handleContactSelect = (contactId: string) => {
+    setSelectedContactForFill(contactId);
+    setMissingFields([]);
+
+    if (!contactId) {
+      setFormData({
+        clientName: '',
+        clientEmail: '',
+        clientAddress: '',
+        subtotal: formData.subtotal,
+        taxRate: formData.taxRate,
+        validityDays: formData.validityDays,
+        contactId: '',
+      });
+      return;
+    }
+
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact) return;
+
+    // Vérifier les champs manquants
+    const missing: string[] = [];
+    if (!contact.email) missing.push('Email');
+    if (!contact.firstName || !contact.lastName) missing.push('Nom complet');
+
+    setMissingFields(missing);
+
+    // Remplir les champs disponibles
+    const clientName = contact.companies?.name || `${contact.firstName} ${contact.lastName}`;
+    const clientAddress = contact.city || '';
+
+    setFormData({
+      ...formData,
+      clientName,
+      clientEmail: contact.email || '',
+      clientAddress,
+      contactId: contact.id,
+    });
+  };
 
   // Filtres avancés
   const filteredQuotes = quotes.filter(quote => {
@@ -245,7 +291,7 @@ export default function QuotesPage() {
     e.preventDefault();
 
     try {
-      await createQuote({
+      const quoteData: any = {
         clientName: formData.clientName,
         clientEmail: formData.clientEmail,
         clientAddress: formData.clientAddress || null,
@@ -253,7 +299,22 @@ export default function QuotesPage() {
         taxRate: parseFloat(formData.taxRate),
         validityDays: parseInt(formData.validityDays),
         contactId: formData.contactId || null,
-      });
+      };
+
+      // Ajouter les données du calculateur si disponibles
+      if (calculatorData) {
+        quoteData.commitmentPeriod = calculatorData.commitment === 'comptant'
+          ? 'comptant'
+          : calculatorData.commitment.toString();
+        quoteData.isPartner = calculatorData.isPartner;
+        quoteData.engagementDiscount = calculatorData.totals.engagementDiscount;
+        quoteData.partnerDiscount = calculatorData.totals.partnerDiscount;
+        quoteData.oneTimeTotal = calculatorData.totals.oneTimeTotal;
+        quoteData.monthlyTotal = calculatorData.totals.monthlyTotal;
+        quoteData.products = calculatorData.services;
+      }
+
+      await createQuote(quoteData);
       setIsModalOpen(false);
       setFormData({
         clientName: '',
@@ -264,6 +325,9 @@ export default function QuotesPage() {
         validityDays: '30',
         contactId: '',
       });
+      setSelectedContactForFill('');
+      setMissingFields([]);
+      setCalculatorData(null);
       mutate();
     } catch (err) {
       console.error('Erreur création devis:', err);
@@ -325,7 +389,7 @@ export default function QuotesPage() {
             </div>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
+              className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all font-semibold shadow-lg shadow-orange-500/30"
             >
               <Plus className="h-5 w-5" />
               Nouveau Devis
@@ -488,7 +552,11 @@ export default function QuotesPage() {
         {/* Modal Nouveau Devis */}
         <Modal
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedContactForFill('');
+            setMissingFields([]);
+          }}
           title="Nouveau Devis"
           size="lg"
         >
@@ -498,6 +566,65 @@ export default function QuotesPage() {
                 {submitError}
               </div>
             )}
+
+            {missingFields.length > 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-yellow-800 mb-1">
+                      Informations manquantes dans la fiche contact
+                    </h3>
+                    <p className="text-sm text-yellow-700 mb-2">
+                      Les champs suivants sont manquants : <strong>{missingFields.join(', ')}</strong>
+                    </p>
+                    <a
+                      href="/dashboard/crm"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-semibold text-yellow-800 hover:text-yellow-900 underline"
+                    >
+                      Modifier la fiche contact →
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sélection du contact */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Sélectionner un contact existant
+              </label>
+              <select
+                value={selectedContactForFill}
+                onChange={(e) => handleContactSelect(e.target.value)}
+                disabled={contactsLoading}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 bg-orange-50 border-orange-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">
+                  {contactsLoading ? 'Chargement des contacts...' : '-- Saisir manuellement --'}
+                </option>
+                {contacts.map((contact) => (
+                  <option key={contact.id} value={contact.id}>
+                    {contact.firstName} {contact.lastName} {contact.companies?.name ? `(${contact.companies.name})` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {contactsError ? (
+                  <span className="text-red-600">⚠️ Erreur lors du chargement des contacts</span>
+                ) : contactsLoading ? (
+                  'Chargement...'
+                ) : contacts.length === 0 ? (
+                  <span className="text-yellow-600">Aucun contact disponible. Créez d&apos;abord un contact dans le CRM.</span>
+                ) : (
+                  `Sélectionnez un contact pour pré-remplir automatiquement les coordonnées (${contacts.length} contact(s) disponible(s))`
+                )}
+              </p>
+            </div>
+
+            <div className="border-t border-gray-200 pt-4"></div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -541,22 +668,23 @@ export default function QuotesPage() {
               />
             </div>
 
+            <div className="border-t border-gray-200 pt-4"></div>
+
+            {/* Service Calculator */}
+            <ServiceCalculator
+              onCalculate={(data) => {
+                setCalculatorData(data);
+                // Mettre à jour le subtotal avec le total mensuel
+                setFormData(prev => ({
+                  ...prev,
+                  subtotal: data.totals.monthlyTotal.toString(),
+                }));
+              }}
+            />
+
+            <div className="border-t border-gray-200 pt-4"></div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Montant HT (€) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  step="0.01"
-                  value={formData.subtotal}
-                  onChange={(e) => setFormData({ ...formData, subtotal: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="1000.00"
-                />
-              </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Taux TVA (%)
@@ -571,9 +699,6 @@ export default function QuotesPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Validité (jours)
@@ -586,6 +711,9 @@ export default function QuotesPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Contact associé

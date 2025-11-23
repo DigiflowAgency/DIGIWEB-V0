@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const category = searchParams.get('category');
 
-    const articles = await prisma.knowledgeArticle.findMany({
+    const articles = await prisma.knowledge_articles.findMany({
       where: {
         ...(search && {
           OR: [

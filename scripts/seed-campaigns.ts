@@ -156,8 +156,8 @@ async function main() {
 
   let created = 0;
   for (const campaign of campaigns) {
-    await prisma.campaign.create({
-      data: campaign,
+    await prisma.campaigns.create({
+      data: campaign as any,
     });
     created++;
   }

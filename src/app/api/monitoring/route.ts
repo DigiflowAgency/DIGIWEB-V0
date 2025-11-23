@@ -3,9 +3,9 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const monitoring = await prisma.clientMonitoring.findMany({
+    const monitoring = await prisma.client_monitoring.findMany({
       include: {
-        client: {
+        clients: {
           select: {
             id: true,
             name: true,
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { clientId, domain, uptime, cpu, memory, ssl, lastBackup, nps, status } = body;
 
-    const monitoring = await prisma.clientMonitoring.create({
+    const monitoring = await prisma.client_monitoring.create({
       data: {
         clientId,
         domain,
@@ -41,9 +41,9 @@ export async function POST(request: NextRequest) {
         lastBackup,
         nps,
         status,
-      },
+      } as any,
       include: {
-        client: true,
+        clients: true,
       },
     });
 

@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 // Fonction pour générer un numéro de ticket unique
 async function generateTicketNumber(): Promise<string> {
   const year = new Date().getFullYear();
-  const count = await prisma.ticket.count({
+  const count = await prisma.tickets.count({
     where: { number: { startsWith: `TK-${year}-` } },
   });
   const nextNumber = (count + 1).toString().padStart(3, '0');
@@ -16,7 +16,7 @@ async function main() {
   console.log('Seeding tickets...');
 
   // Récupérer un utilisateur existant
-  const user = await prisma.user.findFirst();
+  const user = await prisma.users.findFirst();
   if (!user) {
     throw new Error('Aucun utilisateur trouvé. Veuillez d\'abord créer un utilisateur.');
   }
@@ -153,13 +153,13 @@ async function main() {
   let created = 0;
   for (const ticketData of ticketsData) {
     const number = await generateTicketNumber();
-    await prisma.ticket.create({
+    await prisma.tickets.create({
       data: {
         ...ticketData,
         number,
         createdById: user.id,
         assignedToId: ticketData.status !== 'OUVERT' ? user.id : null,
-      },
+      } as any,
     });
     created++;
   }

@@ -7,12 +7,12 @@ async function main() {
   console.log('🌱 Seeding contacts...');
 
   // Vérifier qu'un utilisateur existe pour assignation
-  let user = await prisma.user.findFirst();
+  let user = await prisma.users.findFirst();
 
   if (!user) {
     console.log('Création d\'un utilisateur pour assigner les contacts...');
     const hashedPassword = await bcrypt.hash('Demo2024!', 10);
-    user = await prisma.user.create({
+    user = await prisma.users.create({
       data: {
         email: 'alex@digiweb.fr',
         password: hashedPassword,
@@ -20,12 +20,12 @@ async function main() {
         lastName: 'Martin',
         role: 'ADMIN' as const,
         status: 'ACTIVE' as const,
-      },
+      } as any,
     });
   }
 
   // Créer quelques entreprises
-  const company1 = await prisma.company.create({
+  const company1 = await prisma.companies.create({
     data: {
       name: 'TechCorp France',
       siret: '12345678900123',
@@ -34,10 +34,10 @@ async function main() {
       city: 'Paris',
       postalCode: '75001',
       country: 'France',
-    },
+    } as any,
   });
 
-  const company2 = await prisma.company.create({
+  const company2 = await prisma.companies.create({
     data: {
       name: 'Solutions Digitales',
       siret: '98765432100456',
@@ -46,10 +46,10 @@ async function main() {
       city: 'Lyon',
       postalCode: '69002',
       country: 'France',
-    },
+    } as any,
   });
 
-  const company3 = await prisma.company.create({
+  const company3 = await prisma.companies.create({
     data: {
       name: 'Innovation Web',
       siret: '55544433322211',
@@ -58,11 +58,11 @@ async function main() {
       city: 'Toulouse',
       postalCode: '31000',
       country: 'France',
-    },
+    } as any,
   });
 
   // Créer des contacts
-  const contacts: Prisma.ContactUncheckedCreateInput[] = [
+  const contacts = [
     {
       firstName: 'Sophie',
       lastName: 'Dubois',
@@ -160,7 +160,7 @@ async function main() {
   ];
 
   for (const contactData of contacts) {
-    await prisma.contact.create({ data: contactData });
+    await prisma.contacts.create({ data: contactData as any });
   }
 
   console.log(`✅ ${contacts.length} contacts créés avec succès`);

@@ -1,0 +1,707 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-11-10",
+  "channels": [
+    {
+      "id": "site-web",
+      "channelName": "Site Web",
+      "gradient": "from-violet to-purple-600",
+      "textColor": "text-violet",
+      "icon": "Globe",
+      "offers": [
+        {
+          "title": "Site Vitrine One Page",
+          "id": "site-landing",
+          "icon": "Target",
+          "price": "3 200€",
+          "priceValue": 3200,
+          "badge": "Conversion",
+          "features": [
+            "Page ultra-optimisée à la conversion",
+            "Design moderne et attrayant",
+            "Copywriting persuasif",
+            "Design moderne, sur-mesure & responsive",
+            "Formulaire de contact",
+            "Tracking de base"
+          ],
+          "salesPitch": "Convertissez vos visiteurs en clients dès la première impression !"
+        },
+        {
+          "title": "Site Web Premium SEO",
+          "id": "site-vitrine",
+          "icon": "Globe",
+          "price": "6 933,33€",
+          "priceValue": 6933.33,
+          "badge": "Fondation",
+          "features": [
+            "Design moderne, sur-mesure & responsive",
+            "Analyse sémantique avancée",
+            "Structure SEO de base",
+            "Jusqu'à 10 pages optimisées en SEO",
+            "Jusqu'à 5 pages de services optimisées",
+            "Connexion Google Analytics et Search Console",
+            "Connexion API Google possible",
+            "Formulaire de contact",
+            "Tracking avancé"
+          ],
+          "salesPitch": "Soyez trouvé par vos clients avant vos concurrents !"
+        },
+        {
+          "title": "Site Web Prestige SEO",
+          "id": "site-prestige",
+          "icon": "Award",
+          "price": "10 466,67€",
+          "priceValue": 10466.67,
+          "badge": "Prestige",
+          "recommended": true,
+          "features": [
+            "Design moderne, sur-mesure & responsive",
+            "Analyse sémantique avancée",
+            "Structure SEO de base",
+            "Jusqu'à 100 pages optimisées en SEO",
+            "Jusqu'à 20 pages de services optimisées",
+            "Connexion Google Analytics et Search Console",
+            "Connexion API Google possible",
+            "Formulaire de contact",
+            "Tracking avancé"
+          ],
+          "salesPitch": "Dominez votre marché avec une présence web d'exception !"
+        }
+      ]
+    },
+    {
+      "id": "meta-ads",
+      "channelName": "Meta Ads",
+      "gradient": "from-orange to-red-500",
+      "textColor": "text-orange",
+      "icon": "Target",
+      "offers": [
+        {
+          "title": "Campagne Publicitaires Meta Ads",
+          "id": "meta-setup",
+          "icon": "Rocket",
+          "price": "2 100€",
+          "priceValue": 2100,
+          "badge": "Démarrage",
+          "recommended": true,
+          "features": [
+            "Création du Portefeuille Business (Page Facebook si nécessaire",
+            "Paramétrage du compte publicitaire",
+            "Paramétrage de l'élément de conversion (Pixel Meta)",
+            "Création d'une campagne, 3 ensembles et 5 publicités",
+            "Étude de l'audience qualifiée",
+            "Création de 5 visuels",
+            "Étude des stratégies publicitaires efficientes"
+          ],
+          "salesPitch": "1 client tous les 12€ dépensés en moyenne, ça vous tente ?"
+        },
+        {
+          "title": "Gestion Mensuelle Meta Ads",
+          "id": "meta-monthly",
+          "icon": "Target",
+          "price": "533,33€",
+          "priceValue": 533.33,
+          "period": "/mois",
+          "badge": "Croissance",
+          "features": [
+            "Optimisation hebdomadaire",
+            "Nouvelles audiences",
+            "A/B testing continu",
+            "Reporting mensuel avec recommandations"
+          ],
+          "salesPitch": "Multipliez vos résultats chaque mois sans lever le petit doigt !"
+        },
+        {
+          "title": "Pack 25 Visuels Publicitaires",
+          "id": "meta-visuals",
+          "icon": "Sparkles",
+          "price": "1 280€",
+          "priceValue": 1280,
+          "badge": "Créativité",
+          "features": [
+            "25 visuels professionnels",
+            "Formats adaptés Meta",
+            "Textes accrocheurs inclus",
+            "Révisions illimitées"
+          ],
+          "salesPitch": "Des visuels qui stoppent le scroll et génèrent des clics !"
+        },
+        {
+          "title": "Création Avancée Meta Ads",
+          "id": "meta-scale",
+          "icon": "TrendingUp",
+          "price": "3200€",
+          "priceValue": 3200,
+          "badge": "Performance",
+          "features": [
+            "Création jusqu'à 5 campagnes supplémentaires",
+            "Création jusqu'à 5 ensembles (audiences) supplémentaires",
+            "Retargeting avancé",
+            "Lookalike ultra-ciblées"
+          ],
+          "salesPitch": "Passez à la vitesse supérieure et saturez votre agenda !"
+        },
+        {
+          "title": "Création de contenus viraux",
+          "id": "meta-viral-content",
+          "icon": "Video",
+          "price": "2 250€",
+          "priceValue": 2250,
+          "badge": "Viralité",
+          "features": [
+            "5 vidéos short professionnelles",
+            "Formats adaptés aux réseaux sociaux",
+            "Suivre les tendances actuelles",
+            "Optimisées pour la conversion Meta Ads",
+            "Hooks accrocheurs et storytelling",
+            "Sous-titres et call-to-action"
+          ],
+          "salesPitch": "Touchez des millions de personnes pour quelques euros seulement !"
+        }
+      ]
+    },
+    {
+      "id": "google-ads",
+      "channelName": "Google Ads",
+      "gradient": "from-red-500 to-orange",
+      "textColor": "text-red-500",
+      "icon": "Search",
+      "offers": [
+        {
+          "title": "Campagne Publicitaire Google Ads",
+          "id": "google-setup",
+          "icon": "Rocket",
+          "price": "1 100€",
+          "priceValue": 1100,
+          "badge": "Démarrage",
+          "features": [
+            "Création du Compte Google Ads Pro",
+            "Analyse des mots-clés et Annonces Search optimisées",
+            "Paramétrage de l'élément de conversion (Pixel Google)",
+            "Création d'une campagne complète"
+          ],
+          "salesPitch": "Captez vos clients au moment exact où ils cherchent vos services !"
+        },
+        {
+          "title": "Gestion Mensuelle Google Ads",
+          "id": "google-monthly",
+          "icon": "Search",
+          "price": "320€",
+          "priceValue": 320,
+          "period": "/mois",
+          "badge": "Performance",
+          "recommended": true,
+          "features": [
+            "Optimisation des enchères",
+            "Extensions d'annonces",
+            "Ajustements hebdomadaires"
+          ],
+          "salesPitch": "Réduisez vos coûts d'acquisition de 40% en moyenne !"
+        },
+        {
+          "title": "Campagne Display & Remarketing",
+          "id": "google-display",
+          "icon": "Users",
+          "price": "2100€",
+          "priceValue": 2100,
+          "badge": "Notoriété",
+          "features": [
+            "Bannières professionnelles",
+            "Réseau Display Google",
+            "Remarketing stratégique",
+            "Audiences affinitaires",
+            "Création jusqu'à 5 campagnes supplémentaires",
+            "Création jusqu'à 5 ensembles (audiences) supplémentaires"
+          ],
+          "salesPitch": "Reconquérez 70% des visiteurs qui sont partis sans acheter !"
+        }
+      ]
+    },
+    {
+      "id": "seo",
+      "channelName": "SEO",
+      "gradient": "from-green-500 to-emerald-600",
+      "textColor": "text-green-500",
+      "icon": "TrendingUp",
+      "offers": [
+        {
+          "title": "SEO Local",
+          "id": "seo-local-pack",
+          "icon": "MapPin",
+          "price": "4 800€",
+          "priceValue": 4800,
+          "badge": "Local",
+          "features": [
+            "Jusqu'à 50 pages SEO optimisées",
+            "Optimisation technique complète",
+            "Analyse sémantique des mots-clés",
+            "Structure SEO locale",
+            "Connexion Google Analytics et Search Console"
+          ],
+          "salesPitch": "Apparaissez en premier quand vos clients locaux cherchent vos services !"
+        },
+        {
+          "title": "Google My Business",
+          "id": "seo-gmb",
+          "icon": "MapPin",
+          "price": "400€",
+          "priceValue": 400,
+          "badge": "Visibilité",
+          "features": [
+            "Optimisation ou création de la fiche Google"
+          ],
+          "salesPitch": "Transformez votre fiche Google en machine à générer des appels !"
+        },
+        {
+          "title": "SEO Régional",
+          "id": "seo-regional",
+          "icon": "Globe",
+          "price": "17 500€",
+          "priceValue": 17500,
+          "badge": "TOP",
+          "recommended": true,
+          "features": [
+            "Jusqu'à 500 pages SEO optimisées",
+            "Stratégie de contenu avancée",
+            "Analyse sémantique approfondie",
+            "Structure SEO régionale complète",
+            "Connexion Google Analytics et Search Console"
+          ],
+          "salesPitch": "Dominez votre marché et multipliez votre chiffre d'affaires !"
+        },
+        {
+          "title": "SEO National",
+          "id": "seo-national",
+          "icon": "Globe",
+          "price": "Sur devis",
+          "priceValue": 0,
+          "badge": "National",
+          "features": [
+            "Jusqu'à 5000 pages SEO optimisées",
+            "Stratégie SEO nationale complète",
+            "Analyse concurrentielle approfondie",
+            "Connexion Google Analytics et Search Console"
+          ],
+          "salesPitch": "Devenez la référence nationale de votre secteur !"
+        }
+      ]
+    },
+    {
+      "id": "creation-contenu",
+      "channelName": "Création de Contenu",
+      "gradient": "from-pink-500 to-purple-500",
+      "textColor": "text-pink-500",
+      "icon": "Camera",
+      "offers": [
+        {
+          "title": "Shooting Photos Pro",
+          "id": "content-photos",
+          "icon": "Camera",
+          "price": "900€",
+          "priceValue": 900,
+          "badge": "Image",
+          "features": [
+            "Demi-journée shooting",
+            "100+ photos HD",
+            "Retouches professionnelles",
+            "Droits d'utilisation illimités"
+          ],
+          "salesPitch": "Des photos qui racontent votre histoire et attirent les clients !"
+        },
+        {
+          "title": "Pack 10 Vidéos Courtes",
+          "id": "content-videos-short",
+          "icon": "Video",
+          "price": "3 200€",
+          "priceValue": 3200,
+          "badge": "Viralité",
+          "recommended": true,
+          "features": [
+            "10 vidéos 15-60s",
+            "Formats Reels/TikTok/Stories",
+            "Montage dynamique",
+            "Sous-titres & musique"
+          ],
+          "salesPitch": "Devenez viral et explosez votre notoriété en quelques posts !"
+        },
+        {
+          "title": "Vidéo Longue Format",
+          "id": "content-video-long",
+          "icon": "Film",
+          "price": "2 400€",
+          "priceValue": 2400,
+          "badge": "Storytelling",
+          "features": [
+            "Vidéo 3-5 minutes",
+            "Scénario & storyboard",
+            "Tournage professionnel",
+            "Post-production complète"
+          ],
+          "salesPitch": "Racontez votre histoire et créez une connexion émotionnelle unique !"
+        }
+      ]
+    },
+    {
+      "id": "reseaux-sociaux",
+      "channelName": "Réseaux Sociaux",
+      "gradient": "from-blue-500 to-cyan-500",
+      "textColor": "text-blue-500",
+      "icon": "Users",
+      "offers": [
+        {
+          "title": "Setup Réseaux Sociaux Pro",
+          "id": "social-setup",
+          "icon": "Settings",
+          "price": "800€",
+          "priceValue": 800,
+          "badge": "Démarrage",
+          "features": [
+            "3 profils optimisés",
+            "Identité visuelle cohérente",
+            "Bio & descriptions SEO",
+            "Stratégie de contenu"
+          ],
+          "salesPitch": "Transformez vos réseaux sociaux en véritables outils de vente !"
+        },
+        {
+          "title": "Gestion Instagram & Facebook",
+          "id": "social-instagram",
+          "icon": "Camera",
+          "price": "900€",
+          "priceValue": 900,
+          "period": "/mois",
+          "badge": "Croissance",
+          "recommended": true,
+          "features": [
+            "8 posts/mois",
+            "Création contenu visuel",
+            "Engagement communauté",
+            "Growth strategy"
+          ],
+          "salesPitch": "Construisez une communauté engagée qui achète vos produits !"
+        },
+        {
+          "title": "Gestion LinkedIn B2B",
+          "id": "social-linkedin",
+          "icon": "Users",
+          "price": "700€",
+          "priceValue": 700,
+          "period": "/mois",
+          "badge": "B2B",
+          "features": [
+            "8 posts stratégiques/mois",
+            "Articles de fond",
+            "Prospection ciblée",
+            "Lead generation"
+          ],
+          "salesPitch": "Attirez des clients B2B qualifiés pendant que vous dormez !"
+        },
+        {
+          "title": "Stratégie TikTok",
+          "id": "social-tiktok",
+          "icon": "Video",
+          "price": "1 150€",
+          "priceValue": 1150,
+          "period": "/mois",
+          "badge": "Viral",
+          "features": [
+            "15 vidéos courtes/mois",
+            "Trends & challenges",
+            "Montage professionnel",
+            "Croissance organique"
+          ],
+          "salesPitch": "Touchez la génération qui achète le plus en ligne aujourd'hui !"
+        }
+      ]
+    },
+    {
+      "id": "netlinking",
+      "channelName": "Netlinking",
+      "gradient": "from-violet to-purple-600",
+      "textColor": "text-violet",
+      "icon": "Link2",
+      "offers": [
+        {
+          "title": "Pack 100 Backlinks Qualité",
+          "id": "netlink-pack10",
+          "icon": "Link2",
+          "price": "6000€",
+          "priceValue": 6000,
+          "badge": "Starter",
+          "features": [
+            "100 liens DA 20+",
+            "Sites thématiques",
+            "Ancres optimisées",
+            "Rapports détaillés"
+          ],
+          "salesPitch": "Grimpez dans Google et volez des clients à vos concurrents !"
+        },
+        {
+          "title": "Pack 100 Backlinks Premium",
+          "id": "netlink-pack30",
+          "icon": "Award",
+          "price": "10 000€",
+          "priceValue": 10000,
+          "badge": "Power",
+          "recommended": true,
+          "features": [
+            "100 liens DA 35+",
+            "Mix de sources variées",
+            "Articles 800+ mots",
+            "Boost autorité"
+          ],
+          "salesPitch": "Devenez une autorité dans votre domaine et dominez Google !"
+        },
+        {
+          "title": "Netlinking Mensuel",
+          "id": "netlink-monthly",
+          "icon": "TrendingUp",
+          "price": "600€",
+          "priceValue": 600,
+          "period": "/mois",
+          "badge": "Croissance",
+          "features": [
+            "10 liens/mois",
+            "Stratégie long terme",
+            "Diversification sources",
+            "Suivi positions"
+          ],
+          "salesPitch": "Construisez votre empire SEO mois après mois !"
+        }
+      ]
+    },
+    {
+      "id": "mailing",
+      "channelName": "Email Marketing",
+      "gradient": "from-amber-500 to-orange",
+      "textColor": "text-amber-500",
+      "icon": "Mail",
+      "offers": [
+        {
+          "title": "Création d'une base de données qualifiés",
+          "id": "mail-database",
+          "icon": "Database",
+          "price": "Sur devis",
+          "priceValue": 0,
+          "badge": "Database",
+          "features": [
+            "Étude du marché cible",
+            "Scrap des mails professionnels qualifiés",
+            "Nettoyage des bounces",
+            "Gestion de la base de données"
+          ],
+          "salesPitch": "Une base de contacts ultra-qualifiée pour vos campagnes !"
+        },
+        {
+          "title": "Setup Email Marketing",
+          "id": "mail-setup",
+          "icon": "Settings",
+          "price": "600€",
+          "priceValue": 600,
+          "badge": "Foundation",
+          "features": [
+            "Plateforme emailing configurée",
+            "Templates professionnels",
+            "Segmentation de base",
+            "Premier scénario automatisé"
+          ],
+          "salesPitch": "Transformez vos emails en machine à vendre automatique !"
+        },
+        {
+          "title": "Automatisation Email Avancée",
+          "id": "mail-automation",
+          "icon": "Zap",
+          "price": "1 200€",
+          "priceValue": 1200,
+          "badge": "Automation",
+          "recommended": true,
+          "features": [
+            "5 scénarios automatisés",
+            "Welcome series",
+            "Abandon de panier",
+            "Réengagement clients"
+          ],
+          "salesPitch": "Vendez pendant que vous dormez grâce à l'automation !"
+        },
+        {
+          "title": "Gestion Mensuelle Emailing",
+          "id": "mail-monthly",
+          "icon": "Mail",
+          "price": "400€",
+          "priceValue": 400,
+          "period": "/mois",
+          "badge": "Régularité",
+          "features": [
+            "4 campagnes/mois",
+            "Rédaction & design",
+            "A/B testing",
+            "Optimisation continue"
+          ],
+          "salesPitch": "Générez des ventes régulières avec vos clients existants !"
+        },
+        {
+          "title": "Newsletter Premium",
+          "id": "mail-newsletter",
+          "icon": "FileText",
+          "price": "800€",
+          "priceValue": 800,
+          "period": "/mois",
+          "badge": "Content",
+          "features": [
+            "Newsletter hebdomadaire",
+            "Contenu de qualité",
+            "Design sur-mesure",
+            "Analyse performance"
+          ],
+          "salesPitch": "Restez dans l'esprit de vos clients et multipliez les achats répétés !"
+        }
+      ]
+    },
+    {
+      "id": "influence",
+      "channelName": "Marketing d'Influence",
+      "gradient": "from-rose-500 to-pink-600",
+      "textColor": "text-rose-500",
+      "icon": "Star",
+      "offers": [
+        {
+          "title": "Inscription BeHype",
+          "id": "influence-behype",
+          "icon": "Star",
+          "price": "189€",
+          "priceValue": 189,
+          "badge": "SaaS",
+          "features": [
+            "Accès plateforme BeHype",
+            "Profil établissement",
+            "Réception demandes"
+          ],
+          "salesPitch": "Accédez à des milliers d'influenceurs gratuitement !"
+        },
+        {
+          "title": "Campagne Influence Ponctuelle",
+          "id": "influence-campaign",
+          "icon": "Users",
+          "price": "7 000€",
+          "priceValue": 7000,
+          "badge": "Impact",
+          "recommended": true,
+          "features": [
+            "3-5 micro-influenceurs ciblés",
+            "Brief & négociation",
+            "Suivi campagne",
+            "Reporting ROI"
+          ],
+          "salesPitch": "Touchez des dizaines de milliers de clients potentiels en un clic !"
+        },
+        {
+          "title": "UGC Creators (x5)",
+          "id": "influence-ugc",
+          "icon": "Camera",
+          "price": "3 200€",
+          "priceValue": 3200,
+          "badge": "Contenu",
+          "features": [
+            "5 créateurs UGC",
+            "30 contenus authentiques",
+            "Droits d'utilisation",
+            "Boost crédibilité"
+          ],
+          "salesPitch": "Du contenu authentique qui convertit 3x mieux que la pub classique !"
+        },
+        {
+          "title": "Stratégie Influence Long Terme",
+          "id": "influence-strategy",
+          "icon": "TrendingUp",
+          "price": "Sur devis",
+          "priceValue": 0,
+          "badge": "Ambassadeurs",
+          "features": [
+            "Programme ambassadeurs",
+            "Partenariats réguliers",
+            "Événements influence",
+            "Notoriété maximale"
+          ],
+          "salesPitch": "Créez un réseau d'ambassadeurs qui vend pour vous !"
+        }
+      ]
+    },
+    {
+      "id": "maintenance",
+      "channelName": "Maintenance & Suivi",
+      "gradient": "from-violet to-orange",
+      "textColor": "text-orange",
+      "icon": "Shield",
+      "offers": [
+        {
+          "title": "Hébergement & Maintenance",
+          "id": "maintenance-hosting",
+          "icon": "Shield",
+          "price": "129€",
+          "priceValue": 129,
+          "period": "/mois",
+          "badge": "Essentiel",
+          "features": [
+            "Hébergement haute performance",
+            "Maintenance du site web",
+            "Mises à jour régulières",
+            "Sauvegardes quotidiennes"
+          ],
+          "salesPitch": "Votre site web sécurisé et performant, sans vous en soucier !"
+        },
+        {
+          "title": "Formule Accompagnement",
+          "id": "maintenance-accompagnement",
+          "icon": "Heart",
+          "price": "389€",
+          "priceValue": 389,
+          "period": "/mois",
+          "badge": "Croissance",
+          "features": [
+            "Tout en Hébergement & Maintenance +",
+            "Suivi personnalisé de votre activité",
+            "Accompagnement stratégique",
+            "Recommandations semestrielle",
+            "Support prioritaire"
+          ],
+          "salesPitch": "Un accompagnement dédié pour faire grandir votre business !"
+        },
+        {
+          "title": "Formule Totale",
+          "id": "maintenance-totale",
+          "icon": "Rocket",
+          "price": "724€",
+          "priceValue": 724,
+          "period": "/mois",
+          "badge": "Excellence",
+          "recommended": true,
+          "features": [
+            "Tout en Accompagnement +",
+            "Optimisation SEO quotidienne",
+            "Gestion SEO complète",
+            "Suivi analytics avancé",
+            "Reporting détaillé",
+            "Conseils stratégiques"
+          ],
+          "salesPitch": "Concentrez-vous sur votre métier, on gère tout le reste !"
+        },
+        {
+          "title": "Accompagnement Sur-Mesure",
+          "id": "maintenance-custom",
+          "icon": "Sparkles",
+          "price": "Sur devis",
+          "priceValue": 0,
+          "badge": "Premium",
+          "features": [
+            "Solution 100% personnalisée",
+            "Équipe dédiée à votre projet",
+            "Services à la carte",
+            "Support VIP illimité",
+            "Stratégie digitale complète"
+          ],
+          "salesPitch": "Une solution unique pour des besoins exceptionnels !"
+        }
+      ]
+    }
+  ]
+}

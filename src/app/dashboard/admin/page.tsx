@@ -166,10 +166,10 @@ export default function AdminPage() {
 
     // Conversions (deals gagnés ce mois)
     const thisMonthConversions = deals.filter(d => {
-      return d.stage === 'GAGNE' && d.closedAt && new Date(d.closedAt) >= monthStart;
+      return d.productionStage === 'ENCAISSE' && d.closedAt && new Date(d.closedAt) >= monthStart;
     }).length;
     const lastMonthConversions = deals.filter(d => {
-      if (!d.closedAt || d.stage !== 'GAGNE') return false;
+      if (!d.closedAt || d.productionStage !== 'ENCAISSE') return false;
       const date = new Date(d.closedAt);
       return date >= prevMonthStart && date < monthStart;
     }).length || 1;

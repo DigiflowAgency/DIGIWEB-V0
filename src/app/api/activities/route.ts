@@ -38,16 +38,16 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: Prisma.ActivityWhereInput = {};
+    const where: Prisma.activitiesWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
       where.OR = [
         { title: { contains: search } },
         { description: { contains: search } },
-        { contact: { firstName: { contains: search } } },
-        { contact: { lastName: { contains: search } } },
-        { deal: { title: { contains: search } } },
+        { contacts: { firstName: { contains: search } } },
+        { contacts: { lastName: { contains: search } } },
+        { deals: { title: { contains: search } } },
       ];
     }
 
@@ -77,10 +77,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les activités
-    const activities = await prisma.activity.findMany({
+    const activities = await prisma.activities.findMany({
       where,
       include: {
-        contact: {
+        contacts: {
           select: {
             id: true,
             firstName: true,
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
             email: true,
           },
         },
-        deal: {
+        deals: {
           select: {
             id: true,
             title: true,
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
             stage: true,
           },
         },
-        assignedTo: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -118,10 +118,10 @@ export async function GET(request: NextRequest) {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const stats = {
-      total: await prisma.activity.count({ where }),
-      planifiees: await prisma.activity.count({ where: { ...where, status: 'PLANIFIEE' } }),
-      completees: await prisma.activity.count({ where: { ...where, status: 'COMPLETEE' } }),
-      aujourdhui: await prisma.activity.count({
+      total: await prisma.activities.count({ where }),
+      planifiees: await prisma.activities.count({ where: { ...where, status: 'PLANIFIEE' } }),
+      completees: await prisma.activities.count({ where: { ...where, status: 'COMPLETEE' } }),
+      aujourdhui: await prisma.activities.count({
         where: {
           ...where,
           scheduledAt: {
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier que le contact existe (s'il est fourni)
     if (validatedData.contactId) {
-      const contact = await prisma.contact.findUnique({
+      const contact = await prisma.contacts.findUnique({
         where: { id: validatedData.contactId },
       });
 
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier que le deal existe (s'il est fourni)
     if (validatedData.dealId) {
-      const deal = await prisma.deal.findUnique({
+      const deal = await prisma.deals.findUnique({
         where: { id: validatedData.dealId },
       });
 
@@ -187,14 +187,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer l'activité
-    const activity = await prisma.activity.create({
+    const activity = await prisma.activities.create({
       data: {
         ...validatedData,
         scheduledAt: new Date(validatedData.scheduledAt),
         assignedToId: session.user.id, // Assigner au user connecté
-      },
+      } as any,
       include: {
-        contact: {
+        contacts: {
           select: {
             id: true,
             firstName: true,
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
             email: true,
           },
         },
-        deal: {
+        deals: {
           select: {
             id: true,
             title: true,
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
             stage: true,
           },
         },
-        assignedTo: {
+        users: {
           select: {
             id: true,
             firstName: true,

@@ -43,7 +43,7 @@ export default function TrackingPage() {
 
       // Deals gagnés ce mois
       const monthDeals = deals.filter(d => {
-        if (d.stage !== 'GAGNE' || !d.closedAt) return false;
+        if (d.productionStage !== 'ENCAISSE' || !d.closedAt) return false;
         const dealDate = new Date(d.closedAt);
         return dealDate.getMonth() === monthIndex && dealDate.getFullYear() === year;
       });
@@ -117,13 +117,13 @@ export default function TrackingPage() {
     if (!deals) return [];
 
     const dealsByOwner = deals.reduce((acc, deal) => {
-      if (!deal.owner || deal.stage !== 'GAGNE') return acc;
-      const ownerId = deal.owner.id;
+      if (!deal.users || deal.productionStage !== 'ENCAISSE') return acc;
+      const ownerId = deal.users.id;
 
       if (!acc[ownerId]) {
         acc[ownerId] = {
           id: ownerId,
-          name: `${deal.owner.firstName} ${deal.owner.lastName}`,
+          name: `${deal.users.firstName} ${deal.users.lastName}`,
           deals: [],
         };
       }

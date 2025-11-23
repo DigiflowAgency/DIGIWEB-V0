@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: Prisma.ContactWhereInput = {};
+    const where: Prisma.contactsWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         { firstName: { contains: search } },
         { lastName: { contains: search } },
         { email: { contains: search } },
-        { company: { name: { contains: search } } },
+        { companies: { name: { contains: search } } },
       ];
     }
 
@@ -58,17 +58,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les contacts
-    const contacts = await prisma.contact.findMany({
+    const contacts = await prisma.contacts.findMany({
       where,
       include: {
-        company: {
+        companies: {
           select: {
             id: true,
             name: true,
             siret: true,
           },
         },
-        assignedTo: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -86,9 +86,9 @@ export async function GET(request: NextRequest) {
 
     // Calculer des stats
     const stats = {
-      total: await prisma.contact.count({ where }),
-      active: await prisma.contact.count({ where: { ...where, status: { in: ['PROSPECT', 'CLIENT'] } } }),
-      leads: await prisma.contact.count({ where: { ...where, status: 'LEAD' } }),
+      total: await prisma.contacts.count({ where }),
+      active: await prisma.contacts.count({ where: { ...where, status: { in: ['PROSPECT', 'CLIENT'] } } }),
+      leads: await prisma.contacts.count({ where: { ...where, status: 'LEAD' } }),
     };
 
     return NextResponse.json({
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier si l'email existe déjà
     if (validatedData.email) {
-      const existingContact = await prisma.contact.findFirst({
+      const existingContact = await prisma.contacts.findFirst({
         where: { email: validatedData.email },
       });
 
@@ -132,14 +132,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer le contact
-    const contact = await prisma.contact.create({
+    const contact = await prisma.contacts.create({
       data: {
         ...validatedData,
         assignedToId: session.user.id, // Assigner au user connecté
-      },
+      } as any,
       include: {
-        company: true,
-        assignedTo: {
+        companies: true,
+        users: {
           select: {
             id: true,
             firstName: true,

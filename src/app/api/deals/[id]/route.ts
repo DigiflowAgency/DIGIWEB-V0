@@ -11,11 +11,18 @@ const dealUpdateSchema = z.object({
   description: z.string().optional().nullable(),
   value: z.number().positive().optional(),
   currency: z.string().optional(),
-  stage: z.enum(['DECOUVERTE', 'QUALIFICATION', 'PROPOSITION', 'NEGOCIATION', 'GAGNE', 'PERDU']).optional(),
+  stage: z.enum(['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING', 'REFUSE']).optional(),
+  productionStage: z.enum(['PREMIER_RDV', 'EN_PRODUCTION', 'LIVRE', 'ENCAISSE']).optional().nullable(),
   probability: z.number().int().min(0).max(100).optional(),
-  expectedCloseDate: z.string().datetime().optional().nullable(),
+  expectedCloseDate: z.string().optional().nullable(),
   contactId: z.string().optional().nullable(),
   companyId: z.string().optional().nullable(),
+  ownerId: z.string().optional(),
+  product: z.string().optional().nullable(),
+  origin: z.string().optional().nullable(),
+  emailReminderSent: z.string().optional().nullable(),
+  smsReminderSent: z.string().optional().nullable(),
+  comments: z.string().optional().nullable(),
 });
 
 type RouteContext = {
@@ -33,10 +40,10 @@ export async function GET(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const deal = await prisma.deal.findUnique({
+    const deal = await prisma.deals.findUnique({
       where: { id: params.id },
       include: {
-        contact: {
+        contacts: {
           select: {
             id: true,
             firstName: true,
@@ -46,7 +53,7 @@ export async function GET(
             position: true,
           },
         },
-        company: {
+        companies: {
           select: {
             id: true,
             name: true,
@@ -54,7 +61,7 @@ export async function GET(
             siret: true,
           },
         },
-        owner: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -79,7 +86,7 @@ export async function GET(
             id: true,
             content: true,
             createdAt: true,
-            author: {
+            users: {
               select: {
                 id: true,
                 firstName: true,
@@ -90,7 +97,7 @@ export async function GET(
           orderBy: { createdAt: 'desc' },
           take: 10,
         },
-        products: {
+        deal_products: {
           select: {
             id: true,
             quantity: true,
@@ -130,7 +137,7 @@ export async function PUT(
     }
 
     // Vérifier que le deal existe
-    const existingDeal = await prisma.deal.findUnique({
+    const existingDeal = await prisma.deals.findUnique({
       where: { id: params.id },
     });
 
@@ -147,7 +154,7 @@ export async function PUT(
 
     // Vérifier que le contact existe (s'il est fourni)
     if (validatedData.contactId) {
-      const contact = await prisma.contact.findUnique({
+      const contact = await prisma.contacts.findUnique({
         where: { id: validatedData.contactId },
       });
 
@@ -161,7 +168,7 @@ export async function PUT(
 
     // Vérifier que l'entreprise existe (s'il est fournie)
     if (validatedData.companyId) {
-      const company = await prisma.company.findUnique({
+      const company = await prisma.companies.findUnique({
         where: { id: validatedData.companyId },
       });
 
@@ -174,10 +181,10 @@ export async function PUT(
     }
 
     // Préparer les données de mise à jour
-    const updateData: Prisma.DealUpdateInput = { ...validatedData };
+    const updateData: Prisma.dealsUpdateInput = { ...validatedData };
 
-    // Si le stage devient GAGNE ou PERDU, définir closedAt
-    if (validatedData.stage === 'GAGNE' || validatedData.stage === 'PERDU') {
+    // Si le stage devient CLOSING ou REFUSE, définir closedAt
+    if (validatedData.stage === 'CLOSING' || validatedData.stage === 'REFUSE') {
       if (!existingDeal.closedAt) {
         updateData.closedAt = new Date();
       }
@@ -189,11 +196,11 @@ export async function PUT(
     }
 
     // Mettre à jour le deal
-    const updatedDeal = await prisma.deal.update({
+    const updatedDeal = await prisma.deals.update({
       where: { id: params.id },
       data: updateData,
       include: {
-        contact: {
+        contacts: {
           select: {
             id: true,
             firstName: true,
@@ -201,14 +208,14 @@ export async function PUT(
             email: true,
           },
         },
-        company: {
+        companies: {
           select: {
             id: true,
             name: true,
             city: true,
           },
         },
-        owner: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -237,6 +244,63 @@ export async function PUT(
   }
 }
 
+// PATCH /api/deals/[id] - Mise à jour partielle d'un deal (ex: productionStage)
+export async function PATCH(
+  request: NextRequest,
+  { params }: RouteContext
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    // Vérifier que le deal existe
+    const existingDeal = await prisma.deals.findUnique({
+      where: { id: params.id },
+    });
+
+    if (!existingDeal) {
+      return NextResponse.json(
+        { error: 'Deal non trouvé' },
+        { status: 404 }
+      );
+    }
+
+    // Parser le body (mise à jour partielle)
+    const body = await request.json();
+
+    // Préparer les données de mise à jour
+    const updateData: any = {};
+
+    // Autoriser uniquement certains champs pour PATCH (productionStage principalement)
+    if ('productionStage' in body) {
+      updateData.productionStage = body.productionStage;
+    }
+
+    if ('stage' in body) {
+      updateData.stage = body.stage;
+    }
+
+    // Mettre à jour le deal
+    const updatedDeal = await prisma.deals.update({
+      where: { id: params.id },
+      data: {
+        ...updateData,
+        updatedAt: new Date(),
+      },
+    });
+
+    return NextResponse.json(updatedDeal);
+  } catch (error) {
+    console.error(`Erreur PATCH /api/deals/${params.id}:`, error);
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE /api/deals/[id] - Supprimer un deal
 export async function DELETE(
   request: NextRequest,
@@ -249,7 +313,7 @@ export async function DELETE(
     }
 
     // Vérifier que le deal existe
-    const existingDeal = await prisma.deal.findUnique({
+    const existingDeal = await prisma.deals.findUnique({
       where: { id: params.id },
     });
 
@@ -261,7 +325,7 @@ export async function DELETE(
     }
 
     // Supprimer le deal (les relations activities, notes, products seront supprimées en cascade)
-    await prisma.deal.delete({
+    await prisma.deals.delete({
       where: { id: params.id },
     });
 

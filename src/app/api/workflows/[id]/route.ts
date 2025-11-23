@@ -10,7 +10,7 @@ export async function PUT(
     const data = await request.json();
     const { id } = params;
 
-    const workflow = await prisma.workflow.update({
+    const workflow = await prisma.workflows.update({
       where: { id },
       data: {
         ...(data.name && { name: data.name }),
@@ -43,7 +43,7 @@ export async function DELETE(
   try {
     const { id } = params;
 
-    await prisma.workflow.delete({
+    await prisma.workflows.delete({
       where: { id },
     });
 

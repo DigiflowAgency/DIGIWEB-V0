@@ -189,8 +189,8 @@ async function main() {
 
   let created = 0;
   for (const reviewData of reviewsData) {
-    await prisma.review.create({
-      data: reviewData,
+    await prisma.reviews.create({
+      data: reviewData as any,
     });
     created++;
   }

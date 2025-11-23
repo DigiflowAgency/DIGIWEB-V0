@@ -8,30 +8,37 @@ export interface Deal {
   description: string | null;
   value: number;
   currency: string;
-  stage: 'DECOUVERTE' | 'QUALIFICATION' | 'PROPOSITION' | 'NEGOCIATION' | 'GAGNE' | 'PERDU';
+  stage: 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING' | 'REFUSE';
+  productionStage?: 'PREMIER_RDV' | 'EN_PRODUCTION' | 'LIVRE' | 'ENCAISSE' | null;
   probability: number;
   expectedCloseDate: Date | null;
   closedAt: Date | null;
   contactId: string | null;
-  contact?: {
+  contacts?: {
     id: string;
     firstName: string;
     lastName: string;
     email: string | null;
+    phone: string | null;
   } | null;
   companyId: string | null;
-  company?: {
+  companies?: {
     id: string;
     name: string;
     city: string | null;
   } | null;
   ownerId: string;
-  owner?: {
+  users?: {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
   };
+  product?: string | null;
+  origin?: string | null;
+  emailReminderSent?: string | null;
+  smsReminderSent?: string | null;
+  comments?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -53,11 +60,17 @@ export interface CreateDealData {
   description?: string | null;
   value: number;
   currency?: string;
-  stage?: 'DECOUVERTE' | 'QUALIFICATION' | 'PROPOSITION' | 'NEGOCIATION' | 'GAGNE' | 'PERDU';
+  stage?: 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING' | 'REFUSE';
+  productionStage?: 'PREMIER_RDV' | 'EN_PRODUCTION' | 'LIVRE' | 'ENCAISSE' | null;
   probability?: number;
   expectedCloseDate?: string | null;
   contactId?: string | null;
   companyId?: string | null;
+  product?: string | null;
+  origin?: string | null;
+  emailReminderSent?: string | null;
+  smsReminderSent?: string | null;
+  comments?: string | null;
 }
 
 // Fetcher function

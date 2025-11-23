@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const status = searchParams.get('status');
 
-    const workflows = await prisma.workflow.findMany({
+    const workflows = await prisma.workflows.findMany({
       where: {
         ...(search && {
           name: {
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
 
-    const workflow = await prisma.workflow.create({
+    const workflow = await prisma.workflows.create({
       data: {
         name: data.name,
         description: data.description,
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         config: JSON.stringify(data.config || {}),
         actionsCount: data.actionsCount || 0,
         status: data.status || 'ACTIVE',
-      },
+      } as any,
     });
 
     return NextResponse.json(workflow, { status: 201 });

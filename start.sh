@@ -209,13 +209,16 @@ fi
 # Créer/mettre à jour le .env selon le mode
 if [ "$USE_TUNNEL" == true ]; then
     # Mode tunnel : utiliser les credentials de production via tunnel
+    # URL encode le mot de passe (/ -> %2F, + -> %2B, = -> %3D)
+    DB_PASS_ENCODED=$(echo -n "$DB_PASS" | sed 's/\//%2F/g; s/+/%2B/g; s/=/%3D/g')
+
     cat > .env << EOF
 # ============================================
 # DEVELOPMENT WITH TUNNEL TO PRODUCTION DB
 # ============================================
 
-# Base de données via tunnel SSH
-DATABASE_URL="mysql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+# Base de données via tunnel SSH (mot de passe URL encodé - NE PAS MODIFIER)
+DATABASE_URL="mysql://${DB_USER}:${DB_PASS_ENCODED}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 
 # NextAuth.js Development
 NEXTAUTH_URL="http://localhost:${FRONTEND_PORT}"

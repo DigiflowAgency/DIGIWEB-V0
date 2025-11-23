@@ -41,7 +41,7 @@ export async function GET(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const company = await prisma.company.findUnique({
+    const company = await prisma.companies.findUnique({
       where: { id: params.id },
       include: {
         contacts: {
@@ -99,7 +99,7 @@ export async function PUT(
     }
 
     // Vérifier que l'entreprise existe
-    const existingCompany = await prisma.company.findUnique({
+    const existingCompany = await prisma.companies.findUnique({
       where: { id: params.id },
     });
 
@@ -116,7 +116,7 @@ export async function PUT(
 
     // Vérifier l'unicité du SIRET si changé
     if (validatedData.siret && validatedData.siret !== existingCompany.siret) {
-      const siretExists = await prisma.company.findFirst({
+      const siretExists = await prisma.companies.findFirst({
         where: {
           siret: validatedData.siret,
           id: { not: params.id },
@@ -132,7 +132,7 @@ export async function PUT(
     }
 
     // Mettre à jour l'entreprise
-    const updatedCompany = await prisma.company.update({
+    const updatedCompany = await prisma.companies.update({
       where: { id: params.id },
       data: validatedData,
       include: {
@@ -186,7 +186,7 @@ export async function DELETE(
     }
 
     // Vérifier que l'entreprise existe
-    const existingCompany = await prisma.company.findUnique({
+    const existingCompany = await prisma.companies.findUnique({
       where: { id: params.id },
       include: {
         contacts: true,
@@ -210,7 +210,7 @@ export async function DELETE(
     }
 
     // Supprimer l'entreprise
-    await prisma.company.delete({
+    await prisma.companies.delete({
       where: { id: params.id },
     });
 

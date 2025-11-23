@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
-    const where: Prisma.ReviewWhereInput = {};
+    const where: Prisma.reviewsWhereInput = {};
 
     // Filtre par texte de recherche
     if (search) {
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les avis
-    const reviews = await prisma.review.findMany({
+    const reviews = await prisma.reviews.findMany({
       where,
       orderBy: [
         { reviewDate: 'desc' },
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculer des stats
-    const allReviews = await prisma.review.findMany({ where });
+    const allReviews = await prisma.reviews.findMany({ where });
     const avgRating = allReviews.length > 0
       ? allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
       : 0;
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     const validatedData = reviewSchema.parse(body);
 
     // Convertir les dates string en Date
-    const data: Prisma.ReviewCreateInput = {
+    const data: any = {
       ...validatedData,
       reviewDate: new Date(validatedData.reviewDate),
     };
@@ -133,8 +133,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer l'avis
-    const review = await prisma.review.create({
-      data,
+    const review = await prisma.reviews.create({
+      data: data as any,
     });
 
     return NextResponse.json(review, { status: 201 });

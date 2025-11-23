@@ -35,7 +35,7 @@ export async function GET(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const post = await prisma.socialPost.findUnique({
+    const post = await prisma.social_posts.findUnique({
       where: { id: params.id },
     });
 
@@ -68,7 +68,7 @@ export async function PUT(
     }
 
     // Vérifier que le post existe
-    const existingPost = await prisma.socialPost.findUnique({
+    const existingPost = await prisma.social_posts.findUnique({
       where: { id: params.id },
     });
 
@@ -84,7 +84,7 @@ export async function PUT(
     const validatedData = socialPostUpdateSchema.parse(body);
 
     // Préparer les données de mise à jour
-    const updateData: Prisma.SocialPostUpdateInput = { ...validatedData };
+    const updateData: Prisma.social_postsUpdateInput = { ...validatedData };
 
     // Convertir les dates string en Date si elles existent
     if (validatedData.scheduledAt) {
@@ -100,7 +100,7 @@ export async function PUT(
     }
 
     // Mettre à jour le post
-    const updatedPost = await prisma.socialPost.update({
+    const updatedPost = await prisma.social_posts.update({
       where: { id: params.id },
       data: updateData,
     });
@@ -135,7 +135,7 @@ export async function DELETE(
     }
 
     // Vérifier que le post existe
-    const existingPost = await prisma.socialPost.findUnique({
+    const existingPost = await prisma.social_posts.findUnique({
       where: { id: params.id },
     });
 
@@ -147,7 +147,7 @@ export async function DELETE(
     }
 
     // Supprimer le post
-    await prisma.socialPost.delete({
+    await prisma.social_posts.delete({
       where: { id: params.id },
     });
 

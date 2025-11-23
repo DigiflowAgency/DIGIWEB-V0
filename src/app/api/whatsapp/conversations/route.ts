@@ -3,9 +3,9 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const conversations = await prisma.whatsAppConversation.findMany({
+    const conversations = await prisma.whatsapp_conversations.findMany({
       include: {
-        messages: {
+        whatsapp_messages: {
           orderBy: { sentAt: 'asc' },
         },
       },

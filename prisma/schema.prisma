@@ -1,6 +1,3 @@
-// This is your Prisma schema file for DigiWeb ERP
-// Learn more: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,74 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// USERS & AUTHENTICATION
-// ============================================
-
-enum Role {
-  ADMIN
-  VENTE
-  MARKETING
-  ACCOUNT_MANAGEMENT
-}
-
-enum UserStatus {
-  ACTIVE
-  INACTIVE
-  SUSPENDED
-}
-
-model User {
-  id            String      @id @default(cuid())
-  email         String      @unique
-  password      String      // Hashed
-  firstName     String
-  lastName      String
-  role          Role        @default(VENTE)
-  status        UserStatus  @default(ACTIVE)
-  avatar        String?
-  phone         String?
-  position      String?     // Poste
-  department    String?     // Département/Équipe
-  managerId     String?
-  manager       User?       @relation("ManagerToUsers", fields: [managerId], references: [id], onDelete: SetNull)
-  subordinates  User[]      @relation("ManagerToUsers")
-
-  // Objectifs (pour commerciaux)
-  monthlyGoal   Float?      // Objectif CA mensuel
-
-  // Métadonnées
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  lastLoginAt   DateTime?
-
-  // Relations
-  contacts      Contact[]
-  companies     Company[]
-  deals         Deal[]
-  activities    Activity[]
-  quotes        Quote[]
-  invoices      Invoice[]
-  tickets       Ticket[]    @relation("TicketAssignee")
-  createdTickets Ticket[]   @relation("TicketCreator")
-  notes         Note[]
-  formationProgress FormationProgress[]
-  clients       Client[]
-  notifications Notification[]
-
-  // NextAuth relations
-  accounts      Account[]
-  sessions      Session[]
-
-  @@index([email])
-  @@index([role])
-  @@index([managerId])
-  @@map("users")
-}
-
-// NextAuth.js Models
-model Account {
-  id                String  @id @default(cuid())
+model accounts {
+  id                String  @id
   userId            String
   type              String
   provider          String
@@ -89,640 +20,969 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  users             users   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
-  @@map("accounts")
 }
 
-model Session {
-  id           String   @id @default(cuid())
+model activities {
+  id            String              @id
+  title         String
+  description   String?             @db.Text
+  type          activities_type
+  status        activities_status   @default(PLANIFIEE)
+  priority      activities_priority @default(MOYENNE)
+  scheduledAt   DateTime
+  duration      Int?
+  completedAt   DateTime?
+  contactId     String?
+  dealId        String?
+  assignedToId  String
+  aircallCallId String?             @unique
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime
+  users         users               @relation(fields: [assignedToId], references: [id], onDelete: Cascade)
+  contacts      contacts?           @relation(fields: [contactId], references: [id])
+  deals         deals?              @relation(fields: [dealId], references: [id])
+
+  @@index([assignedToId])
+  @@index([contactId])
+  @@index([dealId])
+  @@index([scheduledAt])
+}
+
+model analytics_reports {
+  id          String                 @id
+  type        analytics_reports_type
+  website     String
+  startDate   DateTime
+  endDate     DateTime
+  data        String                 @db.Text
+  sentAt      DateTime?
+  recipients  String                 @db.Text
+  generatedAt DateTime               @default(now())
+
+  @@index([type])
+  @@index([website])
+}
+
+model campaigns {
+  id          String           @id
+  name        String
+  type        campaigns_type
+  status      campaigns_status @default(BROUILLON)
+  budget      Float?
+  spent       Float?           @default(0)
+  reach       Int?             @default(0)
+  clicks      Int?             @default(0)
+  conversions Int?             @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime
+}
+
+model client_monitoring {
+  id         String   @id
+  clientId   String
+  domain     String
+  uptime     Float    @default(99.9)
+  cpu        Float    @default(0)
+  memory     Float    @default(0)
+  ssl        Boolean  @default(true)
+  lastBackup String?
+  nps        Int      @default(0)
+  status     String   @default("healthy")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+  clients    clients  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId], map: "client_monitoring_clientId_fkey")
+}
+
+model clients {
+  id                String              @id
+  contactId         String?
+  companyId         String?
+  ownerId           String
+  name              String
+  email             String
+  status            clients_status      @default(ACTIF)
+  contractValue     Float
+  signedAt          DateTime
+  renewalDate       DateTime?
+  healthScore       Int                 @default(50)
+  upsellOpportunity Boolean             @default(false)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  client_monitoring client_monitoring[]
+  companies         companies?          @relation(fields: [companyId], references: [id])
+  users             users               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([companyId], map: "clients_companyId_fkey")
+  @@index([ownerId])
+  @@index([status])
+}
+
+model companies {
+  id            String           @id
+  name          String
+  siret         String?          @unique
+  legalForm     String?
+  gerant        String?
+  industry      String?
+  employees     Int?
+  revenue       Float?
+  solvencyScore Int?
+  solvencyDate  DateTime?
+  status        companies_status @default(PROSPECT)
+  address       String?
+  city          String?
+  postalCode    String?
+  country       String?          @default("France")
+  latitude      Float?
+  longitude     Float?
+  website       String?
+  phone         String?
+  email         String?
+  socialMedia   String?          @db.Text
+  assignedToId  String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime
+  clients       clients[]
+  users         users?           @relation(fields: [assignedToId], references: [id])
+  contacts      contacts[]
+  deals         deals[]
+  notes         notes[]
+
+  @@index([assignedToId])
+  @@index([siret])
+  @@index([status])
+}
+
+model contacts {
+  id           String          @id
+  firstName    String
+  lastName     String
+  email        String?
+  phone        String?
+  position     String?
+  companyId    String?
+  siret        String?
+  gerant       String?
+  status       contacts_status @default(LEAD)
+  qualityScore Int?
+  assignedToId String?
+  address      String?
+  city         String?
+  postalCode   String?
+  country      String?         @default("France")
+  source       String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime
+  activities   activities[]
+  users        users?          @relation(fields: [assignedToId], references: [id])
+  companies    companies?      @relation(fields: [companyId], references: [id])
+  deals        deals[]
+  notes        notes[]
+  quotes       quotes[]
+
+  @@index([assignedToId])
+  @@index([companyId])
+  @@index([email])
+  @@index([status])
+}
+
+model custom_dashboards {
+  id          String   @id
+  name        String
+  description String?
+  widgets     Int      @default(0)
+  favorite    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+}
+
+model deal_products {
+  id          String   @id
+  dealId      String
+  name        String
+  description String?  @db.Text
+  quantity    Int      @default(1)
+  unitPrice   Float
+  totalPrice  Float
+  createdAt   DateTime @default(now())
+  deals       deals    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([dealId])
+}
+
+model deals {
+  id                 String                   @id
+  title              String
+  description        String?                  @db.Text
+  value              Float
+  currency           String                   @default("EUR")
+  stage              deals_stage              @default(A_CONTACTER)
+  productionStage    deals_production_stage?
+  probability        Int                      @default(50)
+  expectedCloseDate  DateTime?
+  closedAt           DateTime?
+  contactId          String?
+  companyId          String?
+  ownerId            String
+  product            String?
+  origin             String?
+  emailReminderSent  String?
+  smsReminderSent    String?
+  comments           String?                  @db.Text
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime
+  activities         activities[]
+  deal_products      deal_products[]
+  companies          companies?               @relation(fields: [companyId], references: [id])
+  contacts           contacts?                @relation(fields: [contactId], references: [id])
+  users              users                    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  notes              notes[]
+
+  @@index([companyId])
+  @@index([contactId])
+  @@index([ownerId])
+  @@index([stage])
+  @@index([productionStage])
+}
+
+model email_campaigns {
+  id        String   @id
+  subject   String
+  sent      Int      @default(0)
+  opened    Int      @default(0)
+  clicked   Int      @default(0)
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model formation_progress {
+  id           String                    @id
+  userId       String
+  formationId  String
+  status       formation_progress_status @default(NON_COMMENCEE)
+  progress     Int                       @default(0)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  lastViewedAt DateTime?
+  quizScore    Int?
+  formations   formations                @relation(fields: [formationId], references: [id], onDelete: Cascade)
+  users        users                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, formationId])
+  @@index([formationId])
+  @@index([userId])
+}
+
+model formations {
+  id                 String               @id
+  title              String
+  description        String?              @db.Text
+  category           formations_category
+  videoUrl           String?
+  articleContent     String?              @db.LongText
+  duration           Int
+  hasCertificate     Boolean              @default(false)
+  allowedRoles       String               @db.Text
+  order              Int                  @default(0)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime
+  formation_progress formation_progress[]
+
+  @@index([category])
+}
+
+model integrations {
+  id            String              @id
+  name          String              @unique
+  status        integrations_status @default(DISCONNECTED)
+  config        String              @db.Text
+  lastSync      DateTime?
+  syncFrequency Int?
+  errorCount    Int                 @default(0)
+  lastError     String?             @db.Text
+  connectedAt   DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime
+}
+
+model invoice_products {
+  id          String   @id
+  invoiceId   String
+  name        String
+  description String?  @db.Text
+  quantity    Int      @default(1)
+  unitPrice   Float
+  totalPrice  Float
+  invoices    invoices @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model invoices {
+  id               String             @id
+  number           String             @unique
+  quoteId          String?            @unique
+  clientName       String
+  clientEmail      String
+  clientAddress    String?            @db.Text
+  subtotal         Float
+  taxRate          Float              @default(20)
+  taxAmount        Float
+  total            Float
+  status           invoices_status    @default(BROUILLON)
+  issuedAt         DateTime           @default(now())
+  dueAt            DateTime
+  paidAt           DateTime?
+  paymentMethod    String?
+  ownerId          String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  invoice_products invoice_products[]
+  users            users              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  quotes           quotes?            @relation(fields: [quoteId], references: [id])
+
+  @@index([number])
+  @@index([ownerId])
+  @@index([status])
+}
+
+model knowledge_articles {
+  id        String   @id
+  title     String
+  category  String
+  content   String   @db.Text
+  views     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+
+  @@index([category])
+}
+
+model notes {
+  id        String     @id
+  content   String     @db.Text
+  contactId String?
+  companyId String?
+  dealId    String?
+  authorId  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime
+  users     users      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  companies companies? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contacts  contacts?  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  deals     deals?     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([companyId])
+  @@index([contactId])
+  @@index([dealId])
+}
+
+model notifications {
+  id        String             @id
+  userId    String
+  type      notifications_type
+  title     String
+  message   String             @db.Text
+  link      String?
+  read      Boolean            @default(false)
+  readAt    DateTime?
+  createdAt DateTime           @default(now())
+  users     users              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([read])
+  @@index([userId])
+}
+
+model products {
+  id           String   @id
+  name         String
+  category     String
+  description  String?
+  price        Float
+  monthlyPrice Float?
+  features     String   @db.LongText
+  popular      Boolean  @default(false)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+}
+
+model prospects {
+  id               String            @id
+  name             String
+  siret            String?
+  activity         String
+  address          String
+  city             String
+  postalCode       String?
+  phone            String?
+  email            String?
+  website          String?
+  employees        String?
+  rating           Float?
+  revenue          Float?
+  // Champs d'enrichissement API
+  legalForm        String?
+  gerant           String?
+  solvencyScore    Int?
+  enrichedBy       String? // "pappers", "mlist", "manual"
+  enrichedAt       DateTime?
+  enrichmentData   String?           @db.Text // JSON des données brutes
+  // Attribution et statut
+  assignedToId     String?
+  status           prospects_status  @default(A_TRAITER)
+  source           String? // "csv_import", "api", "manual"
+  importBatchId    String?
+  qualityScore     Int? // Score de 0 à 100
+  // Conversion
+  contactId        String?
+  companyId        String?
+  convertedToDeal  Boolean           @default(false)
+  convertedAt      DateTime?
+  // Métadonnées
+  notes            String?           @db.Text
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime
+  users            users?            @relation(fields: [assignedToId], references: [id])
+  import_batches   import_batches?   @relation(fields: [importBatchId], references: [id])
+
+  @@index([activity])
+  @@index([city])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([importBatchId])
+  @@index([siret])
+}
+
+model import_batches {
+  id           String    @id
+  fileName     String
+  totalRows    Int
+  processedRows Int      @default(0)
+  successRows  Int       @default(0)
+  errorRows    Int       @default(0)
+  status       import_batches_status @default(EN_COURS)
+  uploadedById String
+  assignedToId String? // Attribution automatique à un commercial
+  enrichWith   String? // "pappers", "mlist", "none"
+  errors       String?   @db.Text // JSON des erreurs
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+  prospects    prospects[]
+
+  @@index([status])
+  @@index([uploadedById])
+  @@index([assignedToId])
+}
+
+enum prospects_status {
+  A_TRAITER
+  EN_COURS
+  QUALIFIE
+  NON_QUALIFIE
+  CONVERTI
+}
+
+enum import_batches_status {
+  EN_COURS
+  COMPLETE
+  ERREUR
+}
+
+model quote_products {
+  id          String  @id
+  quoteId     String
+  name        String
+  description String? @db.Text
+  quantity    Int     @default(1)
+  unitPrice   Float
+  totalPrice  Float
+  // Champs pour le calculateur
+  serviceId   String? // ID du service (ex: "meta-ads", "site-vitrine")
+  serviceType String? // Type: website, seo, ads, social, maintenance
+  period      String? // "one-time" ou "mensuel"
+  channel     String? // Canal associé (meta-ads, google-ads, etc.)
+  discount    Float?  @default(0) // Remise commerciale individuelle en %
+  createdAt   DateTime @default(now())
+  quotes      quotes  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+}
+
+model quotes {
+  id                 String           @id
+  number             String           @unique
+  contactId          String?
+  clientName         String
+  clientEmail        String
+  clientAddress      String?          @db.Text
+  subtotal           Float
+  taxRate            Float            @default(20)
+  taxAmount          Float
+  total              Float
+  status             quotes_status    @default(BROUILLON)
+  validityDays       Int              @default(30)
+  expiresAt          DateTime?
+  issuedAt           DateTime         @default(now())
+  acceptedAt         DateTime?
+  paymentTerms       String?          @db.Text
+  notes              String?          @db.Text
+  yousignId          String?
+  signedAt           DateTime?
+  signatureUrl       String?
+  ownerId            String
+  // Champs pour le calculateur
+  commitmentPeriod   String?          @default("comptant") // "comptant", "24", "36", "48"
+  isPartner          Boolean          @default(false)
+  engagementDiscount Float?           @default(0) // 10%, 20%, 30% selon engagement
+  partnerDiscount    Float?           @default(0) // 20% si partenaire
+  oneTimeTotal       Float?           @default(0) // Total des services one-time (sites web, etc.)
+  monthlyTotal       Float?           @default(0) // Total des services mensuels
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime
+  invoices           invoices?
+  quote_products     quote_products[]
+  contacts           contacts?        @relation(fields: [contactId], references: [id])
+  users              users            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([contactId], map: "quotes_contactId_fkey")
+  @@index([number])
+  @@index([ownerId])
+  @@index([status])
+}
+
+model reviews {
+  id          String          @id
+  source      reviews_source
+  company     reviews_company
+  rating      Int
+  author      String
+  content     String?         @db.Text
+  reviewDate  DateTime
+  response    String?         @db.Text
+  respondedAt DateTime?
+  externalId  String?
+  importedAt  DateTime        @default(now())
+
+  @@index([company])
+  @@index([rating])
+  @@index([source])
+}
+
+model sequences {
+  id          String           @id
+  name        String
+  description String?          @db.Text
+  emailsCount Int              @default(0)
+  config      String           @db.Text
+  enrolled    Int              @default(0)
+  completed   Int              @default(0)
+  openRate    Float?
+  replyRate   Float?
+  status      sequences_status @default(ACTIVE)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime
+  lastRunAt   DateTime?
+
+  @@index([status])
+}
+
+model sessions {
+  id           String   @id
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  users        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@map("sessions")
 }
 
-model VerificationToken {
+model social_posts {
+  id          String                @id
+  content     String                @db.Text
+  platform    social_posts_platform
+  status      social_posts_status   @default(BROUILLON)
+  likes       Int                   @default(0)
+  comments    Int                   @default(0)
+  shares      Int                   @default(0)
+  reach       Int                   @default(0)
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  imageUrl    String?
+  videoUrl    String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime
+
+  @@index([platform])
+  @@index([status])
+}
+
+model ticket_replies {
+  id         String   @id
+  ticketId   String
+  authorId   String
+  content    String   @db.Text
+  isInternal Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  tickets    tickets  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+}
+
+model tickets {
+  id                                String           @id
+  number                            String           @unique
+  subject                           String
+  description                       String           @db.Text
+  type                              tickets_type     @default(CLIENT)
+  status                            tickets_status   @default(OUVERT)
+  priority                          tickets_priority @default(MOYENNE)
+  createdById                       String
+  assignedToId                      String?
+  clientName                        String?
+  clientEmail                       String?
+  resolvedAt                        DateTime?
+  responseTime                      Int?
+  createdAt                         DateTime         @default(now())
+  updatedAt                         DateTime
+  ticket_replies                    ticket_replies[]
+  users_tickets_assignedToIdTousers users?           @relation("tickets_assignedToIdTousers", fields: [assignedToId], references: [id])
+  users_tickets_createdByIdTousers  users            @relation("tickets_createdByIdTousers", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([assignedToId])
+  @@index([createdById])
+  @@index([number])
+  @@index([status])
+}
+
+model users {
+  id                                  String                      @id
+  email                               String                      @unique
+  password                            String
+  firstName                           String
+  lastName                            String
+  role                                users_role                  @default(VENTE)
+  status                              users_status                @default(ACTIVE)
+  avatar                              String?
+  phone                               String?
+  position                            String?
+  department                          String?
+  managerId                           String?
+  monthlyGoal                         Float?
+  createdAt                           DateTime                    @default(now())
+  updatedAt                           DateTime
+  lastLoginAt                         DateTime?
+  accounts                            accounts[]
+  activities                          activities[]
+  clients                             clients[]
+  companies                           companies[]
+  contacts                            contacts[]
+  deals                               deals[]
+  formation_progress                  formation_progress[]
+  invoices                            invoices[]
+  notes                               notes[]
+  notifications                       notifications[]
+  quotes                              quotes[]
+  sessions                            sessions[]
+  tickets_tickets_assignedToIdTousers tickets[]                   @relation("tickets_assignedToIdTousers")
+  tickets_tickets_createdByIdTousers  tickets[]                   @relation("tickets_createdByIdTousers")
+  users                               users?                      @relation("usersTousers", fields: [managerId], references: [id])
+  other_users                         users[]                     @relation("usersTousers")
+  goals                               goals[]
+  checkins                            checkins[]
+  internal_conversations              internal_conversations[]
+  conversation_participants           conversation_participants[]
+  internal_messages                   internal_messages[]
+  races                               races[]
+  race_participants                   race_participants[]
+  prospects                           prospects[]
+  sales_performance                   sales_performance[]
+
+  @@index([email])
+  @@index([managerId])
+  @@index([role])
+}
+
+model verification_tokens {
   identifier String
   token      String   @unique
   expires    DateTime
 
   @@unique([identifier, token])
-  @@map("verification_tokens")
 }
 
-// ============================================
-// CRM - CONTACTS & COMPANIES
-// ============================================
+model whatsapp_conversations {
+  id                String              @id
+  name              String
+  phone             String?
+  avatar            String?
+  lastMessage       String?             @db.Text
+  lastMessageAt     DateTime?
+  unread            Int                 @default(0)
+  score             Int?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  whatsapp_messages whatsapp_messages[]
 
-enum ContactStatus {
-  LEAD
-  PROSPECT
-  CLIENT
+  @@index([lastMessageAt])
 }
 
-model Contact {
-  id            String        @id @default(cuid())
-  firstName     String
-  lastName      String
-  email         String?
-  phone         String?
-  position      String?       // Poste dans l'entreprise
+model whatsapp_messages {
+  id                     String                 @id
+  conversationId         String
+  text                   String                 @db.Text
+  sender                 String
+  sentAt                 DateTime               @default(now())
+  whatsapp_conversations whatsapp_conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
-  // Informations entreprise
-  companyId     String?
-  company       Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  @@index([conversationId])
+  @@index([sentAt])
+}
 
-  // Informations SIRET/Gérant (si indépendant)
-  siret         String?
-  gerant        String?       // Nom du gérant
+model workflows {
+  id           String           @id
+  name         String
+  description  String?          @db.Text
+  trigger      String
+  config       String           @db.Text
+  actionsCount Int              @default(0)
+  executions   Int              @default(0)
+  successRate  Float?
+  status       workflows_status @default(ACTIVE)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime
+  lastRunAt    DateTime?
 
-  // Statut et scoring
-  status        ContactStatus @default(LEAD)
-  qualityScore  Int?          // Score 0-100
-
-  // Assignation
-  assignedToId  String?
-  assignedTo    User?         @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
-
-  // Localisation
-  address       String?
-  city          String?
-  postalCode    String?
-  country       String?       @default("France")
-
-  // Source
-  source        String?       // Site web, LinkedIn, Référence, etc.
-
-  // Métadonnées
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  // Relations
-  deals         Deal[]
-  activities    Activity[]
-  notes         Note[]
-  quotes        Quote[]
-
-  @@index([email])
-  @@index([companyId])
-  @@index([assignedToId])
   @@index([status])
-  @@map("contacts")
 }
 
-enum CompanyStatus {
-  LEAD
-  PROSPECT
-  CLIENT
+model goals {
+  id           String      @id
+  userId       String?
+  type         goals_type
+  title        String
+  description  String?     @db.Text
+  targetValue  Float?
+  currentValue Float?      @default(0)
+  deadline     DateTime?
+  completed    Boolean     @default(false)
+  completedAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime
+  users        users?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([completed])
 }
 
-model Company {
-  id            String        @id @default(cuid())
-  name          String
-  siret         String?       @unique
+model checkins {
+  id            String    @id
+  userId        String
+  month         Int
+  year          Int
+  energy        Int
+  motivation    Int
+  mentalClarity String?   @db.Text
+  teamAmbiance  String?   @db.Text
+  pride         String?   @db.Text
+  difficulties  String?   @db.Text
+  vision6Months String?   @db.Text
+  ideas         String?   @db.Text
+  submittedAt   DateTime  @default(now())
+  users         users     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Informations légales
-  legalForm     String?       // SARL, SAS, etc.
-  gerant        String?       // Nom du gérant
-
-  // Informations business
-  industry      String?
-  employees     Int?
-  revenue       Float?        // CA annuel
-
-  // Scoring solvabilité (COFACE)
-  solvencyScore Int?          // Score 0-100
-  solvencyDate  DateTime?     // Date du dernier calcul
-
-  // Statut
-  status        CompanyStatus @default(PROSPECT)
-
-  // Localisation
-  address       String?
-  city          String?
-  postalCode    String?
-  country       String?       @default("France")
-  latitude      Float?        // Pour carte de France
-  longitude     Float?
-
-  // Contact info
-  website       String?
-  phone         String?
-  email         String?
-
-  // Assignation
-  assignedToId  String?
-  assignedTo    User?         @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
-
-  // Métadonnées
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  // Relations
-  contacts      Contact[]
-  deals         Deal[]
-  notes         Note[]
-  clients       Client[]
-
-  @@index([siret])
-  @@index([assignedToId])
-  @@index([status])
-  @@map("companies")
+  @@unique([userId, month, year])
+  @@index([userId])
+  @@index([month, year])
 }
 
-// ============================================
-// CRM - DEALS
-// ============================================
-
-enum DealStage {
-  DECOUVERTE
-  QUALIFICATION
-  PROPOSITION
-  NEGOCIATION
-  GAGNE
-  PERDU
-}
-
-model Deal {
-  id            String      @id @default(cuid())
-  title         String
-  description   String?     @db.Text
-
-  // Montant
-  value         Float
-  currency      String      @default("EUR")
-
-  // Étape et scoring
-  stage         DealStage   @default(DECOUVERTE)
-  probability   Int         @default(50) // Score manuel 0-100
-
-  // Dates
-  expectedCloseDate DateTime?
-  closedAt      DateTime?
-
-  // Relations
-  contactId     String?
-  contact       Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
-
-  companyId     String?
-  company       Company?    @relation(fields: [companyId], references: [id], onDelete: SetNull)
-
-  ownerId       String
-  owner         User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  // Métadonnées
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  // Relations
-  activities    Activity[]
-  notes         Note[]
-  products      DealProduct[]
-
-  @@index([contactId])
-  @@index([companyId])
-  @@index([ownerId])
-  @@index([stage])
-  @@map("deals")
-}
-
-model DealProduct {
-  id          String   @id @default(cuid())
-  dealId      String
-  deal        Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
-
-  name        String
-  description String?  @db.Text
-  quantity    Int      @default(1)
-  unitPrice   Float
-  totalPrice  Float    // quantity * unitPrice
-
-  createdAt   DateTime @default(now())
-
-  @@index([dealId])
-  @@map("deal_products")
-}
-
-// ============================================
-// CRM - ACTIVITIES
-// ============================================
-
-enum ActivityType {
-  APPEL
-  EMAIL
-  REUNION
-  VISIO
-}
-
-enum ActivityStatus {
-  PLANIFIEE
-  COMPLETEE
-  ANNULEE
-}
-
-enum ActivityPriority {
-  HAUTE
-  MOYENNE
-  BASSE
-}
-
-model Activity {
-  id            String          @id @default(cuid())
-  title         String
-  description   String?         @db.Text
-  type          ActivityType
-  status        ActivityStatus  @default(PLANIFIEE)
-  priority      ActivityPriority @default(MOYENNE)
-
-  // Date et durée
-  scheduledAt   DateTime
-  duration      Int?            // en minutes
-  completedAt   DateTime?
-
-  // Relations
-  contactId     String?
-  contact       Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
-
-  dealId        String?
-  deal          Deal?           @relation(fields: [dealId], references: [id], onDelete: SetNull)
-
-  assignedToId  String
-  assignedTo    User            @relation(fields: [assignedToId], references: [id], onDelete: Cascade)
-
-  // Intégration AIRCALL
-  aircallCallId String?         @unique
-
-  // Métadonnées
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-
-  @@index([contactId])
-  @@index([dealId])
-  @@index([assignedToId])
-  @@index([scheduledAt])
-  @@map("activities")
-}
-
-// ============================================
-// VENTES - QUOTES & INVOICES
-// ============================================
-
-enum QuoteStatus {
-  BROUILLON
-  ENVOYE
-  ACCEPTE
-  REFUSE
-  EXPIRE
-}
-
-model Quote {
-  id            String      @id @default(cuid())
-  number        String      @unique // QU-2025-001
-
-  // Client
-  contactId     String?
-  contact       Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
-
-  clientName    String
-  clientEmail   String
-  clientAddress String?     @db.Text
-
-  // Montants
-  subtotal      Float       // HT
-  taxRate       Float       @default(20) // TVA en %
-  taxAmount     Float       // Montant TVA
-  total         Float       // TTC
-
-  // Statut et validité
-  status        QuoteStatus @default(BROUILLON)
-  validityDays  Int         @default(30)
-  expiresAt     DateTime?
-
-  // Dates
-  issuedAt      DateTime    @default(now())
-  acceptedAt    DateTime?
-
-  // Conditions
-  paymentTerms  String?     @db.Text
-  notes         String?     @db.Text
-
-  // Signature YOUSIGN
-  yousignId     String?
-  signedAt      DateTime?
-  signatureUrl  String?
-
-  // Relations
-  ownerId       String
-  owner         User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  products      QuoteProduct[]
-  invoice       Invoice?
-
-  // Métadonnées
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  @@index([ownerId])
-  @@index([status])
-  @@index([number])
-  @@map("quotes")
-}
-
-model QuoteProduct {
-  id          String   @id @default(cuid())
-  quoteId     String
-  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-
-  name        String
-  description String?  @db.Text
-  quantity    Int      @default(1)
-  unitPrice   Float
-  totalPrice  Float
-
-  @@index([quoteId])
-  @@map("quote_products")
-}
-
-enum InvoiceStatus {
-  BROUILLON
-  ENVOYEE
-  PAYEE
-  EN_ATTENTE
-  EN_RETARD
-  ANNULEE
-}
-
-model Invoice {
-  id            String        @id @default(cuid())
-  number        String        @unique // FA-2025-001
-
-  // Lien avec devis
-  quoteId       String?       @unique
-  quote         Quote?        @relation(fields: [quoteId], references: [id], onDelete: SetNull)
-
-  // Client
-  clientName    String
-  clientEmail   String
-  clientAddress String?       @db.Text
-
-  // Montants
-  subtotal      Float
-  taxRate       Float         @default(20)
-  taxAmount     Float
-  total         Float
-
-  // Statut et paiement
-  status        InvoiceStatus @default(BROUILLON)
-  issuedAt      DateTime      @default(now())
-  dueAt         DateTime
-  paidAt        DateTime?
-
-  // Paiement
-  paymentMethod String?       // Virement, CB, etc.
-
-  // Relations
-  ownerId       String
-  owner         User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  products      InvoiceProduct[]
-
-  // Métadonnées
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  @@index([ownerId])
-  @@index([status])
-  @@index([number])
-  @@map("invoices")
-}
-
-model InvoiceProduct {
-  id          String   @id @default(cuid())
-  invoiceId   String
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  name        String
-  description String?  @db.Text
-  quantity    Int      @default(1)
-  unitPrice   Float
-  totalPrice  Float
-
-  @@index([invoiceId])
-  @@map("invoice_products")
-}
-
-// ============================================
-// MARKETING
-// ============================================
-
-enum CampaignType {
-  EMAIL
-  SOCIAL_MEDIA
-  PAID_ADS
-  EVENT
-}
-
-enum CampaignStatus {
-  BROUILLON
-  PLANIFIEE
-  ACTIVE
-  TERMINEE
-  PAUSE
-}
-
-model Campaign {
-  id          String          @id @default(cuid())
-  name        String
-  type        CampaignType
-  status      CampaignStatus  @default(BROUILLON)
-
-  // Budget et ROI
-  budget      Float?
-  spent       Float?          @default(0)
-
-  // Métriques
-  reach       Int?            @default(0)
-  clicks      Int?            @default(0)
-  conversions Int?            @default(0)
-
-  // Dates
-  startDate   DateTime?
-  endDate     DateTime?
-
-  // Métadonnées
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-
-  @@map("campaigns")
-}
-
-enum SocialPostStatus {
-  BROUILLON
-  PLANIFIE
-  PUBLIE
-}
-
-enum SocialPlatform {
-  FACEBOOK
-  LINKEDIN
-  INSTAGRAM
-  TWITTER
-}
-
-model SocialPost {
-  id          String            @id @default(cuid())
-  content     String            @db.Text
-  platform    SocialPlatform
-  status      SocialPostStatus  @default(BROUILLON)
-
-  // Métriques
-  likes       Int               @default(0)
-  comments    Int               @default(0)
-  shares      Int               @default(0)
-  reach       Int               @default(0)
-
-  // Dates
-  scheduledAt DateTime?
-  publishedAt DateTime?
-
-  // Médias
-  imageUrl    String?
-  videoUrl    String?
-
-  // Métadonnées
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-
-  @@index([platform])
-  @@index([status])
-  @@map("social_posts")
-}
-
-// ============================================
-// SERVICE / ACCOUNT MANAGEMENT
-// ============================================
-
-enum TicketType {
-  INTERNAL    // Ticket interne (collaborateurs)
-  CLIENT      // Ticket client externe
-}
-
-enum TicketStatus {
-  OUVERT
-  EN_COURS
-  EN_ATTENTE
-  ESCALADE
-  RESOLU
-  FERME
-}
-
-enum TicketPriority {
-  HAUTE
-  MOYENNE
-  BASSE
-}
-
-model Ticket {
-  id          String          @id @default(cuid())
-  number      String          @unique // TK-2025-001
-  subject     String
-  description String          @db.Text
-  type        TicketType      @default(CLIENT)
-  status      TicketStatus    @default(OUVERT)
-  priority    TicketPriority  @default(MOYENNE)
-
-  // Relations
-  createdById String
-  createdBy   User            @relation("TicketCreator", fields: [createdById], references: [id], onDelete: Cascade)
-
-  assignedToId String?
-  assignedTo  User?           @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
-
-  // Client (si type CLIENT)
-  clientName  String?
-  clientEmail String?
-
-  // SLA
-  resolvedAt  DateTime?
-  responseTime Int?          // en minutes
-
-  // Métadonnées
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-
-  replies     TicketReply[]
-
-  @@index([createdById])
-  @@index([assignedToId])
-  @@index([status])
-  @@index([number])
-  @@map("tickets")
-}
-
-model TicketReply {
-  id        String   @id @default(cuid())
-  ticketId  String
-  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-
-  authorId  String
-  content   String   @db.Text
-  isInternal Boolean @default(false) // Note interne non visible au client
-
+model daily_quotes {
+  id        String   @id
+  quote     String   @db.Text
+  author    String
+  date      DateTime @unique
   createdAt DateTime @default(now())
 
-  @@index([ticketId])
-  @@map("ticket_replies")
+  @@index([date])
 }
 
-enum ReviewSource {
+model internal_conversations {
+  id                        String                      @id
+  name                      String?
+  isGroup                   Boolean                     @default(false)
+  avatar                    String?
+  lastMessage               String?                     @db.Text
+  lastMessageAt             DateTime?
+  createdById               String
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime
+  users                     users                       @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  conversation_participants conversation_participants[]
+  internal_messages         internal_messages[]
+
+  @@index([lastMessageAt])
+  @@index([createdById])
+}
+
+model conversation_participants {
+  id                     String                  @id
+  conversationId         String
+  userId                 String
+  unreadCount            Int                     @default(0)
+  lastReadAt             DateTime?
+  joinedAt               DateTime                @default(now())
+  internal_conversations internal_conversations  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  users                  users                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
+}
+
+model internal_messages {
+  id                     String                 @id
+  conversationId         String
+  senderId               String
+  content                String                 @db.Text
+  attachmentUrl          String?
+  attachmentName         String?
+  sentAt                 DateTime               @default(now())
+  internal_conversations internal_conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  users                  users                  @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([sentAt])
+}
+
+model races {
+  id                String            @id
+  name              String
+  description       String?           @db.Text
+  startDate         DateTime
+  endDate           DateTime
+  metric            races_metric
+  prizes            String            @db.Text // JSON: {1: "1000€", 2: "500€", 3: "250€"}
+  status            races_status      @default(ACTIVE)
+  createdById       String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime
+  users             users             @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  race_participants race_participants[]
+
+  @@index([status])
+  @@index([startDate, endDate])
+  @@index([createdById])
+}
+
+model race_participants {
+  id        String   @id
+  raceId    String
+  userId    String
+  score     Float    @default(0)
+  rank      Int?
+  updatedAt DateTime @default(now())
+  races     races    @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([raceId, userId])
+  @@index([raceId])
+  @@index([userId])
+  @@index([raceId, rank])
+}
+
+model sales_performance {
+  id                  String    @id
+  userId              String
+  month               Int       // 1-12
+  year                Int
+  // CA et signatures
+  monthlyRevenue      Float     @default(0) // CA mensuel
+  yearlyRevenue       Float     @default(0) // CA annuel cumulé
+  signatures          Int       @default(0) // Nombre de signatures dans le mois
+  rdvCount            Int       @default(0) // Nombre de RDV pris dans le mois
+  // Objectifs
+  signaturesGoal      Int       @default(4)
+  rdvGoal             Int       @default(20)
+  objectivesReached   Boolean   @default(false)
+  // Commission et primes
+  monthlyCommission   Float     @default(0)  // Commission calculée
+  reductionPercent    Float     @default(0)  // 0, 0.5 ou 1 (réduction appliquée)
+  boosterPercent      Float     @default(0)  // Booster actuel (0, 0.05, 0.10, 0.15)
+  boosterMonthsCount  Int       @default(0)  // Nombre de mois de booster cumulés
+  finalMonthlyBonus   Float     @default(0)  // Prime mensuelle finale
+  yearlyBonus         Float     @default(0)  // Prime annuelle calculée
+  // Métadonnées
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime
+  users               users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, year])
+  @@index([userId])
+  @@index([month, year])
+}
+
+enum analytics_reports_type {
+  WEEKLY
+  MONTHLY
+  CUSTOM
+}
+
+enum reviews_source {
   GOOGLE
   PAGES_JAUNES
   TRIPADVISOR
   TRUSTPILOT
 }
 
-enum ReviewCompany {
+enum integrations_status {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+enum notifications_type {
+  ACTIVITY
+  DEAL
+  QUOTE
+  INVOICE
+  TICKET
+  MENTION
+  SYSTEM
+}
+
+enum social_posts_platform {
+  FACEBOOK
+  LINKEDIN
+  INSTAGRAM
+  TWITTER
+}
+
+enum reviews_company {
   DIGIFLOW_AGENCY
   BE_HYPE
 }
 
-model Review {
-  id          String        @id @default(cuid())
-  source      ReviewSource
-  company     ReviewCompany
-
-  // Avis
-  rating      Int           // 1-5 étoiles
-  author      String
-  content     String?       @db.Text
-  reviewDate  DateTime
-
-  // Réponse
-  response    String?       @db.Text
-  respondedAt DateTime?
-
-  // Métadonnées
-  externalId  String?       // ID de l'avis sur la plateforme externe
-  importedAt  DateTime      @default(now())
-
-  @@index([source])
-  @@index([company])
-  @@index([rating])
-  @@map("reviews")
+enum campaigns_type {
+  EMAIL
+  SOCIAL_MEDIA
+  PAID_ADS
+  EVENT
 }
 
-// ============================================
-// FORMATIONS
-// ============================================
-
-enum FormationCategory {
+enum formations_category {
   ONBOARDING
   TECHNIQUES_VENTE
   PRODUITS
@@ -731,503 +991,159 @@ enum FormationCategory {
   TECHNICAL
 }
 
-model Formation {
-  id          String            @id @default(cuid())
-  title       String
-  description String?           @db.Text
-  category    FormationCategory
-
-  // Vidéo
-  videoUrl    String            // URL Vimeo/YouTube
-  duration    Int               // en minutes
-
-  // Certificat
-  hasCertificate Boolean        @default(false)
-
-  // Rôles autorisés (JSON array)
-  allowedRoles String           @db.Text // ["ADMIN", "VENTE"]
-
-  // Ordre d'affichage
-  order       Int               @default(0)
-
-  // Métadonnées
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-
-  // Relations
-  progress    FormationProgress[]
-
-  @@index([category])
-  @@map("formations")
+enum activities_type {
+  APPEL
+  EMAIL
+  REUNION
+  VISIO
 }
 
-enum FormationProgressStatus {
+enum social_posts_status {
+  BROUILLON
+  PLANIFIE
+  PUBLIE
+}
+
+enum formation_progress_status {
   NON_COMMENCEE
   EN_COURS
   COMPLETEE
 }
 
-model FormationProgress {
-  id          String                  @id @default(cuid())
-  userId      String
-  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  formationId String
-  formation   Formation               @relation(fields: [formationId], references: [id], onDelete: Cascade)
-
-  status      FormationProgressStatus @default(NON_COMMENCEE)
-  progress    Int                     @default(0) // 0-100%
-
-  startedAt   DateTime?
-  completedAt DateTime?
-  lastViewedAt DateTime?
-
-  // Quiz
-  quizScore   Int?                    // Si quiz de validation
-
-  @@unique([userId, formationId])
-  @@index([userId])
-  @@index([formationId])
-  @@map("formation_progress")
+enum campaigns_status {
+  BROUILLON
+  PLANIFIEE
+  ACTIVE
+  TERMINEE
+  PAUSE
 }
 
-// ============================================
-// CLIENTS ACTIFS (Espace Personnel Commercial)
-// ============================================
+enum tickets_type {
+  INTERNAL
+  CLIENT
+}
 
-enum ClientStatus {
+enum activities_status {
+  PLANIFIEE
+  COMPLETEE
+  ANNULEE
+}
+
+enum deals_stage {
+  A_CONTACTER
+  EN_DISCUSSION
+  A_RELANCER
+  RDV_PRIS
+  NEGO_HOT
+  CLOSING
+  REFUSE
+}
+
+enum deals_production_stage {
+  PREMIER_RDV
+  EN_PRODUCTION
+  LIVRE
+  ENCAISSE
+}
+
+enum tickets_status {
+  OUVERT
+  EN_COURS
+  EN_ATTENTE
+  ESCALADE
+  RESOLU
+  FERME
+}
+
+enum activities_priority {
+  HAUTE
+  MOYENNE
+  BASSE
+}
+
+enum users_role {
+  ADMIN
+  VENTE
+  MARKETING
+  ACCOUNT_MANAGEMENT
+}
+
+enum clients_status {
   ACTIF
   INACTIF
   CHURN
 }
 
-model Client {
-  id              String        @id @default(cuid())
-
-  // Lien avec Contact/Company
-  contactId       String?
-  companyId       String?
-  company         Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
-
-  // Commercial assigné
-  ownerId         String
-  owner           User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  // Informations client
-  name            String
-  email           String
-
-  // Contrat
-  status          ClientStatus  @default(ACTIF)
-  contractValue   Float         // MRR ou valeur totale
-  signedAt        DateTime
-  renewalDate     DateTime?
-
-  // Health Score
-  healthScore     Int           @default(50) // 0-100
-
-  // Opportunités
-  upsellOpportunity Boolean     @default(false)
-
-  // Relations
-  monitoring      ClientMonitoring[]
-
-  // Métadonnées
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  @@index([ownerId])
-  @@index([status])
-  @@map("clients")
+enum tickets_priority {
+  HAUTE
+  MOYENNE
+  BASSE
 }
 
-// ============================================
-// NOTES & FILES
-// ============================================
-
-model Note {
-  id          String   @id @default(cuid())
-  content     String   @db.Text
-
-  // Relations polymorphiques (au moins une doit être définie)
-  contactId   String?
-  contact     Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
-
-  companyId   String?
-  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  dealId      String?
-  deal        Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
-
-  // Auteur
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  // Métadonnées
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([contactId])
-  @@index([companyId])
-  @@index([dealId])
-  @@index([authorId])
-  @@map("notes")
+enum users_status {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
 }
 
-// ============================================
-// INTEGRATIONS & APIs
-// ============================================
-
-enum IntegrationStatus {
-  CONNECTED
-  DISCONNECTED
-  ERROR
-}
-
-model Integration {
-  id          String            @id @default(cuid())
-  name        String            @unique // PAPPERS, COFACE, AIRCALL, etc.
-  status      IntegrationStatus @default(DISCONNECTED)
-
-  // Configuration (JSON)
-  config      String            @db.Text // API Keys, tokens, etc. (encrypted)
-
-  // Sync
-  lastSync    DateTime?
-  syncFrequency Int?            // en minutes
-
-  // Logs
-  errorCount  Int               @default(0)
-  lastError   String?           @db.Text
-
-  // Métadonnées
-  connectedAt DateTime?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-
-  @@map("integrations")
-}
-
-// ============================================
-// ANALYTICS & REPORTS
-// ============================================
-
-enum ReportType {
-  WEEKLY
-  MONTHLY
-  CUSTOM
-}
-
-model AnalyticsReport {
-  id          String      @id @default(cuid())
-  type        ReportType
-
-  // Pour quel site
-  website     String      // digiflow-agency.fr ou be-hype.com
-
-  // Période
-  startDate   DateTime
-  endDate     DateTime
-
-  // Données (JSON)
-  data        String      @db.Text // Métriques stockées en JSON
-
-  // Email envoyé
-  sentAt      DateTime?
-  recipients  String      @db.Text // Emails séparés par virgule
-
-  // Métadonnées
-  generatedAt DateTime    @default(now())
-
-  @@index([website])
-  @@index([type])
-  @@map("analytics_reports")
-}
-
-// ============================================
-// AUTOMATION
-// ============================================
-
-enum WorkflowStatus {
+enum workflows_status {
   ACTIVE
   PAUSE
   ARCHIVED
 }
 
-model Workflow {
-  id          String         @id @default(cuid())
-  name        String
-  description String?        @db.Text
-
-  // Déclencheur
-  trigger     String         // Ex: "Nouveau Contact", "Devis Envoyé +3j"
-
-  // Configuration (JSON)
-  config      String         @db.Text // Actions et conditions en JSON
-
-  // Stats
-  actionsCount Int           @default(0) // Nombre d'actions dans le workflow
-  executions   Int           @default(0) // Nombre total d'exécutions
-  successRate  Float?        // Taux de succès (0-100)
-
-  // Statut
-  status      WorkflowStatus @default(ACTIVE)
-
-  // Métadonnées
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  lastRunAt   DateTime?
-
-  @@index([status])
-  @@map("workflows")
+enum contacts_status {
+  LEAD
+  PROSPECT
+  CLIENT
 }
 
-enum SequenceStatus {
+enum sequences_status {
   ACTIVE
   PAUSE
   ARCHIVED
 }
 
-model Sequence {
-  id          String         @id @default(cuid())
-  name        String
-  description String?        @db.Text
-
-  // Configuration
-  emailsCount Int            @default(0) // Nombre d'emails dans la séquence
-  config      String         @db.Text    // Contenu des emails en JSON
-
-  // Stats d'engagement
-  enrolled    Int            @default(0) // Contacts inscrits
-  completed   Int            @default(0) // Contacts ayant terminé
-  openRate    Float?         // Taux d'ouverture (0-100)
-  replyRate   Float?         // Taux de réponse (0-100)
-
-  // Statut
-  status      SequenceStatus @default(ACTIVE)
-
-  // Métadonnées
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  lastRunAt   DateTime?
-
-  @@index([status])
-  @@map("sequences")
+enum quotes_status {
+  BROUILLON
+  ENVOYE
+  ACCEPTE
+  REFUSE
+  EXPIRE
 }
 
-// ============================================
-// PROSPECTION
-// ============================================
-
-model Prospect {
-  id          String   @id @default(cuid())
-
-  // Informations entreprise
-  name        String
-  activity    String
-
-  // Coordonnées
-  address     String
-  city        String
-  phone       String
-  email       String
-  website     String?
-
-  // Détails
-  employees   String?  // Ex: "10-20"
-  rating      Float?   // Note sur 5
-
-  // Statut d'import
-  imported    Boolean  @default(false)
-  importedAt  DateTime?
-
-  // Relation avec contact/company (si importé)
-  contactId   String?
-  companyId   String?
-
-  // Métadonnées
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([city])
-  @@index([activity])
-  @@index([imported])
-  @@map("prospects")
+enum companies_status {
+  LEAD
+  PROSPECT
+  CLIENT
 }
 
-// ============================================
-// WHATSAPP
-// ============================================
-
-model WhatsAppConversation {
-  id          String              @id @default(cuid())
-  name        String
-  phone       String?
-  avatar      String?             // Initiales ou URL
-
-  lastMessage String?             @db.Text
-  lastMessageAt DateTime?
-
-  unread      Int                 @default(0)
-  score       Int?                // Score de qualification (0-100)
-
-  // Métadonnées
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-
-  // Relations
-  messages    WhatsAppMessage[]
-
-  @@index([lastMessageAt])
-  @@map("whatsapp_conversations")
+enum invoices_status {
+  BROUILLON
+  ENVOYEE
+  PAYEE
+  EN_ATTENTE
+  EN_RETARD
+  ANNULEE
 }
 
-model WhatsAppMessage {
-  id              String                @id @default(cuid())
-  conversationId  String
-  conversation    WhatsAppConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  text            String                @db.Text
-  sender          String                // 'user' ou 'client'
-
-  // Métadonnées
-  sentAt          DateTime              @default(now())
-
-  @@index([conversationId])
-  @@index([sentAt])
-  @@map("whatsapp_messages")
+enum goals_type {
+  PERSONAL
+  SYSTEM
 }
 
-// ============================================
-// KNOWLEDGE BASE
-// ============================================
-
-model KnowledgeArticle {
-  id          String   @id @default(cuid())
-  title       String
-  category    String
-  content     String   @db.Text
-  views       Int      @default(0)
-
-  // Métadonnées
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([category])
-  @@map("knowledge_articles")
+enum races_metric {
+  CA_ENCAISSE
+  DEALS_GAGNES
+  CONTACTS_CREES
+  ACTIVITES
+  APPELS
+  EMAILS
+  REUNIONS
 }
 
-// ============================================
-// EMAIL CAMPAIGNS
-// ============================================
-
-model EmailCampaign {
-  id          String   @id @default(cuid())
-  subject     String
-  sent        Int      @default(0)
-  opened      Int      @default(0)
-  clicked     Int      @default(0)
-  status      String   // 'Brouillon', 'Planifié', 'Envoyé'
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("email_campaigns")
-}
-
-// ============================================
-// CUSTOM DASHBOARDS
-// ============================================
-
-model CustomDashboard {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  widgets     Int      @default(0)
-  favorite    Boolean  @default(false)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("custom_dashboards")
-}
-
-// ============================================
-// PRODUCTS / SERVICES
-// ============================================
-
-model Product {
-  id           String   @id @default(cuid())
-  name         String
-  category     String
-  description  String?
-  price        Float
-  monthlyPrice Float?
-  features     Json     // JSON array of features
-  popular      Boolean  @default(false)
-  active       Boolean  @default(true)
-
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@map("products")
-}
-
-// ============================================
-// CLIENT MONITORING
-// ============================================
-
-model ClientMonitoring {
-  id           String   @id @default(cuid())
-  clientId     String   // Reference to Client
-  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  domain       String
-  uptime       Float    @default(99.9)
-  cpu          Float    @default(0)
-  memory       Float    @default(0)
-  ssl          Boolean  @default(true)
-  lastBackup   String?
-  nps          Int      @default(0)
-  status       String   @default("healthy") // healthy, warning, critical
-
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@map("client_monitoring")
-}
-
-// ============================================
-// NOTIFICATIONS
-// ============================================
-
-enum NotificationType {
-  ACTIVITY     // Nouvelle activité planifiée
-  DEAL         // Deal gagné/perdu ou changement de statut
-  QUOTE        // Devis accepté/refusé
-  INVOICE      // Facture payée/en retard
-  TICKET       // Nouveau ticket assigné
-  MENTION      // Mention dans une note
-  SYSTEM       // Notification système
-}
-
-model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  type      NotificationType
-  title     String
-  message   String           @db.Text
-  link      String?          // Lien vers la ressource concernée
-
-  read      Boolean          @default(false)
-  readAt    DateTime?
-
-  // Métadonnées
-  createdAt DateTime         @default(now())
-
-  @@index([userId])
-  @@index([read])
-  @@index([createdAt])
-  @@map("notifications")
+enum races_status {
+  ACTIVE
+  COMPLETED
+  CANCELLED
 }
