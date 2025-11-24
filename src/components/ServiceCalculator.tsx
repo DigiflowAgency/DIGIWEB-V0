@@ -62,11 +62,13 @@ export default function ServiceCalculator({ onCalculate }: ServiceCalculatorProp
       Object.entries(offersByChannel).forEach(([channelKey, channel]) => {
         const offer = (channel as any).offers.find((o: any) => o.id === serviceId);
         if (offer) {
-          const price = typeof offer.price === 'string'
-            ? parseFloat(offer.price.replace(/[^0-9.-]/g, ''))
-            : offer.price;
+          // Utiliser priceValue qui est déjà un nombre correct, ou fallback sur price
+          const price = offer.priceValue || (typeof offer.price === 'string'
+            ? parseFloat(offer.price.replace(/[^0-9.,]/g, '').replace(',', '.'))
+            : offer.price);
 
-          if (offer.period === 'one-time' || offer.period === 'paiement unique') {
+          // Les services sans period sont des paiements uniques (sites web, etc.)
+          if (!offer.period || offer.period === 'one-time' || offer.period === 'paiement unique') {
             oneTimeTotal += price;
           } else {
             monthlyTotal += price;
@@ -76,7 +78,7 @@ export default function ServiceCalculator({ onCalculate }: ServiceCalculatorProp
             id: offer.id,
             name: offer.title,
             price,
-            period: offer.period || 'mensuel',
+            period: offer.period || 'paiement unique',
             channel: channelKey,
             discount: 0,
           });

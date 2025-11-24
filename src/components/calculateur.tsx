@@ -964,6 +964,8 @@ export default function LandingPage() {
     let baseMaintenanceMonthly = 129 // Toujours inclus
     let additionalMonthly = 0 // Accompagnements supplémentaires et autres services mensuels
 
+    console.log('🔍 Calculate Total - Début');
+
     // Vérifier si un site web est sélectionné
     const hasWebsite = Array.from(selectedServices).some(id =>
       ['site-vitrine', 'site-prestige', 'site-landing'].includes(id)
@@ -1039,6 +1041,16 @@ export default function LandingPage() {
 
     // Appliquer la remise partenaire sur le mensuel
     const additionalMonthlyFinal = additionalMonthly * (1 - partnerDiscount)
+
+    console.log('📊 Résultats:', {
+      oneTimeTotal,
+      baseMaintenanceMonthly,
+      additionalMonthly: additionalMonthlyFinal,
+      engagedTotal: engagedTotalFinal,
+      discount: discount * 100,
+      partnerDiscount: partnerDiscount * 100,
+      months
+    });
 
     return {
       oneTimeTotal,
