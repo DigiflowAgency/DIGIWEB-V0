@@ -56,7 +56,7 @@ export default function PipelinePage() {
 
   const recentDeals = useMemo(() => {
     return deals
-      .filter(d => d.stage !== 'REFUSE' && d.stage !== 'CLOSING')
+      .filter(d => d.stage !== 'CLOSING')
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 8)
       .map(d => ({

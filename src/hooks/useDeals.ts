@@ -8,7 +8,7 @@ export interface Deal {
   description: string | null;
   value: number;
   currency: string;
-  stage: 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING' | 'REFUSE';
+  stage: 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING';
   productionStage?: 'PREMIER_RDV' | 'EN_PRODUCTION' | 'LIVRE' | 'ENCAISSE' | null;
   probability: number;
   expectedCloseDate: Date | null;
@@ -60,7 +60,7 @@ export interface CreateDealData {
   description?: string | null;
   value: number;
   currency?: string;
-  stage?: 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING' | 'REFUSE';
+  stage?: 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING';
   productionStage?: 'PREMIER_RDV' | 'EN_PRODUCTION' | 'LIVRE' | 'ENCAISSE' | null;
   probability?: number;
   expectedCloseDate?: string | null;
