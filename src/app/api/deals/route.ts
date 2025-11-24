@@ -11,7 +11,7 @@ const dealSchema = z.object({
   description: z.string().optional().nullable(),
   value: z.number().positive('Le montant doit être positif'),
   currency: z.string().default('EUR'),
-  stage: z.enum(['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING', 'REFUSE']).default('A_CONTACTER'),
+  stage: z.enum(['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING']).default('A_CONTACTER'),
   productionStage: z.enum(['PREMIER_RDV', 'EN_PRODUCTION', 'LIVRE', 'ENCAISSE']).optional().nullable(),
   probability: z.number().int().min(0).max(100).default(50),
   expectedCloseDate: z.string().datetime().optional().nullable(),
@@ -51,8 +51,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Filtre par étape
-    if (stage && ['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING', 'REFUSE'].includes(stage)) {
-      where.stage = stage as 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING' | 'REFUSE';
+    if (stage && ['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING'].includes(stage)) {
+      where.stage = stage as 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING';
     }
 
     // Filtre par contact
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
         where: { ...where, stage: 'CLOSING' },
         _sum: { value: true },
       }).then(result => result._sum.value || 0),
-      lost: await prisma.deals.count({ where: { ...where, stage: 'REFUSE' } }),
+      lost: 0, // Stage REFUSE n'existe plus
       active: await prisma.deals.count({
         where: {
           ...where,

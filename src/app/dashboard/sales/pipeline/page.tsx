@@ -92,7 +92,16 @@ export default function PipelinePage() {
   if (isError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-600">Erreur lors du chargement</p>
+        <div className="text-center">
+          <p className="text-red-600 font-semibold mb-2">Erreur lors du chargement</p>
+          <p className="text-gray-600 text-sm">{isError?.message || 'Une erreur est survenue'}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+          >
+            Réessayer
+          </button>
+        </div>
       </div>
     );
   }

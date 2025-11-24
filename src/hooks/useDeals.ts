@@ -74,7 +74,22 @@ export interface CreateDealData {
 }
 
 // Fetcher function
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  const data = await res.json();
+
+  // Si la réponse contient une erreur, la lancer
+  if (!res.ok || data.error) {
+    throw new Error(data.error || 'Erreur de chargement');
+  }
+
+  // Vérifier que la structure est correcte
+  if (!data.deals || !Array.isArray(data.deals)) {
+    throw new Error('Format de réponse invalide');
+  }
+
+  return data;
+};
 
 // Hook principal
 export function useDeals(params?: {
@@ -94,11 +109,19 @@ export function useDeals(params?: {
 
   const url = `/api/deals${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
-  const { data, error, isLoading, mutate } = useSWR<DealsResponse>(url, fetcher);
+  const { data, error, isLoading, mutate } = useSWR<DealsResponse>(url, fetcher, {
+    onError: (err) => {
+      console.error('Erreur useDeals:', err);
+    },
+  });
+
+  // Protection: s'assurer que deals est toujours un tableau
+  const deals = Array.isArray(data?.deals) ? data.deals : [];
+  const stats = data?.stats || { total: 0, totalValue: 0, won: 0, wonValue: 0, lost: 0, active: 0 };
 
   return {
-    deals: data?.deals || [],
-    stats: data?.stats || { total: 0, totalValue: 0, won: 0, wonValue: 0, lost: 0, active: 0 },
+    deals,
+    stats,
     isLoading,
     isError: error,
     mutate,
