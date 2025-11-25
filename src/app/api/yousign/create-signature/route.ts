@@ -135,6 +135,20 @@ export async function POST(request: NextRequest) {
       },
     };
 
+    // DEBUG: Récupérer les informations du template pour voir les champs disponibles
+    const templateResponse = await fetch(`${YOUSIGN_API_URL}/templates/${TEMPLATE_ID}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${YOUSIGN_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (templateResponse.ok) {
+      const templateData = await templateResponse.json();
+      console.log('📋 Template info:', JSON.stringify(templateData, null, 2));
+    }
+
     console.log('📤 Envoi à Yousign:', JSON.stringify(yousignPayload, null, 2));
 
     // Appeler l'API Yousign
