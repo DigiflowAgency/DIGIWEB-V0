@@ -182,10 +182,25 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // DEBUG: Récupérer les infos du template pour debug
+    const templateDebugResponse = await fetch(`${YOUSIGN_API_URL}/templates/${TEMPLATE_ID}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${YOUSIGN_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    let templateDebugInfo = null;
+    if (templateDebugResponse.ok) {
+      templateDebugInfo = await templateDebugResponse.json();
+    }
+
     return NextResponse.json({
       success: true,
       signatureRequest: yousignData,
       message: 'Demande de signature envoyée au client',
+      debug_template: templateDebugInfo, // Pour voir les champs du template
     });
   } catch (error) {
     console.error('❌ Erreur création signature:', error);
