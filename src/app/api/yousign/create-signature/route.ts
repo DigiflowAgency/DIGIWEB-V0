@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-const YOUSIGN_API_KEY = '6295c613b9b0a3718df36b44a229714b';
+const YOUSIGN_API_KEY = '3Ad8KJwqK04rDfqbM7RGF8V7NKFcyjNN';
 const YOUSIGN_API_URL = 'https://api-sandbox.yousign.app/v3';
 const TEMPLATE_ID = '7d9a4826-e29b-450d-aa0a-c715ce6dbb8f';
 
