@@ -317,16 +317,18 @@ export default function QuotesPage() {
       });
 
       const data = await response.json();
+      console.log('📤 Réponse complète Yousign:', data);
 
       if (response.ok) {
         alert('✅ Demande de signature envoyée avec succès !\n\nLe client va recevoir un email pour signer électroniquement.');
         mutate();
       } else {
-        console.error('Erreur Yousign:', data);
-        alert(`❌ Erreur: ${data.error || 'Impossible de créer la signature'}\n\n${data.details ? JSON.stringify(data.details, null, 2) : ''}`);
+        console.error('❌ Erreur Yousign complète:', JSON.stringify(data, null, 2));
+        const errorDetails = data.details ? (typeof data.details === 'string' ? data.details : JSON.stringify(data.details, null, 2)) : 'Aucun détail';
+        alert(`❌ Erreur: ${data.error || 'Impossible de créer la signature'}\n\nDétails:\n${errorDetails}`);
       }
     } catch (err) {
-      console.error('Erreur génération signature:', err);
+      console.error('❌ Erreur génération signature:', err);
       alert('❌ Erreur lors de la génération de la signature');
     }
   };
