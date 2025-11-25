@@ -16,6 +16,14 @@ interface QuoteData {
   }>;
 }
 
+// Helper pour formater les nombres sans espaces insécables (qui ne sont pas supportés par WinAnsi)
+function formatPrice(amount: number): string {
+  // Convertir le nombre en string avec séparateurs
+  const formatted = Math.round(amount).toLocaleString('fr-FR');
+  // Remplacer tous les espaces insécables (\u202f, \u00a0) par des espaces normaux
+  return formatted.replace(/[\u202f\u00a0]/g, ' ');
+}
+
 export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
   // Charger le template PDF
   const templatePath = path.join(process.cwd(), 'TRAME CONTRAT SITE DIGIFLOW.pdf');
@@ -90,7 +98,7 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
   let prestationY = height3 - 200; // Position de départ pour les prestations
 
   quoteData.quote_products?.forEach((product) => {
-    const priceFormatted = `${Math.round(product.totalPrice).toLocaleString('fr-FR')}€`;
+    const priceFormatted = `${formatPrice(product.totalPrice)}€`;
     const period = product.period && product.period !== 'paiement unique' ? `/${product.period}` : '';
     const line = `${product.name}`;
     const priceLine = `${priceFormatted}${period}`;
@@ -118,9 +126,9 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
   });
 
   // Bas de page 3 - Montants totaux et modalités
-  const totalLine = `${Math.round(quoteData.subtotal).toLocaleString('fr-FR')}€ -> 0€ (offert partenaire)`;
+  const totalLine = `${formatPrice(quoteData.subtotal)}€ -> 0€ (offert partenaire)`;
   const monthlyPayment = commitmentMonths > 0
-    ? `${Math.round(quoteData.subtotal / commitmentMonths)}€/mois (Reste à charge)`
+    ? `${formatPrice(quoteData.subtotal / commitmentMonths)}€/mois (Reste à charge)`
     : '0€';
   const duration = commitmentMonths > 0 ? `${commitmentMonths} mois` : 'Comptant';
 
