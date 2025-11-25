@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 
 const YOUSIGN_API_KEY = '3Ad8KJwqK04rDfqbM7RGF8V7NKFcyjNN';
 const YOUSIGN_API_URL = 'https://api-sandbox.yousign.app/v3'; // Sandbox
-const TEMPLATE_ID = '7d9a4826-e29b-450d-aa0a-c715ce6dbb8f';
+const TEMPLATE_ID = '5e3e0be7-46c6-4dd5-84e9-7fa40c152943';
 
 // POST /api/yousign/create-signature - Créer une signature électronique
 export async function POST(request: NextRequest) {
