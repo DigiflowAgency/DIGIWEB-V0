@@ -94,7 +94,7 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
   // Position dans l'Article 2 - fin de la ligne "au terme de la période d'engagement prévue dans le contrat"
   // Ajustement précis après analyse du PDF signé
   page1.drawText(commitmentText, {
-    x: 520,
+    x: 435,
     y: height1 - 676,
     size: 9,
     font: fontBold,
@@ -202,7 +202,7 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
 
   // Date après "Fait à AIX EN PROVENCE, le" - position ultra-précise d'après PDF signé
   page4.drawText(today, {
-    x: 305,
+    x: 220,
     y: height4 - 515,
     size: 10,
     font: font,
