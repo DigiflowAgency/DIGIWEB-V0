@@ -65,24 +65,6 @@ export async function POST(request: NextRequest) {
             },
           },
         ],
-        read_only_text_fields: [
-          {
-            label: 'client_info',
-            text: clientInfo,
-          },
-          {
-            label: 'prestations',
-            text: prestations,
-          },
-          {
-            label: 'date_signature',
-            text: today,
-          },
-          {
-            label: 'montant_total',
-            text: `${quote.total.toLocaleString('fr-FR')} €`,
-          },
-        ],
       },
     };
 
