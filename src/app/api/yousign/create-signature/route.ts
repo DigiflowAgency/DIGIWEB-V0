@@ -50,24 +50,43 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ PDF généré, taille:', pdfBuffer.length, 'bytes');
 
-    // Convertir le PDF en base64 pour Yousign
-    const pdfBase64 = pdfBuffer.toString('base64');
+    // Étape 1 : Upload du document sur Yousign
+    console.log('📤 Upload du document sur Yousign...');
+    const documentFormData = new FormData();
+    // Convertir le Buffer en Uint8Array pour Blob
+    const uint8Array = new Uint8Array(pdfBuffer);
+    const blob = new Blob([uint8Array], { type: 'application/pdf' });
+    documentFormData.append('file', blob, `Contrat_${quote.number}.pdf`);
+    documentFormData.append('nature', 'signable_document');
 
-    // Créer la signature request avec le document
+    const uploadResponse = await fetch(`${YOUSIGN_API_URL}/documents`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${YOUSIGN_API_KEY}`,
+      },
+      body: documentFormData,
+    });
+
+    if (!uploadResponse.ok) {
+      const uploadError = await uploadResponse.json();
+      console.error('❌ Erreur upload document:', uploadError);
+      return NextResponse.json(
+        { error: 'Erreur upload document Yousign', details: uploadError },
+        { status: uploadResponse.status }
+      );
+    }
+
+    const documentData = await uploadResponse.json();
+    const documentId = documentData.id;
+    console.log('✅ Document uploadé, ID:', documentId);
+
+    // Étape 2 : Créer la signature request avec le document uploadé
+    console.log('📤 Création de la signature request...');
     const yousignPayload = {
       name: `Contrat - ${quote.clientName}`,
       delivery_mode: 'email',
       timezone: 'Europe/Paris',
-      documents: [
-        {
-          nature: 'signable_document',
-          parse_anchors: false,
-          file: {
-            name: `Contrat_${quote.number}.pdf`,
-            content: pdfBase64,
-          },
-        },
-      ],
+      documents: [documentId],
       signers: [
         {
           info: {
@@ -80,9 +99,9 @@ export async function POST(request: NextRequest) {
           signature_authentication_mode: 'otp_email',
           fields: [
             {
-              document_id: 0, // Premier document
+              document_id: documentId,
               type: 'signature',
-              page: 4, // Page 4 pour la signature
+              page: 4,
               x: 100,
               y: 200,
               width: 200,
@@ -93,9 +112,6 @@ export async function POST(request: NextRequest) {
       ],
     };
 
-    console.log('📤 Envoi à Yousign...');
-
-    // Appeler l'API Yousign pour créer la signature request
     const yousignResponse = await fetch(`${YOUSIGN_API_URL}/signature_requests`, {
       method: 'POST',
       headers: {
