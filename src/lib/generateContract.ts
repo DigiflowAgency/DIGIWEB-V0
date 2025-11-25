@@ -42,29 +42,29 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
   const { height: height1 } = page1.getSize();
 
   // Section "Et" - Informations client (d'après le PDF signé: SOFIANE DJERBI)
-  let yPosition = height1 - 332; // Position précise après "Et"
+  let yPosition = height1 - 335; // Position précise après "Et"
 
   // Nom du client en gras
   page1.drawText(quoteData.clientName.toUpperCase(), {
     x: 110,
     y: yPosition,
-    size: 11,
+    size: 10.5,
     font: fontBold,
     color: rgb(0, 0, 0),
   });
 
-  yPosition -= 18;
+  yPosition -= 17;
 
   // Entreprise si disponible (RIGORE CONSTRUCTION)
   if (quoteData.clientSiret) {
     page1.drawText(quoteData.clientSiret, {
       x: 110,
       y: yPosition,
-      size: 11,
+      size: 10.5,
       font: fontBold,
       color: rgb(0, 0, 0),
     });
-    yPosition -= 18;
+    yPosition -= 17;
   }
 
   yPosition -= 2; // Petit espace
@@ -76,11 +76,11 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
       page1.drawText(line, {
         x: 110,
         y: yPosition,
-        size: 11,
+        size: 10.5,
         font: font,
         color: rgb(0, 0, 0),
       });
-      yPosition -= 16;
+      yPosition -= 15;
     });
   }
 
@@ -91,11 +91,12 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
 
   const commitmentText = commitmentMonths > 0 ? `${commitmentMonths} MOIS` : 'Sans engagement';
 
-  // Position dans l'Article 2 (fin de ligne "au terme de la période d'engagement prévue dans le contrat")
+  // Position dans l'Article 2 - fin de la ligne "au terme de la période d'engagement prévue dans le contrat"
+  // Ajustement précis après analyse du PDF signé
   page1.drawText(commitmentText, {
-    x: 545,
+    x: 520,
     y: height1 - 676,
-    size: 10,
+    size: 9,
     font: fontBold,
     color: rgb(0, 0, 0),
   });
@@ -105,7 +106,7 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
   const { height: height3 } = page3.getSize();
 
   // Position de départ pour les prestations (après "DIGIFLOW s'engage à exécuter l'intégralité des prestations prévues :")
-  let prestationY = height3 - 160;
+  let prestationY = height3 - 165;
 
   // Afficher chaque prestation avec son prix
   quoteData.quote_products?.forEach((product) => {
@@ -117,7 +118,7 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
     page3.drawText(serviceName, {
       x: 50,
       y: prestationY,
-      size: 10,
+      size: 9.5,
       font: font,
       color: rgb(0, 0, 0),
       maxWidth: 350,
@@ -126,14 +127,14 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
     // Prix (droite aligné)
     const priceText = `${priceFormatted}${period}`;
     page3.drawText(priceText, {
-      x: 450,
+      x: 465,
       y: prestationY,
-      size: 10,
+      size: 9.5,
       font: fontBold,
       color: rgb(0, 0, 0),
     });
 
-    prestationY -= 15; // Ligne description
+    prestationY -= 14; // Ligne description
 
     // Description si disponible (texte plus petit, gris)
     if (product.name.includes('Site Web') || product.name.includes('Hébergement')) {
@@ -141,19 +142,19 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
       page3.drawText(description, {
         x: 50,
         y: prestationY,
-        size: 8,
+        size: 7.5,
         font: font,
-        color: rgb(0.3, 0.3, 0.3),
+        color: rgb(0.4, 0.4, 0.4),
         maxWidth: 350,
       });
-      prestationY -= 12;
+      prestationY -= 10;
     }
 
-    prestationY -= 25; // Espace entre les prestations
+    prestationY -= 22; // Espace entre les prestations
   });
 
   // Ligne de total en bas de page 3 (comme dans le PDF signé)
-  const totalY = 60;
+  const totalY = 65;
 
   // Format: "23 146,67€ -> 0€ (offert partenaire)   410€/mois (Reste à charge)   48 mois"
   const totalOneTime = `${formatPrice(quoteData.subtotal)}€ -> 0€ (offert partenaire)`;
@@ -166,25 +167,25 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
   page3.drawText(totalOneTime, {
     x: 50,
     y: totalY,
-    size: 9,
+    size: 8.5,
     font: fontBold,
     color: rgb(0, 0, 0),
   });
 
   // Reste à charge mensuel
   page3.drawText(monthlyPayment, {
-    x: 300,
+    x: 310,
     y: totalY,
-    size: 9,
+    size: 8.5,
     font: fontBold,
     color: rgb(0, 0, 0),
   });
 
   // Durée
   page3.drawText(duration, {
-    x: 500,
+    x: 510,
     y: totalY,
-    size: 9,
+    size: 8.5,
     font: fontBold,
     color: rgb(0, 0, 0),
   });
@@ -199,11 +200,11 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
     year: 'numeric'
   });
 
-  // Date après "Fait à AIX EN PROVENCE, le"
+  // Date après "Fait à AIX EN PROVENCE, le" - position ultra-précise d'après PDF signé
   page4.drawText(today, {
-    x: 295,
-    y: height4 - 518,
-    size: 11,
+    x: 305,
+    y: height4 - 515,
+    size: 10,
     font: font,
     color: rgb(0, 0, 0),
   });
