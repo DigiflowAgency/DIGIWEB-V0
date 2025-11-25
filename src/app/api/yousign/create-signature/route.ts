@@ -35,6 +35,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Devis non trouvé' }, { status: 404 });
     }
 
+    // Préparer les données pour remplir le contrat
+    const today = new Date().toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+
+    // Calculer les montants
+    const commitmentMonths = quote.commitmentPeriod && quote.commitmentPeriod !== 'comptant'
+      ? parseInt(quote.commitmentPeriod)
+      : 0;
+
+    // Séparer les prestations par type (one-time vs mensuel)
+    const oneTimeServices: any[] = [];
+    const monthlyServices: any[] = [];
+
+    quote.quote_products?.forEach((p: any) => {
+      if (!p.period || p.period === 'paiement unique') {
+        oneTimeServices.push(p);
+      } else {
+        monthlyServices.push(p);
+      }
+    });
+
+    // Formater la liste des prestations comme dans le contrat
+    const prestationsList = quote.quote_products
+      ?.map((p: any) => {
+        const price = `${Math.round(p.totalPrice).toLocaleString('fr-FR')}€`;
+        const period = p.period && p.period !== 'paiement unique' ? `/${p.period}` : '';
+        return `${p.name} ${price}${period}`;
+      })
+      .join('\n\n') || '';
+
     // Créer la signature request depuis le template
     // Utiliser template_placeholders pour remplacer les placeholder signers et remplir les champs
     const yousignPayload: any = {
@@ -52,6 +85,51 @@ export async function POST(request: NextRequest) {
               email: quote.clientEmail,
               locale: 'fr',
             },
+          },
+        ],
+        read_only_text_fields: [
+          // Informations client (section "Et" page 1)
+          {
+            label: 'nom_client',
+            text: quote.clientName.toUpperCase(),
+          },
+          {
+            label: 'email_client',
+            text: quote.clientEmail,
+          },
+          {
+            label: 'adresse_client',
+            text: quote.clientAddress || '',
+          },
+          // Période d'engagement (Article 2)
+          {
+            label: 'periode_engagement',
+            text: commitmentMonths > 0 ? `${commitmentMonths} MOIS` : 'Sans engagement',
+          },
+          // Date de signature (page 4)
+          {
+            label: 'date_signature',
+            text: today,
+          },
+          // Prestations détaillées (Article 5)
+          {
+            label: 'prestations',
+            text: prestationsList,
+          },
+          // Montant total paiement unique (bas page 3)
+          {
+            label: 'montant_paiement_unique',
+            text: `${Math.round(quote.subtotal).toLocaleString('fr-FR')}€`,
+          },
+          // Reste à charge mensuel (bas page 3)
+          {
+            label: 'reste_charge_mensuel',
+            text: commitmentMonths > 0 ? `${Math.round(quote.subtotal / commitmentMonths)}€/mois` : '0€',
+          },
+          // Durée engagement (bas page 3)
+          {
+            label: 'duree_engagement',
+            text: commitmentMonths > 0 ? `${commitmentMonths} mois` : 'Comptant',
           },
         ],
       },
