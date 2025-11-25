@@ -4,8 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 const YOUSIGN_API_KEY = '3Ad8KJwqK04rDfqbM7RGF8V7NKFcyjNN';
-const YOUSIGN_API_URL = 'https://api-sandbox.yousign.app/v3';
-const TEMPLATE_ID = '619b6137-abc4-4dcf-867c-775cb127cc25';
+const YOUSIGN_API_URL = 'https://api-sandbox.yousign.app/v3'; // Sandbox
+const TEMPLATE_ID = '7d9a4826-e29b-450d-aa0a-c715ce6dbb8f';
 
 // POST /api/yousign/create-signature - Créer une signature électronique
 export async function POST(request: NextRequest) {
@@ -35,18 +35,56 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Devis non trouvé' }, { status: 404 });
     }
 
+    // Préparer les données du devis pour les champs read-only
+    const clientInfo = `${quote.clientName}\n${quote.clientEmail}\n${quote.clientAddress || ''}`;
+    const prestations = quote.quote_products
+      ?.map((p: any) => `- ${p.name} (${p.quantity}x ${p.unitPrice}€)`)
+      .join('\n') || '';
+    const today = new Date().toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+
     // Créer la signature request depuis le template
-    // Le template contient déjà les signers, on utilise juste les infos du devis pour les remplir
+    // Utiliser template_placeholders pour remplacer les placeholder signers et remplir les champs
     const yousignPayload: any = {
       name: `Contrat - ${quote.clientName}`,
       delivery_mode: 'email',
       timezone: 'Europe/Paris',
+      template_id: TEMPLATE_ID,
+      template_placeholders: {
+        signers: [
+          {
+            label: 'client', // IMPORTANT: Ce label doit correspondre au label du Placeholder Signer dans votre template
+            info: {
+              first_name: quote.clientName.split(' ')[0] || quote.clientName,
+              last_name: quote.clientName.split(' ').slice(1).join(' ') || 'Client',
+              email: quote.clientEmail,
+              locale: 'fr',
+            },
+          },
+        ],
+        read_only_text_fields: [
+          {
+            label: 'client_info',
+            text: clientInfo,
+          },
+          {
+            label: 'prestations',
+            text: prestations,
+          },
+          {
+            label: 'date_signature',
+            text: today,
+          },
+          {
+            label: 'montant_total',
+            text: `${quote.total.toLocaleString('fr-FR')} €`,
+          },
+        ],
+      },
     };
-
-    // Ajouter le template_id
-    if (TEMPLATE_ID) {
-      yousignPayload.template_id = TEMPLATE_ID;
-    }
 
     console.log('📤 Envoi à Yousign:', JSON.stringify(yousignPayload, null, 2));
 
