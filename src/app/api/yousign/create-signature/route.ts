@@ -64,15 +64,6 @@ export async function POST(request: NextRequest) {
               locale: 'fr',
             },
           },
-          {
-            label: 'client_info',
-            info: {
-              first_name: quote.clientName.split(' ')[0] || quote.clientName,
-              last_name: quote.clientName.split(' ').slice(1).join(' ') || 'Client',
-              email: quote.clientEmail,
-              locale: 'fr',
-            },
-          },
         ],
         read_only_text_fields: [
           {
