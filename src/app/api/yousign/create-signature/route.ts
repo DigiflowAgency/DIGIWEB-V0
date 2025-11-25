@@ -56,7 +56,16 @@ export async function POST(request: NextRequest) {
       template_placeholders: {
         signers: [
           {
-            label: 'client', // IMPORTANT: Ce label doit correspondre au label du Placeholder Signer dans votre template
+            label: 'client',
+            info: {
+              first_name: quote.clientName.split(' ')[0] || quote.clientName,
+              last_name: quote.clientName.split(' ').slice(1).join(' ') || 'Client',
+              email: quote.clientEmail,
+              locale: 'fr',
+            },
+          },
+          {
+            label: 'client_info',
             info: {
               first_name: quote.clientName.split(' ')[0] || quote.clientName,
               last_name: quote.clientName.split(' ').slice(1).join(' ') || 'Client',
