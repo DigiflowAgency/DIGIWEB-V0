@@ -35,17 +35,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Devis non trouvé' }, { status: 404 });
     }
 
-    // Préparer les données pour le template
-    const clientInfo = `${quote.clientName}\n${quote.clientEmail}\n${quote.clientAddress || ''}`;
-    const prestations = quote.quote_products
-      ?.map((p: any) => `- ${p.name} (${p.quantity}x ${p.unitPrice}€)`)
-      .join('\n') || '';
-    const today = new Date().toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-
     // Créer la signature request avec template Yousign
     const yousignPayload = {
       name: `Contrat - ${quote.clientName}`,
@@ -62,30 +51,12 @@ export async function POST(request: NextRequest) {
           },
         },
       ],
-      placeholder_fields: [
-        {
-          id: 'client_info',
-          content: clientInfo,
-        },
-        {
-          id: 'prestations',
-          content: prestations,
-        },
-        {
-          id: 'date_signature',
-          content: today,
-        },
-        {
-          id: 'montant_total',
-          content: `${quote.total.toLocaleString('fr-FR')} €`,
-        },
-      ],
     };
 
     console.log('📤 Envoi à Yousign:', JSON.stringify(yousignPayload, null, 2));
 
-    // Appeler l'API Yousign avec l'endpoint pour templates
-    const yousignResponse = await fetch(`${YOUSIGN_API_URL}/signature_requests_from_templates`, {
+    // Appeler l'API Yousign
+    const yousignResponse = await fetch(`${YOUSIGN_API_URL}/signature_requests`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${YOUSIGN_API_KEY}`,
