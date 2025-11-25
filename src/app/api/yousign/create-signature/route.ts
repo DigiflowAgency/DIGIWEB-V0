@@ -35,21 +35,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Devis non trouvé' }, { status: 404 });
     }
 
-    // Préparer les données pour Yousign
+    // Préparer les données pour le template
     const clientInfo = `${quote.clientName}\n${quote.clientEmail}\n${quote.clientAddress || ''}`;
-
-    // Préparer la liste des prestations
     const prestations = quote.quote_products
       ?.map((p: any) => `- ${p.name} (${p.quantity}x ${p.unitPrice}€)`)
       .join('\n') || '';
-
     const today = new Date().toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
     });
 
-    // Créer la signature request avec Yousign
+    // Créer la signature request avec template Yousign
     const yousignPayload = {
       name: `Contrat - ${quote.clientName}`,
       delivery_mode: 'email',
@@ -59,33 +56,36 @@ export async function POST(request: NextRequest) {
         {
           info: {
             first_name: quote.clientName.split(' ')[0] || quote.clientName,
-            last_name: quote.clientName.split(' ').slice(1).join(' ') || '',
+            last_name: quote.clientName.split(' ').slice(1).join(' ') || 'Client',
             email: quote.clientEmail,
             locale: 'fr',
           },
-          signature_level: 'electronic_signature',
-          signature_authentication_mode: 'otp_sms',
         },
       ],
-      custom_experience: {
-        redirect_urls: {
-          success: `${process.env.NEXTAUTH_URL}/dashboard/sales/quotes?signature=success`,
-          error: `${process.env.NEXTAUTH_URL}/dashboard/sales/quotes?signature=error`,
+      placeholder_fields: [
+        {
+          id: 'client_info',
+          content: clientInfo,
         },
-      },
-      // Champs personnalisés à remplir dans le template
-      fields: {
-        client_info: clientInfo,
-        prestations: prestations,
-        date_signature: today,
-        montant_total: `${quote.total.toLocaleString('fr-FR')} €`,
-      },
+        {
+          id: 'prestations',
+          content: prestations,
+        },
+        {
+          id: 'date_signature',
+          content: today,
+        },
+        {
+          id: 'montant_total',
+          content: `${quote.total.toLocaleString('fr-FR')} €`,
+        },
+      ],
     };
 
     console.log('📤 Envoi à Yousign:', JSON.stringify(yousignPayload, null, 2));
 
-    // Appeler l'API Yousign
-    const yousignResponse = await fetch(`${YOUSIGN_API_URL}/signature_requests`, {
+    // Appeler l'API Yousign avec l'endpoint pour templates
+    const yousignResponse = await fetch(`${YOUSIGN_API_URL}/signature_requests_from_templates`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${YOUSIGN_API_KEY}`,
