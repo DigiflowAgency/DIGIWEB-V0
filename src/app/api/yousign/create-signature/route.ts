@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 
 const YOUSIGN_API_KEY = '3Ad8KJwqK04rDfqbM7RGF8V7NKFcyjNN';
 const YOUSIGN_API_URL = 'https://api-sandbox.yousign.app/v3';
-const TEMPLATE_ID = '7d9a4826-e29b-450d-aa0a-c715ce6dbb8f';
+const TEMPLATE_ID = '619b6137-abc4-4dcf-867c-775cb127cc25';
 
 // POST /api/yousign/create-signature - Créer une signature électronique
 export async function POST(request: NextRequest) {
@@ -35,23 +35,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Devis non trouvé' }, { status: 404 });
     }
 
-    // Créer la signature request avec template Yousign
-    const yousignPayload = {
+    // Créer la signature request depuis le template
+    // Le template contient déjà les signers, on utilise juste les infos du devis pour les remplir
+    const yousignPayload: any = {
       name: `Contrat - ${quote.clientName}`,
       delivery_mode: 'email',
       timezone: 'Europe/Paris',
-      template_id: TEMPLATE_ID,
-      signers: [
-        {
-          info: {
-            first_name: quote.clientName.split(' ')[0] || quote.clientName,
-            last_name: quote.clientName.split(' ').slice(1).join(' ') || 'Client',
-            email: quote.clientEmail,
-            locale: 'fr',
-          },
-        },
-      ],
     };
+
+    // Ajouter le template_id
+    if (TEMPLATE_ID) {
+      yousignPayload.template_id = TEMPLATE_ID;
+    }
 
     console.log('📤 Envoi à Yousign:', JSON.stringify(yousignPayload, null, 2));
 
