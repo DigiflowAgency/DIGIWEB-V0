@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import SalesPerformanceDashboard from '@/components/SalesPerformanceDashboard';
+import { useDeals } from '@/hooks/useDeals';
+import { useActivities } from '@/hooks/useActivities';
 import {
   TrendingUp,
   DollarSign,
@@ -10,10 +12,18 @@ import {
   Calendar,
   Save,
   RefreshCw,
+  Filter,
 } from 'lucide-react';
 
 export default function MesPrimesPage() {
   const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'ADMIN';
+
+  // États pour le filtre admin
+  const [filterMode, setFilterMode] = useState<'mine' | 'all' | 'user'>('mine');
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [users, setUsers] = useState<any[]>([]);
+
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [yearlyRevenue, setYearlyRevenue] = useState(0);
   const [signatures, setSignatures] = useState(0);
@@ -21,6 +31,89 @@ export default function MesPrimesPage() {
   const [saving, setSaving] = useState(false);
   const [_currentPerformance, setCurrentPerformance] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+
+  // Charger la liste des utilisateurs (pour les admins)
+  useEffect(() => {
+    if (isAdmin) {
+      fetch('/api/users')
+        .then(res => res.json())
+        .then(data => {
+          if (data.users && Array.isArray(data.users)) {
+            setUsers(data.users);
+          }
+        })
+        .catch(err => console.error('Erreur chargement users:', err));
+    }
+  }, [isAdmin]);
+
+  // Préparer les paramètres pour useDeals
+  const dealsParams = useMemo(() => {
+    if (!isAdmin) return {};
+
+    if (filterMode === 'all') {
+      return { showAll: true };
+    } else if (filterMode === 'user' && selectedUserId) {
+      return { ownerId: selectedUserId };
+    }
+    return {}; // 'mine' = pas de paramètres = mes deals
+  }, [isAdmin, filterMode, selectedUserId]);
+
+  // Charger les deals et activités
+  const { deals } = useDeals(dealsParams);
+  const { activities } = useActivities();
+
+  // Calculer automatiquement les données depuis les deals
+  useEffect(() => {
+    if (!deals || !activities) return;
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // Calculer le CA mensuel (deals CLOSING ce mois)
+    const monthStart = new Date(currentYear, currentMonth, 1);
+    const monthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+
+    const closedDealsThisMonth = deals.filter(d => {
+      if (d.stage !== 'CLOSING') return false;
+      const dateToCheck = d.closedAt || d.updatedAt;
+      if (!dateToCheck) return false;
+      const dealDate = new Date(dateToCheck);
+      return dealDate >= monthStart && dealDate <= monthEnd;
+    });
+
+    const monthlyCA = closedDealsThisMonth.reduce((sum, d) => sum + d.value, 0);
+    setMonthlyRevenue(monthlyCA);
+
+    // Calculer le CA annuel (deals CLOSING cette année)
+    const yearStart = new Date(currentYear, 0, 1);
+    const closedDealsThisYear = deals.filter(d => {
+      if (d.stage !== 'CLOSING') return false;
+      const dateToCheck = d.closedAt || d.updatedAt;
+      if (!dateToCheck) return false;
+      const dealDate = new Date(dateToCheck);
+      return dealDate >= yearStart && dealDate <= monthEnd;
+    });
+
+    const yearlyCA = closedDealsThisYear.reduce((sum, d) => sum + d.value, 0);
+    setYearlyRevenue(yearlyCA);
+
+    // Calculer les signatures (deals créés ce mois)
+    const newDealsThisMonth = deals.filter(d => {
+      const createdDate = new Date(d.createdAt);
+      return createdDate >= monthStart && createdDate <= monthEnd;
+    });
+    setSignatures(newDealsThisMonth.length);
+
+    // Calculer les RDV (activités REUNION/VISIO complétées ce mois)
+    const rdvThisMonth = activities.filter(a => {
+      if (a.type !== 'REUNION' && a.type !== 'VISIO') return false;
+      if (a.status !== 'COMPLETEE') return false;
+      const activityDate = new Date(a.scheduledAt);
+      return activityDate >= monthStart && activityDate <= monthEnd;
+    });
+    setRdvCount(rdvThisMonth.length);
+  }, [deals, activities]);
 
   useEffect(() => {
     if (session?.user) {
@@ -100,10 +193,48 @@ export default function MesPrimesPage() {
     <div className="p-8 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Mes Primes & Objectifs</h1>
-        <p className="text-gray-600">
-          Suivez vos performances et estimez vos primes en temps réel - {currentMonth}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Mes Primes & Objectifs</h1>
+            <p className="text-gray-600">
+              Suivez vos performances et estimez vos primes en temps réel - {currentMonth}
+            </p>
+          </div>
+          {isAdmin && (
+            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <select
+                value={filterMode}
+                onChange={(e) => {
+                  setFilterMode(e.target.value as 'mine' | 'all' | 'user');
+                  if (e.target.value !== 'user') {
+                    setSelectedUserId('');
+                  }
+                }}
+                className="border-0 bg-transparent text-sm font-medium text-gray-700 focus:ring-0 cursor-pointer"
+              >
+                <option value="mine">Mes deals</option>
+                <option value="all">Tous les deals</option>
+                <option value="user">Par commercial</option>
+              </select>
+
+              {filterMode === 'user' && (
+                <select
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  className="border-l border-gray-200 pl-2 bg-transparent text-sm text-gray-700 focus:ring-0 cursor-pointer"
+                >
+                  <option value="">Sélectionner...</option>
+                  {users.map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.firstName} {user.lastName}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Formulaire de saisie */}
@@ -113,8 +244,8 @@ export default function MesPrimesPage() {
             <Target className="h-6 w-6 text-violet-600" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Saisir mes données</h2>
-            <p className="text-sm text-gray-600">Mettez à jour vos chiffres du mois</p>
+            <h2 className="text-xl font-bold text-gray-900">Données calculées automatiquement</h2>
+            <p className="text-sm text-gray-600">Basées sur vos deals et activités du mois</p>
           </div>
         </div>
 
@@ -129,8 +260,10 @@ export default function MesPrimesPage() {
                 type="number"
                 value={monthlyRevenue}
                 onChange={(e) => setMonthlyRevenue(parseFloat(e.target.value) || 0)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="0"
+                readOnly
+                title="Calculé automatiquement depuis vos deals CLOSING"
               />
             </div>
           </div>
@@ -145,8 +278,10 @@ export default function MesPrimesPage() {
                 type="number"
                 value={yearlyRevenue}
                 onChange={(e) => setYearlyRevenue(parseFloat(e.target.value) || 0)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="0"
+                readOnly
+                title="Calculé automatiquement depuis vos deals CLOSING de l'année"
               />
             </div>
           </div>
@@ -161,8 +296,10 @@ export default function MesPrimesPage() {
                 type="number"
                 value={signatures}
                 onChange={(e) => setSignatures(parseInt(e.target.value) || 0)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="0"
+                readOnly
+                title="Calculé automatiquement depuis vos nouveaux deals créés ce mois"
               />
             </div>
           </div>
@@ -177,8 +314,10 @@ export default function MesPrimesPage() {
                 type="number"
                 value={rdvCount}
                 onChange={(e) => setRdvCount(parseInt(e.target.value) || 0)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 placeholder="0"
+                readOnly
+                title="Calculé automatiquement depuis vos RDV terminés ce mois"
               />
             </div>
           </div>

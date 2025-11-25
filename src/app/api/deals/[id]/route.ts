@@ -5,6 +5,20 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
+// Fonction pour calculer automatiquement la probabilité selon l'étape
+function getProbabilityByStage(stage: string): number {
+  const probabilityMap: { [key: string]: number } = {
+    'A_CONTACTER': 10,
+    'EN_DISCUSSION': 30,
+    'A_RELANCER': 20,
+    'RDV_PRIS': 50,
+    'NEGO_HOT': 70,
+    'CLOSING': 90,
+    'REFUSE': 0,
+  };
+  return probabilityMap[stage] || 50;
+}
+
 // Schema de validation pour update (tous les champs optionnels)
 const dealUpdateSchema = z.object({
   title: z.string().min(1).optional(),
@@ -152,6 +166,11 @@ export async function PUT(
     const body = await request.json();
     const validatedData = dealUpdateSchema.parse(body);
 
+    // Si le stage change, calculer automatiquement la nouvelle probabilité
+    if (validatedData.stage && !validatedData.probability) {
+      validatedData.probability = getProbabilityByStage(validatedData.stage);
+    }
+
     // Vérifier que le contact existe (s'il est fourni)
     if (validatedData.contactId) {
       const contact = await prisma.contacts.findUnique({
@@ -280,6 +299,8 @@ export async function PATCH(
 
     if ('stage' in body) {
       updateData.stage = body.stage;
+      // Calculer automatiquement la probabilité selon la nouvelle étape
+      updateData.probability = getProbabilityByStage(body.stage);
     }
 
     // Mettre à jour le deal

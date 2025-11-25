@@ -17,7 +17,7 @@ const createUserSchema = z.object({
   monthlyGoal: z.number().optional(),
 });
 
-// GET /api/users - Récupérer tous les utilisateurs (admin seulement)
+// GET /api/users - Récupérer tous les utilisateurs
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -25,14 +25,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    // Vérifier que l'utilisateur est admin
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Accès réservé aux administrateurs' },
-        { status: 403 }
-      );
-    }
-
+    // Tous les utilisateurs authentifiés peuvent voir la liste (pour assignation)
     // Filtrer par rôle si spécifié
     const { searchParams } = new URL(request.url);
     const roleFilter = searchParams.get('role');

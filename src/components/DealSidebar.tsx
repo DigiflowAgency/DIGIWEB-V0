@@ -28,8 +28,19 @@ export default function DealSidebar({ deal, isOpen, onClose, onUpdate }: DealSid
     // Récupérer la liste des utilisateurs
     fetch('/api/users')
       .then(res => res.json())
-      .then(data => setUsers(data))
-      .catch(err => console.error('Erreur chargement users:', err));
+      .then(data => {
+        // Valider que data est un tableau
+        if (Array.isArray(data)) {
+          setUsers(data);
+        } else {
+          console.error('Format invalide pour users:', data);
+          setUsers([]);
+        }
+      })
+      .catch(err => {
+        console.error('Erreur chargement users:', err);
+        setUsers([]);
+      });
   }, []);
 
   useEffect(() => {

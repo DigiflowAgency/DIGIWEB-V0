@@ -2179,7 +2179,7 @@ export default function LandingPage() {
                     {showCartDetails && showPricesInBar && (
                       <div className="mt-2 pt-2 border-t border-white/10">
                         {(() => {
-                          const { engagedTotal, oneTimeTotal, baseMaintenanceMonthly: _baseMaintenanceMonthly, additionalMonthly, discount, partnerDiscount, hasWebsite, months } = calculateTotal()
+                          const { oneTimeTotal, baseMaintenanceMonthly, additionalMonthly, discount, partnerDiscount, hasWebsite, months } = calculateTotal()
 
                           return (
                             <>
@@ -2188,24 +2188,50 @@ export default function LandingPage() {
                               )}
 
                               <div className="flex flex-wrap items-start gap-x-4 gap-y-2 text-xs">
-                                {/* Montant engagé (24/36/48 mois) */}
-                                {engagedTotal > 0 && months > 0 && (
+                                {/* Paiement mensuel site web (24/36/48 mois) */}
+                                {oneTimeTotal > 0 && months > 0 && (
                                   <div>
                                     <span className="text-foreground-muted block">
-                                      Mensuel engagé ({months}m)
+                                      Site web ({months}m)
                                       {discount > 0 && ` -${discount}%`}
                                       {partnerDiscount > 0 && ` + Part. -${partnerDiscount}%`}
                                     </span>
                                     <div className="flex items-center gap-2">
-                                      {discount > 0 && (
-                                        <span className="text-sm font-bold text-foreground-muted line-through">
-                                          {Math.round((engagedTotal / ((1 - discount / 100) * (1 - partnerDiscount / 100))) / months).toLocaleString('fr-FR')}€
-                                        </span>
-                                      )}
+                                      {(discount > 0 || partnerDiscount > 0) && (() => {
+                                        const totalDiscountMultiplier = (1 - discount / 100) * (1 - partnerDiscount / 100);
+                                        const originalMonthly = totalDiscountMultiplier > 0 && months > 0
+                                          ? Math.round((oneTimeTotal / totalDiscountMultiplier) / months)
+                                          : 0;
+                                        const monthlyPrice = months > 0 ? Math.round((oneTimeTotal * (1 - discount / 100) * (1 - partnerDiscount / 100)) / months) : 0;
+                                        return originalMonthly > 0 && !isNaN(originalMonthly) && originalMonthly !== monthlyPrice && (
+                                          <span className="text-sm font-bold text-foreground-muted line-through">
+                                            {originalMonthly.toLocaleString('fr-FR')}€
+                                          </span>
+                                        );
+                                      })()}
                                       <span className="text-base font-bold text-white">
-                                        {Math.round(engagedTotal / months).toLocaleString('fr-FR')}€/mois
+                                        {(() => {
+                                          const monthlyPrice = months > 0 ? Math.round((oneTimeTotal * (1 - discount / 100) * (1 - partnerDiscount / 100)) / months) : 0;
+                                          return !isNaN(monthlyPrice) ? monthlyPrice.toLocaleString('fr-FR') : '0';
+                                        })()}€/mois
                                       </span>
                                     </div>
+                                  </div>
+                                )}
+
+                                {/* Maintenance mensuelle (24/36/48 mois) */}
+                                {months > 0 && baseMaintenanceMonthly > 0 && (
+                                  <div>
+                                    <span className="text-foreground-muted block">
+                                      + Maintenance & Suivi
+                                      {partnerDiscount > 0 && ` (-${partnerDiscount}%)`}
+                                    </span>
+                                    <span className="text-base font-bold text-white">
+                                      {(() => {
+                                        const monthly = Math.round(baseMaintenanceMonthly * (1 - partnerDiscount / 100));
+                                        return !isNaN(monthly) ? monthly.toLocaleString('fr-FR') : '0';
+                                      })()}€/mois
+                                    </span>
                                   </div>
                                 )}
 
@@ -2213,11 +2239,14 @@ export default function LandingPage() {
                                 {oneTimeTotal > 0 && months === 0 && (
                                   <div>
                                     <span className="text-foreground-muted block">
-                                      Total comptant
+                                      Paiement unique
                                       {partnerDiscount > 0 && ` (Part. -${partnerDiscount}%)`}
                                     </span>
                                     <span className="text-base font-bold text-white">
-                                      {Math.round(oneTimeTotal * (1 - partnerDiscount / 100)).toLocaleString('fr-FR')}€
+                                      {(() => {
+                                        const total = Math.round(oneTimeTotal * (1 - partnerDiscount / 100));
+                                        return !isNaN(total) ? total.toLocaleString('fr-FR') : '0';
+                                      })()}€
                                     </span>
                                   </div>
                                 )}
@@ -2238,7 +2267,10 @@ export default function LandingPage() {
                                       {partnerDiscount > 0 && ` (-${partnerDiscount}%)`}
                                     </span>
                                     <span className="text-base font-bold text-white">
-                                      {Math.round(additionalMonthly).toLocaleString('fr-FR')}€/mois
+                                      {(() => {
+                                        const monthly = Math.round(additionalMonthly);
+                                        return !isNaN(monthly) ? monthly.toLocaleString('fr-FR') : '0';
+                                      })()}€/mois
                                     </span>
                                   </div>
                                 )}

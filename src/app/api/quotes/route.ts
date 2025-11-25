@@ -172,6 +172,9 @@ export async function POST(request: NextRequest) {
     // Générer le numéro de devis
     const quoteNumber = await generateQuoteNumber();
 
+    // Générer un ID unique pour le devis
+    const quoteId = `quote_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
     // Calculer les montants
     const taxAmount = (validatedData.subtotal * validatedData.taxRate) / 100;
     const total = validatedData.subtotal + taxAmount;
@@ -186,12 +189,14 @@ export async function POST(request: NextRequest) {
     // Créer le devis avec les products associés
     const quote = await prisma.quotes.create({
       data: {
+        id: quoteId,
         number: quoteNumber,
         ...quoteData,
         taxAmount,
         total,
         expiresAt,
         ownerId: session.user.id,
+        updatedAt: new Date(),
         // Créer les products si fournis
         ...(productsData && productsData.length > 0 && {
           quote_products: {

@@ -26,6 +26,7 @@ export interface Quote {
   notes: string | null;
   yousignId: string | null;
   ownerId: string;
+  commitmentPeriod?: string | null;
   owner?: {
     id: string;
     firstName: string;
@@ -40,6 +41,7 @@ export interface Quote {
     unitPrice: number;
     total: number;
   }>;
+  quote_products?: Array<any>;
   createdAt: string;
   updatedAt: string;
 }

@@ -167,7 +167,7 @@ const navigationCategories: NavCategory[] = [
     name: 'Mes applications',
     icon: AppWindow,
     subItems: [
-      { name: 'Payfit', href: 'https://app.payfit.fr', icon: ExternalLink, isExternal: true },
+      { name: 'Payfit', href: 'https://payfit.com/fr/', icon: ExternalLink, isExternal: true },
       { name: 'Alan', href: 'https://alan.com/app', icon: ExternalLink, isExternal: true },
     ],
   },

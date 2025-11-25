@@ -1,21 +1,29 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
-  Loader2
+  Loader2,
+  Filter
 } from 'lucide-react';
 import { useDeals } from '@/hooks/useDeals';
 import { useContacts } from '@/hooks/useContacts';
+import { useSession } from 'next-auth/react';
 
 interface Deal {
   id: string;
   stage: string;
   value: number;
   closedAt?: Date | string | null;
+  updatedAt?: Date | string;
   ownerId?: string | null;
+  users?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
 }
 
 interface OwnerWithDeals {
@@ -25,7 +33,41 @@ interface OwnerWithDeals {
 }
 
 export default function TrackingPage() {
-  const { deals, isLoading: dealsLoading, isError: dealsError } = useDeals();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'ADMIN';
+
+  // États pour le filtre admin
+  const [filterMode, setFilterMode] = useState<'mine' | 'all' | 'user'>('mine');
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [users, setUsers] = useState<any[]>([]);
+
+  // Charger la liste des utilisateurs (pour les admins)
+  useEffect(() => {
+    if (isAdmin) {
+      fetch('/api/users')
+        .then(res => res.json())
+        .then(data => {
+          if (data.users && Array.isArray(data.users)) {
+            setUsers(data.users);
+          }
+        })
+        .catch(err => console.error('Erreur chargement users:', err));
+    }
+  }, [isAdmin]);
+
+  // Préparer les paramètres pour useDeals
+  const dealsParams = useMemo(() => {
+    if (!isAdmin) return {};
+
+    if (filterMode === 'all') {
+      return { showAll: true };
+    } else if (filterMode === 'user' && selectedUserId) {
+      return { ownerId: selectedUserId };
+    }
+    return {}; // 'mine' = pas de paramètres = mes deals
+  }, [isAdmin, filterMode, selectedUserId]);
+
+  const { deals, isLoading: dealsLoading, isError: dealsError } = useDeals(dealsParams);
   const { contacts, isLoading: contactsLoading, isError: contactsError } = useContacts();
 
   // Données mensuelles (12 derniers mois)
@@ -41,10 +83,13 @@ export default function TrackingPage() {
       const monthIndex = (currentMonth - 11 + i + 12) % 12;
       const year = currentMonth - 11 + i < 0 ? currentYear - 1 : currentYear;
 
-      // Deals gagnés ce mois
+      // Deals gagnés ce mois (stage CLOSING)
       const monthDeals = deals.filter(d => {
-        if (d.productionStage !== 'ENCAISSE' || !d.closedAt) return false;
-        const dealDate = new Date(d.closedAt);
+        if (d.stage !== 'CLOSING') return false;
+        // Utiliser closedAt si disponible, sinon updatedAt
+        const dateToUse = d.closedAt || d.updatedAt;
+        if (!dateToUse) return false;
+        const dealDate = new Date(dateToUse);
         return dealDate.getMonth() === monthIndex && dealDate.getFullYear() === year;
       });
 
@@ -117,7 +162,7 @@ export default function TrackingPage() {
     if (!deals) return [];
 
     const dealsByOwner = deals.reduce((acc, deal) => {
-      if (!deal.users || deal.productionStage !== 'ENCAISSE') return acc;
+      if (!deal.users || deal.stage !== 'CLOSING') return acc;
       const ownerId = deal.users.id;
 
       if (!acc[ownerId]) {
@@ -183,11 +228,49 @@ export default function TrackingPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <TrendingUp className="h-8 w-8 text-orange-600" />
-            Suivi des Ventes
-          </h1>
-          <p className="text-gray-600 mt-1">Analysez vos performances commerciales</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <TrendingUp className="h-8 w-8 text-orange-600" />
+                Suivi des Ventes
+              </h1>
+              <p className="text-gray-600 mt-1">Analysez vos performances commerciales</p>
+            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <select
+                  value={filterMode}
+                  onChange={(e) => {
+                    setFilterMode(e.target.value as 'mine' | 'all' | 'user');
+                    if (e.target.value !== 'user') {
+                      setSelectedUserId('');
+                    }
+                  }}
+                  className="border-0 bg-transparent text-sm font-medium text-gray-700 focus:ring-0 cursor-pointer"
+                >
+                  <option value="mine">Mes deals</option>
+                  <option value="all">Tous les deals</option>
+                  <option value="user">Par commercial</option>
+                </select>
+
+                {filterMode === 'user' && (
+                  <select
+                    value={selectedUserId}
+                    onChange={(e) => setSelectedUserId(e.target.value)}
+                    className="border-l border-gray-200 pl-2 bg-transparent text-sm text-gray-700 focus:ring-0 cursor-pointer"
+                  >
+                    <option value="">Sélectionner...</option>
+                    {users.map(user => (
+                      <option key={user.id} value={user.id}>
+                        {user.firstName} {user.lastName}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Stats */}

@@ -5,6 +5,20 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
+// Fonction pour calculer automatiquement la probabilité selon l'étape
+function getProbabilityByStage(stage: string): number {
+  const probabilityMap: { [key: string]: number } = {
+    'A_CONTACTER': 10,
+    'EN_DISCUSSION': 30,
+    'A_RELANCER': 20,
+    'RDV_PRIS': 50,
+    'NEGO_HOT': 70,
+    'CLOSING': 90,
+    'REFUSE': 0,
+  };
+  return probabilityMap[stage] || 50;
+}
+
 // Schema de validation Zod pour Deal
 const dealSchema = z.object({
   title: z.string().min(1, 'Le titre est requis'),
@@ -64,6 +78,24 @@ export async function GET(request: NextRequest) {
     if (companyId) {
       where.companyId = companyId;
     }
+
+    // Filtre par utilisateur (sauf pour les admins qui peuvent tout voir)
+    const showAll = searchParams.get('showAll') === 'true';
+    const ownerIdFilter = searchParams.get('ownerId');
+    const currentUser = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    // Si un ownerId spécifique est demandé (par un admin), l'utiliser
+    if (ownerIdFilter && currentUser?.role === 'ADMIN') {
+      where.ownerId = ownerIdFilter;
+    }
+    // Sinon, si l'utilisateur n'est pas admin OU s'il n'a pas demandé "showAll", filtrer par son propre ownerId
+    else if (currentUser?.role !== 'ADMIN' || !showAll) {
+      where.ownerId = session.user.id;
+    }
+    // Sinon (admin + showAll + pas d'ownerId), ne pas filtrer (voir tout)
 
     // Récupérer les deals
     const deals = await prisma.deals.findMany({
@@ -149,6 +181,11 @@ export async function POST(request: NextRequest) {
     // Parser et valider le body
     const body = await request.json();
     const validatedData = dealSchema.parse(body);
+
+    // Calculer automatiquement la probabilité selon le stage
+    if (!body.probability) {
+      validatedData.probability = getProbabilityByStage(validatedData.stage);
+    }
 
     // Vérifier que le contact existe (s'il est fourni)
     if (validatedData.contactId) {

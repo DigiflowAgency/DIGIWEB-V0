@@ -650,33 +650,34 @@
           "salesPitch": "Votre site web sécurisé et performant, sans vous en soucier !"
         },
         {
-          "title": "Formule Accompagnement",
+          "title": "Upgrade Accompagnement",
           "id": "maintenance-accompagnement",
           "icon": "Heart",
-          "price": "389€",
-          "priceValue": 389,
+          "price": "260€",
+          "priceValue": 260,
           "period": "/mois",
           "badge": "Croissance",
           "features": [
-            "Tout en Hébergement & Maintenance +",
+            "Hébergement & Maintenance inclus (129€) +",
             "Suivi personnalisé de votre activité",
             "Accompagnement stratégique",
             "Recommandations semestrielle",
             "Support prioritaire"
           ],
-          "salesPitch": "Un accompagnement dédié pour faire grandir votre business !"
+          "salesPitch": "Un accompagnement dédié pour faire grandir votre business ! (389€ au total avec hébergement)"
         },
         {
-          "title": "Formule Totale",
+          "title": "Upgrade Totale",
           "id": "maintenance-totale",
           "icon": "Rocket",
-          "price": "724€",
-          "priceValue": 724,
+          "price": "595€",
+          "priceValue": 595,
           "period": "/mois",
           "badge": "Excellence",
           "recommended": true,
           "features": [
-            "Tout en Accompagnement +",
+            "Hébergement & Maintenance inclus (129€) +",
+            "Accompagnement inclus (260€) +",
             "Optimisation SEO quotidienne",
             "Gestion SEO complète",
             "Suivi analytics avancé",

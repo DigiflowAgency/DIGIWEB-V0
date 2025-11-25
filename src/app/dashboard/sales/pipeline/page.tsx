@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   BarChart3,
   Plus,
@@ -9,10 +9,12 @@ import {
   Target,
   Activity,
   ChevronRight,
-  Loader2
+  Loader2,
+  Filter
 } from 'lucide-react';
 import { useDeals } from '@/hooks/useDeals';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 type DealStage = 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING';
 
@@ -39,7 +41,41 @@ const getDaysInStage = (updatedAt: string) => {
 
 export default function PipelinePage() {
   const router = useRouter();
-  const { deals, isLoading, isError } = useDeals();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'ADMIN';
+
+  // États pour le filtre admin
+  const [filterMode, setFilterMode] = useState<'mine' | 'all' | 'user'>('mine');
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [users, setUsers] = useState<any[]>([]);
+
+  // Charger la liste des utilisateurs (pour les admins)
+  useEffect(() => {
+    if (isAdmin) {
+      fetch('/api/users')
+        .then(res => res.json())
+        .then(data => {
+          if (data.users && Array.isArray(data.users)) {
+            setUsers(data.users);
+          }
+        })
+        .catch(err => console.error('Erreur chargement users:', err));
+    }
+  }, [isAdmin]);
+
+  // Préparer les paramètres pour useDeals
+  const dealsParams = useMemo(() => {
+    if (!isAdmin) return {};
+
+    if (filterMode === 'all') {
+      return { showAll: true };
+    } else if (filterMode === 'user' && selectedUserId) {
+      return { ownerId: selectedUserId };
+    }
+    return {}; // 'mine' = pas de paramètres = mes deals
+  }, [isAdmin, filterMode, selectedUserId]);
+
+  const { deals, isLoading, isError } = useDeals(dealsParams);
 
   const pipelineStages = useMemo(() => {
     return stageConfig.map(config => {
@@ -133,13 +169,49 @@ export default function PipelinePage() {
               </h1>
               <p className="text-gray-600 mt-1">Visualisez et optimisez votre pipeline commercial</p>
             </div>
-            <button
-              onClick={() => router.push('/dashboard/crm/deals')}
-              className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
-            >
-              <Plus className="h-5 w-5" />
-              Nouveau Deal
-            </button>
+            <div className="flex items-center gap-3">
+              {isAdmin && (
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-2">
+                  <Filter className="h-4 w-4 text-gray-500" />
+                  <select
+                    value={filterMode}
+                    onChange={(e) => {
+                      setFilterMode(e.target.value as 'mine' | 'all' | 'user');
+                      if (e.target.value !== 'user') {
+                        setSelectedUserId('');
+                      }
+                    }}
+                    className="border-0 bg-transparent text-sm font-medium text-gray-700 focus:ring-0 cursor-pointer"
+                  >
+                    <option value="mine">Mes deals</option>
+                    <option value="all">Tous les deals</option>
+                    <option value="user">Par commercial</option>
+                  </select>
+
+                  {filterMode === 'user' && (
+                    <select
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      className="border-l border-gray-200 pl-2 bg-transparent text-sm text-gray-700 focus:ring-0 cursor-pointer"
+                    >
+                      <option value="">Sélectionner...</option>
+                      {users.map(user => (
+                        <option key={user.id} value={user.id}>
+                          {user.firstName} {user.lastName}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+              <button
+                onClick={() => router.push('/dashboard/crm/deals')}
+                className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
+              >
+                <Plus className="h-5 w-5" />
+                Nouveau Deal
+              </button>
+            </div>
           </div>
         </div>
 
@@ -240,7 +312,15 @@ export default function PipelinePage() {
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-orange-600">{deal.value.toLocaleString()}€</p>
-                      <p className="text-sm text-gray-600">{deal.probability}%</p>
+                      <p
+                        className="text-sm text-gray-600 cursor-help inline-flex items-center gap-1"
+                        title="💡 Probabilité de conclusion - Chances estimées de gagner ce deal. Se met à jour automatiquement selon l'étape."
+                        onMouseDown={(e) => e.stopPropagation()}
+                        draggable={false}
+                      >
+                        {deal.probability}%
+                        <span className="text-xs text-gray-400">ℹ️</span>
+                      </p>
                     </div>
                   </div>
 

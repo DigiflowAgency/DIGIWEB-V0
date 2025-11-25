@@ -98,6 +98,8 @@ export function useDeals(params?: {
   contactId?: string;
   companyId?: string;
   limit?: number;
+  showAll?: boolean;
+  ownerId?: string;
 }) {
   // Construire l'URL avec les paramètres
   const queryParams = new URLSearchParams();
@@ -106,6 +108,8 @@ export function useDeals(params?: {
   if (params?.contactId) queryParams.append('contactId', params.contactId);
   if (params?.companyId) queryParams.append('companyId', params.companyId);
   if (params?.limit) queryParams.append('limit', params.limit.toString());
+  if (params?.showAll) queryParams.append('showAll', 'true');
+  if (params?.ownerId) queryParams.append('ownerId', params.ownerId);
 
   const url = `/api/deals${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 

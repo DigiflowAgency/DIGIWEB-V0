@@ -16,7 +16,8 @@ import {
   Calendar,
   Loader2,
   Filter,
-  AlertCircle
+  AlertCircle,
+  PenTool
 } from 'lucide-react';
 import { useQuotes, useQuoteMutations } from '@/hooks/useQuotes';
 import { useContacts } from '@/hooks/useContacts';
@@ -192,15 +193,48 @@ export default function QuotesPage() {
     if (!selectedQuote) return;
 
     try {
-      await updateQuote(selectedQuote.id, {
+      // Si on a des données du calculateur, utiliser le grandTotal comme subtotal
+      const subtotalValue = calculatorData
+        ? calculatorData.totals.grandTotal
+        : parseFloat(formData.subtotal);
+
+      const quoteData: any = {
         clientName: formData.clientName,
         clientEmail: formData.clientEmail,
         clientAddress: formData.clientAddress || null,
-        subtotal: parseFloat(formData.subtotal),
+        subtotal: subtotalValue,
         taxRate: parseFloat(formData.taxRate),
         validityDays: parseInt(formData.validityDays),
         contactId: formData.contactId || null,
-      });
+      };
+
+      // Ajouter les données du calculateur si disponibles
+      if (calculatorData) {
+        quoteData.commitmentPeriod = calculatorData.commitment === 'comptant'
+          ? 'comptant'
+          : calculatorData.commitment.toString();
+        quoteData.isPartner = calculatorData.isPartner;
+        quoteData.engagementDiscount = calculatorData.totals.engagementDiscount;
+        quoteData.partnerDiscount = calculatorData.totals.partnerDiscount;
+        quoteData.oneTimeTotal = calculatorData.totals.oneTimeTotal;
+        quoteData.monthlyTotal = calculatorData.totals.monthlyTotal;
+
+        // Transformer les services au format attendu par l'API
+        quoteData.products = calculatorData.services.map((service: any) => ({
+          name: service.name,
+          description: '',
+          quantity: 1,
+          unitPrice: service.price,
+          totalPrice: service.price,
+          serviceId: service.id,
+          serviceType: service.period || 'paiement unique',
+          period: service.period || 'paiement unique',
+          channel: service.channel,
+          discount: service.discount || 0,
+        }));
+      }
+
+      await updateQuote(selectedQuote.id, quoteData);
       setIsEditModalOpen(false);
       setSelectedQuote(null);
       mutate();
@@ -272,6 +306,31 @@ export default function QuotesPage() {
     }
   };
 
+  const handleGenerateSignature = async (quote: any) => {
+    if (!confirm(`Générer une demande de signature électronique pour ${quote.clientName} ?\n\nLe client recevra un email avec le contrat à signer.`)) return;
+
+    try {
+      const response = await fetch('/api/yousign/create-signature', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quoteId: quote.id }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('✅ Demande de signature envoyée avec succès !\n\nLe client va recevoir un email pour signer électroniquement.');
+        mutate();
+      } else {
+        console.error('Erreur Yousign:', data);
+        alert(`❌ Erreur: ${data.error || 'Impossible de créer la signature'}\n\n${data.details ? JSON.stringify(data.details, null, 2) : ''}`);
+      }
+    } catch (err) {
+      console.error('Erreur génération signature:', err);
+      alert('❌ Erreur lors de la génération de la signature');
+    }
+  };
+
   // Handler non utilisé actuellement
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const _handleDelete = async (quote: any) => {
@@ -291,11 +350,19 @@ export default function QuotesPage() {
     e.preventDefault();
 
     try {
+      // Si on a des données du calculateur, utiliser le grandTotal comme subtotal
+      const subtotalValue = calculatorData
+        ? calculatorData.totals.grandTotal
+        : parseFloat(formData.subtotal);
+
+      console.log('📝 Création devis - subtotalValue:', subtotalValue);
+      console.log('📝 Création devis - calculatorData:', calculatorData);
+
       const quoteData: any = {
         clientName: formData.clientName,
         clientEmail: formData.clientEmail,
         clientAddress: formData.clientAddress || null,
-        subtotal: parseFloat(formData.subtotal),
+        subtotal: subtotalValue,
         taxRate: parseFloat(formData.taxRate),
         validityDays: parseInt(formData.validityDays),
         contactId: formData.contactId || null,
@@ -311,7 +378,20 @@ export default function QuotesPage() {
         quoteData.partnerDiscount = calculatorData.totals.partnerDiscount;
         quoteData.oneTimeTotal = calculatorData.totals.oneTimeTotal;
         quoteData.monthlyTotal = calculatorData.totals.monthlyTotal;
-        quoteData.products = calculatorData.services;
+
+        // Transformer les services au format attendu par l'API
+        quoteData.products = calculatorData.services.map((service: any) => ({
+          name: service.name,
+          description: '',
+          quantity: 1,
+          unitPrice: service.price,
+          totalPrice: service.price,
+          serviceId: service.id,
+          serviceType: service.period || 'paiement unique',
+          period: service.period || 'paiement unique',
+          channel: service.channel,
+          discount: service.discount || 0,
+        }));
       }
 
       await createQuote(quoteData);
@@ -363,13 +443,38 @@ export default function QuotesPage() {
     );
   }
 
+  // Recalculer la vraie valeur totale depuis les quote_products
+  const realTotalValue = filteredQuotes.reduce((sum, quote) => {
+    const months = quote.commitmentPeriod && quote.commitmentPeriod !== 'comptant'
+      ? parseInt(quote.commitmentPeriod)
+      : 0;
+
+    let oneTimeTotal = 0;
+    const maintenanceBase = 129; // Base obligatoire
+
+    quote.quote_products?.forEach((p: any) => {
+      if (!p.period || p.period === 'paiement unique') {
+        oneTimeTotal += p.totalPrice;
+      }
+    });
+
+    // En mode engagement : SEULEMENT one-time + base maintenance (129€)
+    const calculatedSubtotal = months > 0
+      ? oneTimeTotal + (maintenanceBase * months)
+      : oneTimeTotal;
+
+    const calculatedTax = (calculatedSubtotal * quote.taxRate) / 100;
+    const calculatedTotal = calculatedSubtotal + calculatedTax;
+    return sum + calculatedTotal;
+  }, 0);
+
   const acceptanceRate = stats.total > 0
     ? Math.round((stats.accepte / stats.total) * 100)
     : 0;
 
   const statsDisplay = [
-    { label: 'Total Devis', value: stats.total, color: 'text-orange-600' },
-    { label: 'Valeur Totale', value: `${stats.totalValue.toLocaleString()}€`, color: 'text-blue-600' },
+    { label: 'Total Devis', value: filteredQuotes.length, color: 'text-orange-600' },
+    { label: 'Valeur Totale', value: `${Math.round(realTotalValue).toLocaleString('fr-FR')}€`, color: 'text-blue-600' },
     { label: 'Acceptés', value: stats.accepte, color: 'text-green-600' },
     { label: 'Taux Acceptation', value: `${acceptanceRate}%`, color: 'text-purple-600' },
   ];
@@ -470,7 +575,7 @@ export default function QuotesPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <p className="font-semibold text-gray-900">Devis {quote.number}</p>
-                          <p className="text-sm text-gray-500">{quote.products?.length || 0} articles</p>
+                          <p className="text-sm text-gray-500">{quote.quote_products?.length || 0} articles</p>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -478,14 +583,44 @@ export default function QuotesPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-lg font-bold text-orange-600">
-                          {quote.total.toLocaleString()}€
+                          {(() => {
+                            const months = quote.commitmentPeriod && quote.commitmentPeriod !== 'comptant'
+                              ? parseInt(quote.commitmentPeriod)
+                              : 0;
+
+                            let oneTimeTotal = 0;
+                            const maintenanceBase = 129; // Base obligatoire
+
+                            quote.quote_products?.forEach((p: any) => {
+                              if (!p.period || p.period === 'paiement unique') {
+                                oneTimeTotal += p.totalPrice;
+                              }
+                            });
+
+                            // En mode engagement : SEULEMENT one-time + base maintenance (129€)
+                            const calculatedSubtotal = months > 0
+                              ? oneTimeTotal + (maintenanceBase * months)
+                              : oneTimeTotal;
+
+                            const calculatedTax = (calculatedSubtotal * quote.taxRate) / 100;
+                            const calculatedTotal = calculatedSubtotal + calculatedTax;
+                            return Math.round(calculatedTotal).toLocaleString('fr-FR');
+                          })()}€
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${statusColor}`}>
-                          <StatusIcon className="h-3 w-3" />
-                          {getStatusLabel(quote.status)}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${statusColor}`}>
+                            <StatusIcon className="h-3 w-3" />
+                            {getStatusLabel(quote.status)}
+                          </span>
+                          {quote.yousignId && (
+                            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium flex items-center gap-1 w-fit">
+                              <PenTool className="h-3 w-3" />
+                              Signature électronique
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -522,6 +657,13 @@ export default function QuotesPage() {
                             title="Télécharger"
                           >
                             <Download className="h-4 w-4 text-gray-600" />
+                          </button>
+                          <button
+                            onClick={() => handleGenerateSignature(quote)}
+                            className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+                            title="Générer signature électronique"
+                          >
+                            <PenTool className="h-4 w-4 text-blue-600" />
                           </button>
                           {quote.status === 'BROUILLON' && (
                             <button
@@ -777,6 +919,18 @@ export default function QuotesPage() {
               </div>
             )}
 
+            {/* Service Calculator */}
+            <ServiceCalculator
+              onCalculate={(data) => {
+                setCalculatorData(data);
+              }}
+              initialServices={selectedQuote?.quote_products?.map((p: any) => p.serviceId).filter(Boolean)}
+              initialCommitment={selectedQuote?.commitmentPeriod === 'comptant' ? 'comptant' : parseInt(selectedQuote?.commitmentPeriod || '0') as 24 | 36 | 48}
+              initialIsPartner={selectedQuote?.isPartner || false}
+            />
+
+            <div className="border-t border-gray-200 pt-4"></div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -953,37 +1107,220 @@ export default function QuotesPage() {
               </div>
 
               <div className="border-t pt-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Détails Financiers</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Détails du Paiement</h3>
                 <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Montant HT:</span>
-                    <span className="text-sm font-semibold">{selectedQuote.subtotal.toLocaleString()}€</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">TVA ({selectedQuote.taxRate}%):</span>
-                    <span className="text-sm font-semibold">{selectedQuote.taxAmount.toLocaleString()}€</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-2">
-                    <span className="text-lg font-bold text-gray-900">Total TTC:</span>
-                    <span className="text-lg font-bold text-orange-600">{selectedQuote.total.toLocaleString()}€</span>
-                  </div>
+                  {(() => {
+                    const months = selectedQuote.commitmentPeriod && selectedQuote.commitmentPeriod !== 'comptant'
+                      ? parseInt(selectedQuote.commitmentPeriod)
+                      : 0;
+
+                    return (
+                      <>
+
+                        {/* Afficher les détails mensuels si engagement */}
+                        {months > 0 && selectedQuote.quote_products && (
+                          <>
+                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
+                              {(() => {
+                                // Recalculer depuis les products en séparant les différents types
+                                let oneTimeTotal = 0;
+                                let maintenanceBase = 129; // TOUJOURS 129€ obligatoire
+                                let maintenanceUpgrade = 0;
+                                let otherMonthlyTotal = 0;
+                                const maintenanceServices = ['maintenance-hosting', 'maintenance-accompagnement', 'maintenance-totale'];
+
+                                selectedQuote.quote_products.forEach((p: any) => {
+                                  if (!p.period || p.period === 'paiement unique') {
+                                    oneTimeTotal += p.totalPrice;
+                                  } else {
+                                    if (maintenanceServices.includes(p.serviceId)) {
+                                      if (p.serviceId === 'maintenance-hosting') {
+                                        maintenanceBase = p.totalPrice;
+                                      } else {
+                                        maintenanceBase = 129;
+                                        maintenanceUpgrade = p.totalPrice - 129;
+                                      }
+                                    } else {
+                                      otherMonthlyTotal += p.totalPrice;
+                                    }
+                                  }
+                                });
+
+                                const totalMaintenance = maintenanceBase + maintenanceUpgrade;
+                                const monthlyTotal = totalMaintenance + otherMonthlyTotal;
+                                const siteMonthly = Math.round(oneTimeTotal / months);
+                                const totalMonthly = siteMonthly + Math.round(monthlyTotal);
+                                const coutEngage = oneTimeTotal + (maintenanceBase * months);
+
+                                const totalEngage = siteMonthly + maintenanceBase;
+
+                                // Obtenir les détails des produits pour affichage
+                                const oneTimeProducts = selectedQuote.quote_products.filter((p: any) => !p.period || p.period === 'paiement unique');
+                                const maintenanceProduct = selectedQuote.quote_products.find((p: any) =>
+                                  p.serviceId === 'maintenance-accompagnement' || p.serviceId === 'maintenance-totale'
+                                );
+                                const maintenanceFormula = maintenanceProduct?.serviceId === 'maintenance-accompagnement'
+                                  ? 'Accompagnement'
+                                  : maintenanceProduct?.serviceId === 'maintenance-totale'
+                                  ? 'Totale'
+                                  : null;
+
+                                // Calcul TVA et TTC
+                                const taxRate = selectedQuote.taxRate || 20;
+                                const totalHT = oneTimeTotal + (maintenanceBase * months) + ((maintenanceUpgrade + otherMonthlyTotal) * months);
+                                const _totalTVA = (totalHT * taxRate) / 100;
+
+                                const engageHT = coutEngage;
+                                const engageTVA = (engageHT * taxRate) / 100;
+                                const engageTTC = engageHT + engageTVA;
+
+                                return (
+                                  <>
+                                    {/* Engagement sur X mois */}
+                                    <div className="mb-4 pb-4 border-b-2 border-blue-200">
+                                      <p className="text-xs text-blue-600 uppercase font-semibold mb-3 text-center">💎 Engagement {months} mois</p>
+
+                                      {/* Services de création étalés */}
+                                      <div className="mb-3">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="text-xs font-semibold text-gray-600">Services de création étalés</span>
+                                          <span className="text-xs text-gray-500">({Math.round(oneTimeTotal).toLocaleString('fr-FR')}€ total)</span>
+                                        </div>
+                                        {oneTimeProducts.length > 0 && (
+                                          <div className="bg-orange-50 rounded p-2 mb-2">
+                                            {oneTimeProducts.map((p: any, idx: number) => (
+                                              <div key={idx} className="text-xs text-gray-700 flex justify-between">
+                                                <span>• {p.name}</span>
+                                                <span className="font-medium">{Math.round(p.totalPrice).toLocaleString('fr-FR')}€</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                        <p className="text-2xl font-bold text-orange-600 text-center">
+                                          {siteMonthly}€<span className="text-sm font-normal">/mois</span>
+                                        </p>
+                                      </div>
+
+                                      {/* Hébergement obligatoire */}
+                                      <div className="mb-3">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="text-xs font-semibold text-gray-600">Hébergement & Maintenance</span>
+                                          <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">Obligatoire</span>
+                                        </div>
+                                        <div className="bg-red-50 rounded p-2 mb-2">
+                                          <p className="text-xs text-gray-700">• Hébergement web sécurisé</p>
+                                          <p className="text-xs text-gray-700">• Mises à jour & maintenance</p>
+                                          <p className="text-xs text-gray-700">• Support technique</p>
+                                        </div>
+                                        <p className="text-2xl font-bold text-orange-600 text-center">
+                                          {maintenanceBase}€<span className="text-sm font-normal">/mois</span>
+                                        </p>
+                                      </div>
+
+                                      {/* Total engagé mis en avant */}
+                                      <div className="bg-gradient-to-r from-orange-100 to-orange-50 -mx-4 px-4 py-3 rounded-lg">
+                                        <div className="flex items-center justify-center gap-2 mb-1">
+                                          <span className="text-xl font-bold text-gray-900">=</span>
+                                          <p className="text-3xl font-bold text-orange-600">{totalEngage}€<span className="text-base font-normal">/mois</span></p>
+                                        </div>
+                                        <p className="text-xs text-center text-gray-600 font-semibold">pendant {months} mois (engagé)</p>
+                                      </div>
+                                    </div>
+
+                                    {/* Services optionnels NON engagés */}
+                                    {(maintenanceUpgrade > 0 || otherMonthlyTotal > 0) && (
+                                      <div className="mb-4 pb-4 border-b border-gray-200">
+                                        <p className="text-xs text-gray-500 uppercase font-semibold mb-3">➕ Options modifiables (sans engagement)</p>
+
+                                        {maintenanceUpgrade > 0 && maintenanceFormula && (
+                                          <div className="bg-blue-50 rounded-lg p-3 mb-2">
+                                            <div className="flex justify-between items-center mb-1">
+                                              <span className="text-sm font-semibold text-blue-900">Formule {maintenanceFormula}</span>
+                                              <span className="text-lg font-bold text-blue-700">{maintenanceUpgrade}€/mois</span>
+                                            </div>
+                                            <p className="text-xs text-blue-700">Comprend la base (129€) + services premium</p>
+                                            <p className="text-xs text-gray-500 mt-1 italic">Modifiable ou résiliable à tout moment</p>
+                                          </div>
+                                        )}
+
+                                        {otherMonthlyTotal > 0 && (
+                                          <div className="bg-green-50 rounded-lg p-3">
+                                            <div className="flex justify-between items-center mb-1">
+                                              <span className="text-sm font-semibold text-green-900">Services complémentaires</span>
+                                              <span className="text-lg font-bold text-green-700">{Math.round(otherMonthlyTotal)}€/mois</span>
+                                            </div>
+                                            <p className="text-xs text-gray-500 italic">Sans engagement, résiliables à tout moment</p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {/* Récapitulatif des totaux */}
+                                    <div className="space-y-3">
+                                      {/* Total mensuel si options */}
+                                      {(maintenanceUpgrade > 0 || otherMonthlyTotal > 0) && (
+                                        <div className="flex justify-between items-center text-sm bg-gray-50 px-3 py-2 rounded">
+                                          <span className="text-gray-700 font-medium">Total mensuel (avec options)</span>
+                                          <span className="font-bold text-gray-900 text-lg">{totalMonthly}€/mois</span>
+                                        </div>
+                                      )}
+
+                                      {/* Coût total engagé HT */}
+                                      <div className="bg-orange-50 rounded-lg p-3">
+                                        <div className="flex justify-between items-center mb-1">
+                                          <div>
+                                            <p className="text-sm font-bold text-orange-900">Coût total ENGAGÉ (HT)</p>
+                                            <p className="text-xs text-gray-600">
+                                              {Math.round(oneTimeTotal).toLocaleString('fr-FR')}€ + ({maintenanceBase}€ × {months} mois)
+                                            </p>
+                                          </div>
+                                          <p className="text-2xl font-bold text-orange-600">{Math.round(engageHT).toLocaleString('fr-FR')}€</p>
+                                        </div>
+                                        <div className="flex justify-between text-xs mt-2 pt-2 border-t border-orange-200">
+                                          <span className="text-gray-600">TVA ({taxRate}%)</span>
+                                          <span className="font-semibold text-gray-700">+{Math.round(engageTVA).toLocaleString('fr-FR')}€</span>
+                                        </div>
+                                        <div className="flex justify-between items-center mt-1 pt-2 border-t border-orange-300">
+                                          <span className="text-sm font-bold text-orange-900">Total TTC engagé</span>
+                                          <span className="text-xl font-bold text-orange-600">{Math.round(engageTTC).toLocaleString('fr-FR')}€</span>
+                                        </div>
+                                      </div>
+
+                                    </div>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
-              {selectedQuote.products && selectedQuote.products.length > 0 && (
+              {selectedQuote.quote_products && selectedQuote.quote_products.length > 0 && (
                 <div className="border-t pt-4">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Articles ({selectedQuote.products.length})</h3>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Services & Produits ({selectedQuote.quote_products.length})</h3>
                   <div className="space-y-2">
-                    {selectedQuote.products.map((product: any) => (
+                    {selectedQuote.quote_products.map((product: any) => (
                       <div key={product.id} className="flex justify-between items-start p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="text-sm font-medium">{product.name}</p>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">{product.name}</p>
                           {product.description && (
                             <p className="text-xs text-gray-600 mt-1">{product.description}</p>
                           )}
-                          <p className="text-xs text-gray-500 mt-1">Quantité: {product.quantity} × {product.unitPrice.toLocaleString()}€</p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <p className="text-xs text-gray-500">Quantité: {product.quantity}</p>
+                            <p className="text-xs text-gray-500">Prix unitaire: {product.unitPrice.toLocaleString()}€</p>
+                            {product.period && (
+                              <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                                {product.period}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-sm font-semibold text-orange-600">{product.total.toLocaleString()}€</span>
+                        <span className="text-sm font-semibold text-orange-600 ml-4">{product.totalPrice.toLocaleString()}€</span>
                       </div>
                     ))}
                   </div>

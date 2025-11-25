@@ -98,31 +98,85 @@ export default function DashboardPage() {
   // Calculer les stats principales
   const stats = useMemo(() => {
     const activeDeals = deals.filter(d => d.productionStage !== 'ENCAISSE');
+
+    // Mois actuel
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
 
+    // Mois précédent
+    const lastMonthStart = new Date(monthStart);
+    lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
+    const lastMonthEnd = new Date(monthStart);
+    lastMonthEnd.setTime(lastMonthEnd.getTime() - 1); // Dernière milliseconde du mois précédent
+
+    // Fonction pour calculer le pourcentage de changement
+    const calculateChange = (current: number, previous: number): { change: string; trend: 'up' | 'down' | 'stable' } => {
+      if (previous === 0) {
+        if (current > 0) return { change: '+100%', trend: 'up' };
+        return { change: '0%', trend: 'stable' };
+      }
+      const percentChange = Math.round(((current - previous) / previous) * 100);
+      if (percentChange > 0) return { change: `+${percentChange}%`, trend: 'up' };
+      if (percentChange < 0) return { change: `${percentChange}%`, trend: 'down' };
+      return { change: '0%', trend: 'stable' };
+    };
+
+    // Deals actifs - comparer avec le mois précédent
+    const lastMonthDeals = deals.filter(d => {
+      const createdDate = new Date(d.createdAt);
+      return createdDate >= lastMonthStart && createdDate < monthStart;
+    });
+    const activeDealsLastMonth = lastMonthDeals.filter(d => d.productionStage !== 'ENCAISSE').length;
+    const dealsChange = calculateChange(activeDeals.length, activeDealsLastMonth);
+
+    // Deals et CA ce mois
     const dealsThisMonth = deals.filter(d => new Date(d.createdAt) >= monthStart);
     const wonDealsThisMonth = deals.filter(
       d => d.productionStage === 'ENCAISSE' && d.closedAt && new Date(d.closedAt) >= monthStart
     );
     const caThisMonth = wonDealsThisMonth.reduce((sum, d) => sum + d.value, 0);
 
+    // CA mois précédent
+    const wonDealsLastMonth = deals.filter(
+      d => d.productionStage === 'ENCAISSE' && d.closedAt &&
+           new Date(d.closedAt) >= lastMonthStart && new Date(d.closedAt) <= lastMonthEnd
+    );
+    const caLastMonth = wonDealsLastMonth.reduce((sum, d) => sum + d.value, 0);
+    const caChange = calculateChange(caThisMonth, caLastMonth);
+
+    // RDV ce mois
     const meetingsThisMonth = activities.filter(
       a => (a.type === 'REUNION' || a.type === 'VISIO') &&
            new Date(a.scheduledAt) >= monthStart
     ).length;
 
+    // RDV mois précédent
+    const meetingsLastMonth = activities.filter(
+      a => (a.type === 'REUNION' || a.type === 'VISIO') &&
+           new Date(a.scheduledAt) >= lastMonthStart && new Date(a.scheduledAt) <= lastMonthEnd
+    ).length;
+    const meetingsChange = calculateChange(meetingsThisMonth, meetingsLastMonth);
+
+    // Taux de conversion
     const conversionRate = dealsThisMonth.length > 0
       ? Math.round((wonDealsThisMonth.length / dealsThisMonth.length) * 100)
       : 0;
+
+    const dealsLastMonthCount = deals.filter(
+      d => new Date(d.createdAt) >= lastMonthStart && new Date(d.createdAt) <= lastMonthEnd
+    ).length;
+    const conversionRateLastMonth = dealsLastMonthCount > 0
+      ? Math.round((wonDealsLastMonth.length / dealsLastMonthCount) * 100)
+      : 0;
+    const conversionChange = calculateChange(conversionRate, conversionRateLastMonth);
 
     return [
       {
         name: 'Deals actifs',
         value: activeDeals.length.toString(),
-        change: '+12%',
-        trend: 'up' as const,
+        change: dealsChange.change,
+        trend: dealsChange.trend,
         icon: Users,
         color: 'from-violet-600 to-violet-700',
         bgColor: 'bg-violet-50',
@@ -130,8 +184,8 @@ export default function DashboardPage() {
       {
         name: 'RDV ce mois',
         value: meetingsThisMonth.toString(),
-        change: '+8%',
-        trend: 'up' as const,
+        change: meetingsChange.change,
+        trend: meetingsChange.trend,
         icon: Calendar,
         color: 'from-orange-500 to-orange-600',
         bgColor: 'bg-orange-50',
@@ -139,8 +193,8 @@ export default function DashboardPage() {
       {
         name: 'CA du mois',
         value: `${caThisMonth.toLocaleString()} €`,
-        change: '+23%',
-        trend: 'up' as const,
+        change: caChange.change,
+        trend: caChange.trend,
         icon: Euro,
         color: 'from-green-500 to-green-600',
         bgColor: 'bg-green-50',
@@ -148,8 +202,8 @@ export default function DashboardPage() {
       {
         name: 'Taux conversion',
         value: `${conversionRate}%`,
-        change: '+5%',
-        trend: 'up' as const,
+        change: conversionChange.change,
+        trend: conversionChange.trend,
         icon: Target,
         color: 'from-blue-500 to-blue-600',
         bgColor: 'bg-blue-50',
@@ -195,7 +249,7 @@ export default function DashboardPage() {
     });
   }, [activities]);
 
-  // Données hebdomadaires (simplifiées pour l'instant)
+  // Données hebdomadaires - calcul avec vraies données
   const weeklyData = useMemo(() => {
     const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
     const now = new Date();
@@ -208,19 +262,34 @@ export default function DashboardPage() {
       const nextDay = new Date(dayDate);
       nextDay.setDate(dayDate.getDate() + 1);
 
-      const dealsCount = deals.filter(d => {
+      // Compter les leads (deals créés ce jour)
+      const leadsCount = deals.filter(d => {
         const created = new Date(d.createdAt);
         return created >= dayDate && created < nextDay;
       }).length;
 
+      // Compter les RDV (activités REUNION/VISIO planifiées ce jour)
+      const meetingsCount = activities.filter(a => {
+        if (a.type !== 'REUNION' && a.type !== 'VISIO') return false;
+        const scheduled = new Date(a.scheduledAt);
+        return scheduled >= dayDate && scheduled < nextDay;
+      }).length;
+
+      // Compter les deals gagnés ce jour
+      const dealsWonCount = deals.filter(d => {
+        if (d.productionStage !== 'ENCAISSE' || !d.closedAt) return false;
+        const closed = new Date(d.closedAt);
+        return closed >= dayDate && closed < nextDay;
+      }).length;
+
       return {
         day,
-        leads: dealsCount,
-        meetings: Math.floor(dealsCount * 0.6),
-        deals: Math.floor(dealsCount * 0.3),
+        leads: leadsCount,
+        meetings: meetingsCount,
+        deals: dealsWonCount,
       };
     });
-  }, [deals]);
+  }, [deals, activities]);
 
   // Objectifs mensuels
   const monthlyGoals = useMemo(() => {
@@ -228,13 +297,21 @@ export default function DashboardPage() {
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
 
+    // CA = Deals encaissés ce mois
     const wonDealsThisMonth = deals.filter(
       d => d.productionStage === 'ENCAISSE' && d.closedAt && new Date(d.closedAt) >= monthStart
     );
     const caThisMonth = wonDealsThisMonth.reduce((sum, d) => sum + d.value, 0);
 
-    const meetingsThisMonth = activities.filter(
+    // Nouveaux deals = TOUS les deals créés ce mois (pas seulement les gagnés)
+    const newDealsThisMonth = deals.filter(
+      d => new Date(d.createdAt) >= monthStart
+    ).length;
+
+    // RDV réalisés = Activités REUNION/VISIO qui sont terminées ce mois
+    const completedMeetingsThisMonth = activities.filter(
       a => (a.type === 'REUNION' || a.type === 'VISIO') &&
+           a.status === 'COMPLETEE' &&
            new Date(a.scheduledAt) >= monthStart
     ).length;
 
@@ -247,13 +324,13 @@ export default function DashboardPage() {
       },
       {
         name: 'Nouveaux Deals',
-        current: wonDealsThisMonth.length,
+        current: newDealsThisMonth,
         target: 12,
         unit: 'deals',
       },
       {
         name: 'RDV Réalisés',
-        current: meetingsThisMonth,
+        current: completedMeetingsThisMonth,
         target: 30,
         unit: 'RDV',
       },
@@ -276,7 +353,7 @@ export default function DashboardPage() {
     );
   }
 
-  const maxValue = Math.max(...weeklyData.map(d => Math.max(d.leads, d.meetings * 3, d.deals * 5)));
+  const maxValue = Math.max(...weeklyData.map(d => d.leads + d.meetings + d.deals), 1);
 
   return (
     <div className="min-h-screen gradient-mesh py-8">
@@ -368,17 +445,50 @@ export default function DashboardPage() {
           <div className="flex items-end justify-between h-48 gap-4">
             {weeklyData.map((data, index) => (
               <div key={data.day} className="flex-1 flex flex-col items-center gap-2">
-                <div className="w-full flex flex-col gap-1 items-center justify-end h-full">
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: `${(data.leads / maxValue) * 100}%` }}
-                    transition={{ delay: 0.7 + index * 0.1, duration: 0.5 }}
-                    className="w-full bg-gradient-to-t from-violet-600 to-violet-400 rounded-t-lg min-h-[20px] relative group"
-                  >
-                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                      {data.leads}
-                    </span>
-                  </motion.div>
+                <div className="w-full flex flex-col gap-0 items-center justify-end h-full">
+                  {/* Deals gagnés (vert) - en haut */}
+                  {data.deals > 0 && (
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: `${(data.deals / maxValue) * 100}%` }}
+                      transition={{ delay: 0.7 + index * 0.1, duration: 0.5 }}
+                      className="w-full bg-gradient-to-t from-green-600 to-green-400 rounded-t-lg min-h-[20px] relative group"
+                    >
+                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-semibold text-green-700 opacity-0 group-hover:opacity-100 transition-opacity bg-white px-1 rounded shadow">
+                        {data.deals}
+                      </span>
+                    </motion.div>
+                  )}
+                  {/* RDV (orange) - au milieu */}
+                  {data.meetings > 0 && (
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: `${(data.meetings / maxValue) * 100}%` }}
+                      transition={{ delay: 0.7 + index * 0.1 + 0.05, duration: 0.5 }}
+                      className={`w-full bg-gradient-to-t from-orange-600 to-orange-400 min-h-[20px] relative group ${data.deals === 0 ? 'rounded-t-lg' : ''}`}
+                    >
+                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-semibold text-orange-700 opacity-0 group-hover:opacity-100 transition-opacity bg-white px-1 rounded shadow">
+                        {data.meetings}
+                      </span>
+                    </motion.div>
+                  )}
+                  {/* Leads (violet) - en bas */}
+                  {data.leads > 0 && (
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: `${(data.leads / maxValue) * 100}%` }}
+                      transition={{ delay: 0.7 + index * 0.1 + 0.1, duration: 0.5 }}
+                      className={`w-full bg-gradient-to-t from-violet-600 to-violet-400 min-h-[20px] relative group ${data.meetings === 0 && data.deals === 0 ? 'rounded-t-lg' : ''}`}
+                    >
+                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-semibold text-violet-700 opacity-0 group-hover:opacity-100 transition-opacity bg-white px-1 rounded shadow">
+                        {data.leads}
+                      </span>
+                    </motion.div>
+                  )}
+                  {/* Si aucune donnée, afficher une barre minimale */}
+                  {data.leads === 0 && data.meetings === 0 && data.deals === 0 && (
+                    <div className="w-full h-2 bg-gray-200 rounded-t-lg"></div>
+                  )}
                 </div>
                 <span className="text-xs font-medium text-gray-600">{data.day}</span>
               </div>
