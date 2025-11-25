@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { generateContract } from '@/lib/generateContract';
 
 const YOUSIGN_API_KEY = '3Ad8KJwqK04rDfqbM7RGF8V7NKFcyjNN';
 const YOUSIGN_API_URL = 'https://api-sandbox.yousign.app/v3'; // Sandbox
-const TEMPLATE_ID = '53afec24-1f5f-4619-bf23-81d01aab9f18';
 
 // POST /api/yousign/create-signature - Créer une signature électronique
 export async function POST(request: NextRequest) {
@@ -35,123 +35,67 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Devis non trouvé' }, { status: 404 });
     }
 
-    // Préparer les données pour remplir le contrat
-    const today = new Date().toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+    console.log('📄 Génération du PDF du contrat...');
+
+    // Générer le PDF avec les données du devis
+    const pdfBuffer = await generateContract({
+      clientName: quote.clientName,
+      clientEmail: quote.clientEmail,
+      clientAddress: quote.clientAddress,
+      clientSiret: quote.contacts?.siret || null,
+      commitmentPeriod: quote.commitmentPeriod,
+      subtotal: quote.subtotal,
+      quote_products: quote.quote_products as any[],
     });
 
-    // Calculer les montants
-    const commitmentMonths = quote.commitmentPeriod && quote.commitmentPeriod !== 'comptant'
-      ? parseInt(quote.commitmentPeriod)
-      : 0;
+    console.log('✅ PDF généré, taille:', pdfBuffer.length, 'bytes');
 
-    // Séparer les prestations par type (one-time vs mensuel)
-    const oneTimeServices: any[] = [];
-    const monthlyServices: any[] = [];
+    // Convertir le PDF en base64 pour Yousign
+    const pdfBase64 = pdfBuffer.toString('base64');
 
-    quote.quote_products?.forEach((p: any) => {
-      if (!p.period || p.period === 'paiement unique') {
-        oneTimeServices.push(p);
-      } else {
-        monthlyServices.push(p);
-      }
-    });
-
-    // Formater la liste des prestations comme dans le contrat
-    const prestationsList = quote.quote_products
-      ?.map((p: any) => {
-        const price = `${Math.round(p.totalPrice).toLocaleString('fr-FR')}€`;
-        const period = p.period && p.period !== 'paiement unique' ? `/${p.period}` : '';
-        return `${p.name} ${price}${period}`;
-      })
-      .join('\n\n') || '';
-
-    // Créer la signature request depuis le template
-    // Utiliser template_placeholders pour remplacer les placeholder signers et remplir les champs
-    const yousignPayload: any = {
+    // Créer la signature request avec le document
+    const yousignPayload = {
       name: `Contrat - ${quote.clientName}`,
       delivery_mode: 'email',
       timezone: 'Europe/Paris',
-      template_id: TEMPLATE_ID,
-      template_placeholders: {
-        signers: [
-          {
-            label: 'client',
-            info: {
-              first_name: quote.clientName.split(' ')[0] || quote.clientName,
-              last_name: quote.clientName.split(' ').slice(1).join(' ') || 'Client',
-              email: quote.clientEmail,
-              locale: 'fr',
+      documents: [
+        {
+          nature: 'signable_document',
+          parse_anchors: false,
+          file: {
+            name: `Contrat_${quote.number}.pdf`,
+            content: pdfBase64,
+          },
+        },
+      ],
+      signers: [
+        {
+          info: {
+            first_name: quote.clientName.split(' ')[0] || quote.clientName,
+            last_name: quote.clientName.split(' ').slice(1).join(' ') || 'Client',
+            email: quote.clientEmail,
+            locale: 'fr',
+          },
+          signature_level: 'electronic_signature',
+          signature_authentication_mode: 'otp_email',
+          fields: [
+            {
+              document_id: 0, // Premier document
+              type: 'signature',
+              page: 4, // Page 4 pour la signature
+              x: 100,
+              y: 200,
+              width: 200,
+              height: 50,
             },
-          },
-        ],
-        read_only_text_fields: [
-          // Informations client (section "Et" page 1)
-          {
-            label: 'nom_client',
-            text: quote.clientName.toUpperCase(),
-          },
-          {
-            label: 'email_client',
-            text: quote.clientEmail,
-          },
-          {
-            label: 'adresse_client',
-            text: quote.clientAddress || '',
-          },
-          // Période d'engagement (Article 2)
-          {
-            label: 'periode_engagement',
-            text: commitmentMonths > 0 ? `${commitmentMonths} MOIS` : 'Sans engagement',
-          },
-          // Date de signature (page 4)
-          {
-            label: 'date_signature',
-            text: today,
-          },
-          // Prestations détaillées (Article 5)
-          {
-            label: 'prestations',
-            text: prestationsList,
-          },
-          // Montant total paiement unique (bas page 3)
-          {
-            label: 'montant_paiement_unique',
-            text: `${Math.round(quote.subtotal).toLocaleString('fr-FR')}€`,
-          },
-          // Reste à charge mensuel (bas page 3)
-          {
-            label: 'reste_charge_mensuel',
-            text: commitmentMonths > 0 ? `${Math.round(quote.subtotal / commitmentMonths)}€/mois` : '0€',
-          },
-          // Durée engagement (bas page 3)
-          {
-            label: 'duree_engagement',
-            text: commitmentMonths > 0 ? `${commitmentMonths} mois` : 'Comptant',
-          },
-        ],
-      },
+          ],
+        },
+      ],
     };
 
-    // DEBUG: Récupérer les informations du template pour voir les champs disponibles
-    const templateResponse = await fetch(`${YOUSIGN_API_URL}/templates/${TEMPLATE_ID}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${YOUSIGN_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    console.log('📤 Envoi à Yousign...');
 
-    if (templateResponse.ok) {
-      const templateData = await templateResponse.json();
-      console.log('📋 Template info:', JSON.stringify(templateData, null, 2));
-    }
-
-    console.log('📤 Envoi à Yousign:', JSON.stringify(yousignPayload, null, 2));
-
-    // Appeler l'API Yousign
+    // Appeler l'API Yousign pour créer la signature request
     const yousignResponse = await fetch(`${YOUSIGN_API_URL}/signature_requests`, {
       method: 'POST',
       headers: {
@@ -171,7 +115,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('✅ Signature créée:', yousignData);
+    console.log('✅ Signature request créée:', yousignData.id);
+
+    // Activer la signature request (pour l'envoyer au client)
+    const activateResponse = await fetch(`${YOUSIGN_API_URL}/signature_requests/${yousignData.id}/activate`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${YOUSIGN_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!activateResponse.ok) {
+      const activateError = await activateResponse.json();
+      console.error('❌ Erreur activation:', activateError);
+      return NextResponse.json(
+        { error: 'Erreur activation Yousign', details: activateError },
+        { status: activateResponse.status }
+      );
+    }
+
+    console.log('✅ Demande de signature activée et envoyée au client');
 
     // Mettre à jour le devis avec l'ID Yousign
     await prisma.quotes.update({
@@ -182,35 +146,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // DEBUG: Récupérer les infos du template pour debug
-    const templateDebugResponse = await fetch(`${YOUSIGN_API_URL}/templates/${TEMPLATE_ID}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${YOUSIGN_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const templateDebugInfo: any = {
-      status: templateDebugResponse.status,
-      statusText: templateDebugResponse.statusText,
-    };
-
-    if (templateDebugResponse.ok) {
-      templateDebugInfo.data = await templateDebugResponse.json();
-    } else {
-      try {
-        templateDebugInfo.error = await templateDebugResponse.json();
-      } catch (_e) {
-        templateDebugInfo.error = 'Could not parse error response';
-      }
-    }
-
     return NextResponse.json({
       success: true,
       signatureRequest: yousignData,
       message: 'Demande de signature envoyée au client',
-      debug_template: templateDebugInfo, // Pour voir les champs du template
     });
   } catch (error) {
     console.error('❌ Erreur création signature:', error);
