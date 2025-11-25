@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    let templateDebugInfo: any = {
+    const templateDebugInfo: any = {
       status: templateDebugResponse.status,
       statusText: templateDebugResponse.statusText,
     };
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
     } else {
       try {
         templateDebugInfo.error = await templateDebugResponse.json();
-      } catch (e) {
+      } catch (_e) {
         templateDebugInfo.error = 'Could not parse error response';
       }
     }
