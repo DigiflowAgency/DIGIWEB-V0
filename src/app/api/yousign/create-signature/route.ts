@@ -35,17 +35,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Devis non trouvé' }, { status: 404 });
     }
 
-    // Préparer les données du devis pour les champs read-only
-    const clientInfo = `${quote.clientName}\n${quote.clientEmail}\n${quote.clientAddress || ''}`;
-    const prestations = quote.quote_products
-      ?.map((p: any) => `- ${p.name} (${p.quantity}x ${p.unitPrice}€)`)
-      .join('\n') || '';
-    const today = new Date().toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-
     // Créer la signature request depuis le template
     // Utiliser template_placeholders pour remplacer les placeholder signers et remplir les champs
     const yousignPayload: any = {
