@@ -74,6 +74,7 @@ const navigationCategories: NavCategory[] = [
       { name: 'Pipeline', href: '/dashboard/crm', icon: Users },
       { name: 'Production', href: '/dashboard/crm/deals', icon: Briefcase },
       { name: 'Prospection', href: '/dashboard/crm/prospection', icon: Target },
+      { name: 'Ads Lead', href: '/dashboard/crm/ads-leads', icon: Megaphone },
       { name: 'Activités', href: '/dashboard/crm/activities', icon: Calendar, disabled: true },
     ],
   },

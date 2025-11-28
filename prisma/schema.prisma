@@ -710,6 +710,7 @@ model users {
   race_participants                   race_participants[]
   prospects                           prospects[]
   sales_performance                   sales_performance[]
+  meta_leads                          meta_leads[]        @relation("MetaLeadsAssignedTo")
 
   @@index([email])
   @@index([managerId])
@@ -1148,4 +1149,46 @@ enum races_status {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+// ============================================
+// META LEADS (Facebook Ads)
+// ============================================
+
+model meta_leads {
+  id              String            @id @default(cuid())
+  metaLeadId      String            @unique // ID du lead côté Meta
+  formId          String?           // ID du formulaire
+  formName        String?
+  adId            String?
+  adName          String?
+  campaignId      String?
+  campaignName    String?
+
+  // Données du lead
+  fullName        String?
+  email           String?
+  phone           String?
+  customFields    Json?             // Autres champs du formulaire
+
+  // Gestion interne
+  status          meta_lead_status  @default(LIBRE)
+  assignedToId    String?
+  assignedTo      users?            @relation("MetaLeadsAssignedTo", fields: [assignedToId], references: [id])
+  convertedToDeal Boolean           @default(false)
+  dealId          String?
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  metaCreatedAt   DateTime?         // Date de création côté Meta
+
+  @@index([status])
+  @@index([assignedToId])
+  @@index([metaCreatedAt])
+}
+
+enum meta_lead_status {
+  LIBRE
+  ASSIGNE
+  CONVERTI
 }
