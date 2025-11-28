@@ -79,23 +79,14 @@ export async function GET(request: NextRequest) {
       where.companyId = companyId;
     }
 
-    // Filtre par utilisateur (sauf pour les admins qui peuvent tout voir)
-    const showAll = searchParams.get('showAll') === 'true';
+    // Filtre optionnel par utilisateur (tout le monde voit tous les deals par défaut)
     const ownerIdFilter = searchParams.get('ownerId');
-    const currentUser = await prisma.users.findUnique({
-      where: { id: session.user.id },
-      select: { role: true },
-    });
 
-    // Si un ownerId spécifique est demandé (par un admin), l'utiliser
-    if (ownerIdFilter && currentUser?.role === 'ADMIN') {
+    // Si un ownerId spécifique est demandé, filtrer par ce commercial
+    if (ownerIdFilter) {
       where.ownerId = ownerIdFilter;
     }
-    // Sinon, si l'utilisateur n'est pas admin OU s'il n'a pas demandé "showAll", filtrer par son propre ownerId
-    else if (currentUser?.role !== 'ADMIN' || !showAll) {
-      where.ownerId = session.user.id;
-    }
-    // Sinon (admin + showAll + pas d'ownerId), ne pas filtrer (voir tout)
+    // Sinon, pas de filtre - tout le monde voit tous les deals
 
     // Récupérer les deals
     const deals = await prisma.deals.findMany({

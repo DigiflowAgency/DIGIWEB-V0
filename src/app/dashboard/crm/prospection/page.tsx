@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import {
   Upload,
   Download,
@@ -26,6 +27,7 @@ interface Prospect {
   qualityScore: number | null;
   enrichedBy: string | null;
   assignedToId: string | null;
+  convertedToDeal: boolean;
   createdAt: string;
   users: {
     firstName: string;
@@ -40,22 +42,30 @@ interface Commercial {
   email: string;
 }
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+const STATUS_LABELS: Record<string, { label: string; color: string; isDeal?: boolean }> = {
   A_TRAITER: { label: 'À traiter', color: 'bg-gray-100 text-gray-700' },
-  EN_COURS: { label: 'En cours', color: 'bg-blue-100 text-blue-700' },
-  QUALIFIE: { label: 'Qualifié', color: 'bg-green-100 text-green-700' },
+  A_CONTACTER: { label: 'À contacter', color: 'bg-blue-100 text-blue-700', isDeal: true },
+  EN_DISCUSSION: { label: 'En discussion', color: 'bg-cyan-100 text-cyan-700', isDeal: true },
+  A_RELANCER: { label: 'À relancer', color: 'bg-orange-100 text-orange-700', isDeal: true },
+  RDV_PRIS: { label: 'RDV pris', color: 'bg-indigo-100 text-indigo-700', isDeal: true },
+  NEGO_HOT: { label: 'Négociation chaude', color: 'bg-pink-100 text-pink-700', isDeal: true },
   NON_QUALIFIE: { label: 'Non qualifié', color: 'bg-red-100 text-red-700' },
-  CONVERTI: { label: 'Converti', color: 'bg-purple-100 text-purple-700' },
 };
 
+// Statuts qui créent automatiquement un deal
+const DEAL_STATUSES = ['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT'];
+
 export default function ProspectionPage() {
+  const { data: session } = useSession();
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [commercials, setCommercials] = useState<Commercial[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedCommercial, setSelectedCommercial] = useState<string>('all');
+  const [importStatus, setImportStatus] = useState<string>('A_TRAITER');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   const fetchProspects = useCallback(async () => {
     try {
@@ -99,6 +109,7 @@ export default function ProspectionPage() {
       if (selectedCommercial !== 'all') {
         formData.append('assignedToId', selectedCommercial);
       }
+      formData.append('defaultStatus', importStatus);
 
       const res = await fetch('/api/prospects/import', {
         method: 'POST',
@@ -152,11 +163,34 @@ export default function ProspectionPage() {
     }
   };
 
+  const handleStatusChange = async (prospectId: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/prospects/${prospectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error);
+      }
+
+      const data = await res.json();
+      if (data.dealCreated) {
+        alert(`Deal créé automatiquement pour "${data.prospect.name}" !`);
+      }
+      fetchProspects();
+    } catch (error: any) {
+      alert(error.message || 'Erreur lors du changement de statut');
+    }
+  };
+
   const stats = {
     total: prospects.length,
     aTraiter: prospects.filter(p => p.status === 'A_TRAITER').length,
-    qualifies: prospects.filter(p => p.status === 'QUALIFIE').length,
-    convertis: prospects.filter(p => p.status === 'CONVERTI').length,
+    enCours: prospects.filter(p => DEAL_STATUSES.includes(p.status) && !p.convertedToDeal).length,
+    convertis: prospects.filter(p => p.convertedToDeal).length,
     avgQuality: prospects.length > 0
       ? Math.round(prospects.reduce((sum, p) => sum + (p.qualityScore || 0), 0) / prospects.length)
       : 0,
@@ -200,23 +234,23 @@ export default function ProspectionPage() {
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <CheckCircle className="h-6 w-6 text-green-600" />
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <TrendingUp className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Qualifiés</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.qualifies}</p>
+              <p className="text-sm text-gray-600">En cours</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.enCours}</p>
             </div>
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-purple-600" />
+            <div className="p-3 bg-green-100 rounded-lg">
+              <CheckCircle className="h-6 w-6 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Convertis</p>
+              <p className="text-sm text-gray-600">Convertis en deal</p>
               <p className="text-2xl font-bold text-gray-900">{stats.convertis}</p>
             </div>
           </div>
@@ -238,41 +272,55 @@ export default function ProspectionPage() {
       {/* Actions */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="px-4 py-2 bg-violet-600 text-white rounded-lg font-semibold flex items-center gap-2 hover:bg-violet-700 disabled:opacity-50"
-            >
-              {uploading ? (
-                <>
-                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
-                  Import en cours...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-5 w-5" />
-                  Importer CSV
-                </>
-              )}
-            </button>
+          {isAdmin && (
+            <div className="flex items-center gap-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <select
+                value={importStatus}
+                onChange={(e) => setImportStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              >
+                {Object.entries(STATUS_LABELS).map(([key, { label, isDeal }]) => (
+                  <option key={key} value={key}>
+                    {label} {isDeal ? '→ Deal' : ''}
+                  </option>
+                ))}
+              </select>
 
-            <a
-              href="/templates/prospects-template.csv"
-              download
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold flex items-center gap-2 hover:bg-gray-200"
-            >
-              <Download className="h-5 w-5" />
-              Télécharger modèle CSV
-            </a>
-          </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="px-4 py-2 bg-violet-600 text-white rounded-lg font-semibold flex items-center gap-2 hover:bg-violet-700 disabled:opacity-50"
+              >
+                {uploading ? (
+                  <>
+                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                    Import en cours...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-5 w-5" />
+                    Importer CSV
+                  </>
+                )}
+              </button>
+
+              <a
+                href="/templates/prospects-template.csv"
+                download
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold flex items-center gap-2 hover:bg-gray-200"
+              >
+                <Download className="h-5 w-5" />
+                Télécharger modèle CSV
+              </a>
+            </div>
+          )}
 
           <div className="flex items-center gap-4">
             <select
@@ -303,11 +351,18 @@ export default function ProspectionPage() {
           </div>
         </div>
 
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm text-blue-800">
-            <strong>Format CSV attendu :</strong> nom, siret, activite, adresse, ville, code_postal, telephone, email, site_web
-          </p>
-        </div>
+        {isAdmin && (
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Format CSV attendu :</strong> nom, siret, activite, adresse, ville, code_postal, telephone, email, site_web, statut
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              Statuts possibles : A_TRAITER, A_CONTACTER, EN_DISCUSSION, A_RELANCER, RDV_PRIS, NEGO_HOT, NON_QUALIFIE
+              <br />
+              <em>Les statuts A_CONTACTER et suivants créent automatiquement un deal.</em>
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Liste des prospects */}
@@ -394,13 +449,26 @@ export default function ProspectionPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          STATUS_LABELS[prospect.status]?.color || 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {STATUS_LABELS[prospect.status]?.label || prospect.status}
-                      </span>
+                      {prospect.convertedToDeal ? (
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 flex items-center gap-1 w-fit">
+                          <CheckCircle className="h-3 w-3" />
+                          Deal créé
+                        </span>
+                      ) : (
+                        <select
+                          value={prospect.status}
+                          onChange={(e) => handleStatusChange(prospect.id, e.target.value)}
+                          className={`px-2 py-1 rounded-lg text-xs font-semibold border-0 cursor-pointer ${
+                            STATUS_LABELS[prospect.status]?.color || 'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {Object.entries(STATUS_LABELS).map(([key, { label, isDeal }]) => (
+                            <option key={key} value={key}>
+                              {label} {isDeal ? '→ Deal' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {prospect.siret && !prospect.enrichedBy && (

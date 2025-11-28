@@ -29,9 +29,9 @@ export default function DealSidebar({ deal, isOpen, onClose, onUpdate }: DealSid
     fetch('/api/users')
       .then(res => res.json())
       .then(data => {
-        // Valider que data est un tableau
-        if (Array.isArray(data)) {
-          setUsers(data);
+        // L'API retourne { users: [...] }
+        if (data.users && Array.isArray(data.users)) {
+          setUsers(data.users);
         } else {
           console.error('Format invalide pour users:', data);
           setUsers([]);

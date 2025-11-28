@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Fonction pour traduire en français via MyMemory API (gratuit)
+async function translateToFrench(text: string): Promise<string> {
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|fr`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return data.responseData?.translatedText || text;
+  } catch {
+    return text; // En cas d'erreur, retourner le texte original
+  }
+}
+
 // GET /api/daily-quote - Récupérer la citation du jour
 export async function GET(_request: NextRequest) {
   try {
@@ -26,11 +38,14 @@ export async function GET(_request: NextRequest) {
         const data = await response.json();
         const quoteData = data[0]; // ZenQuotes retourne un array
 
+        // Traduire la citation en français
+        const translatedQuote = await translateToFrench(quoteData.q);
+
         // Sauvegarder en BDD
         dailyQuote = await prisma.daily_quotes.create({
           data: {
             id: `QUOTE-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            quote: quoteData.q,
+            quote: translatedQuote,
             author: quoteData.a,
             date: today,
           },

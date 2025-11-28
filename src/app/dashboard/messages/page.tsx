@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { Send, Search, Plus, Users as UsersIcon, X, Loader2, MessageCircle, User } from 'lucide-react';
 
@@ -52,7 +51,10 @@ export default function MessagesPage() {
   const [showNewConversation, setShowNewConversation] = useState(false);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [groupName, setGroupName] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -154,8 +156,38 @@ export default function MessagesPage() {
     }
   };
 
+  // Pour les non-admins: créer conversation 1-to-1 directement
+  const handleDirectConversation = async (userId: string) => {
+    try {
+      const res = await fetch('/api/messages/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          participantIds: [userId],
+          isGroup: false,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        await fetchConversations();
+        setSelectedConversation(data.conversation);
+        setShowNewConversation(false);
+      }
+    } catch (error) {
+      console.error('Erreur création conversation:', error);
+    }
+  };
+
   const handleCreateConversation = async () => {
     if (selectedUsers.length === 0) return;
+
+    const isGroupConversation = isAdmin && selectedUsers.length > 1;
+
+    // Pour les groupes admin, le nom est obligatoire
+    if (isGroupConversation && !groupName.trim()) {
+      return;
+    }
 
     try {
       const res = await fetch('/api/messages/conversations', {
@@ -163,7 +195,8 @@ export default function MessagesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           participantIds: selectedUsers,
-          isGroup: selectedUsers.length > 1,
+          isGroup: isGroupConversation,
+          name: isGroupConversation ? groupName.trim() : undefined,
         }),
       });
 
@@ -173,6 +206,7 @@ export default function MessagesPage() {
         setSelectedConversation(data.conversation);
         setShowNewConversation(false);
         setSelectedUsers([]);
+        setGroupName('');
       }
     } catch (error) {
       console.error('Erreur création conversation:', error);
@@ -421,60 +455,106 @@ export default function MessagesPage() {
 
             <div className="p-6 overflow-y-auto max-h-[60vh]">
               <p className="text-sm text-gray-600 mb-4">
-                Sélectionnez un ou plusieurs collègues pour démarrer une conversation
+                {isAdmin
+                  ? 'Sélectionnez un ou plusieurs collègues pour démarrer une conversation'
+                  : 'Sélectionnez un collègue pour démarrer une conversation'
+                }
               </p>
+
+              {/* Champ nom du groupe - uniquement pour admin avec plusieurs sélections */}
+              {isAdmin && selectedUsers.length > 1 && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nom du groupe *
+                  </label>
+                  <input
+                    type="text"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    placeholder="Ex: Groupe Marketing"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 {availableUsers.map((user) => (
-                  <label
-                    key={user.id}
-                    className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.includes(user.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedUsers([...selectedUsers, user.id]);
-                        } else {
-                          setSelectedUsers(selectedUsers.filter(id => id !== user.id));
-                        }
-                      }}
-                      className="w-5 h-5 text-violet-600 rounded focus:ring-violet-500"
-                    />
-                    {user.avatar ? (
-                      <Image src={user.avatar} alt={`${user.firstName} ${user.lastName}`} className="w-10 h-10 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white font-semibold">
-                        {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                  isAdmin ? (
+                    // Admin: checkboxes pour sélection multiple
+                    <label
+                      key={user.id}
+                      className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.includes(user.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedUsers([...selectedUsers, user.id]);
+                          } else {
+                            setSelectedUsers(selectedUsers.filter(id => id !== user.id));
+                          }
+                        }}
+                        className="w-5 h-5 text-violet-600 rounded focus:ring-violet-500"
+                      />
+                      {user.avatar ? (
+                        <img src={user.avatar} alt={`${user.firstName} ${user.lastName}`} className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white font-semibold">
+                          {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{user.firstName} {user.lastName}</p>
+                        <p className="text-sm text-gray-500">{user.email}</p>
                       </div>
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{user.firstName} {user.lastName}</p>
-                      <p className="text-sm text-gray-500">{user.email}</p>
-                    </div>
-                  </label>
+                    </label>
+                  ) : (
+                    // Non-admin: clic direct pour créer conversation 1-to-1
+                    <button
+                      key={user.id}
+                      onClick={() => handleDirectConversation(user.id)}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg text-left"
+                    >
+                      {user.avatar ? (
+                        <img src={user.avatar} alt={`${user.firstName} ${user.lastName}`} className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white font-semibold">
+                          {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{user.firstName} {user.lastName}</p>
+                        <p className="text-sm text-gray-500">{user.email}</p>
+                      </div>
+                    </button>
+                  )
                 ))}
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex gap-3">
-              <button
-                onClick={handleCreateConversation}
-                disabled={selectedUsers.length === 0}
-                className="flex-1 px-6 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-              >
-                Créer la conversation
-              </button>
-              <button
-                onClick={() => {
-                  setShowNewConversation(false);
-                  setSelectedUsers([]);
-                }}
-                className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-              >
-                Annuler
-              </button>
-            </div>
+            {/* Footer avec boutons - uniquement pour admin */}
+            {isAdmin && (
+              <div className="p-6 border-t border-gray-200 flex gap-3">
+                <button
+                  onClick={handleCreateConversation}
+                  disabled={selectedUsers.length === 0 || (selectedUsers.length > 1 && !groupName.trim())}
+                  className="flex-1 px-6 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {selectedUsers.length > 1 ? 'Créer le groupe' : 'Créer la conversation'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowNewConversation(false);
+                    setSelectedUsers([]);
+                    setGroupName('');
+                  }}
+                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Annuler
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

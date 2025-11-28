@@ -415,7 +415,7 @@ export default function DashboardLayout({
                 </div>
                 <div className="ml-3 flex-1 min-w-0">
                   <p className="text-xs font-medium text-white truncate">{userEmail}</p>
-                  <p className="text-xs text-blue-200">Admin</p>
+                  <p className="text-xs text-blue-200">{session?.user?.role || 'Utilisateur'}</p>
                 </div>
                 <button
                   onClick={handleLogout}

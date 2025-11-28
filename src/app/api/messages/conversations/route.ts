@@ -126,19 +126,31 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createConversationSchema.parse(body);
 
+    // Si c'est un groupe, vérifier que l'utilisateur est admin
+    if (validatedData.isGroup && session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Seuls les administrateurs peuvent créer des groupes' },
+        { status: 403 }
+      );
+    }
+
     // Vérifier si une conversation 1-to-1 existe déjà entre ces utilisateurs
     if (!validatedData.isGroup && validatedData.participantIds.length === 1) {
       const existingConv = await prisma.internal_conversations.findFirst({
         where: {
           isGroup: false,
-          conversation_participants: {
-            every: {
-              OR: [
-                { userId: session.user.id },
-                { userId: validatedData.participantIds[0] },
-              ],
+          AND: [
+            {
+              conversation_participants: {
+                some: { userId: session.user.id },
+              },
             },
-          },
+            {
+              conversation_participants: {
+                some: { userId: validatedData.participantIds[0] },
+              },
+            },
+          ],
         },
         include: {
           conversation_participants: {
@@ -183,6 +195,7 @@ export async function POST(request: NextRequest) {
         name: validatedData.name || null,
         isGroup: validatedData.isGroup,
         createdById: session.user.id,
+        updatedAt: new Date(),
         conversation_participants: {
           create: [
             {
@@ -214,7 +227,26 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ conversation }, { status: 201 });
+    // Formater la réponse pour le frontend
+    const formattedConversation = {
+      id: conversation.id,
+      name: conversation.name,
+      isGroup: conversation.isGroup,
+      avatar: conversation.avatar,
+      lastMessage: conversation.lastMessage,
+      lastMessageAt: conversation.lastMessageAt,
+      unreadCount: 0,
+      participants: conversation.conversation_participants.map((cp: any) => ({
+        id: cp.users.id,
+        firstName: cp.users.firstName,
+        lastName: cp.users.lastName,
+        email: cp.users.email,
+        avatar: cp.users.avatar,
+        status: cp.users.status,
+      })),
+    };
+
+    return NextResponse.json({ conversation: formattedConversation }, { status: 201 });
   } catch (error) {
     console.error('Erreur POST /api/messages/conversations:', error);
 

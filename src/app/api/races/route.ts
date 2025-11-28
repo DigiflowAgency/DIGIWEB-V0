@@ -7,8 +7,8 @@ import { z } from 'zod';
 const createRaceSchema = z.object({
   name: z.string().min(1, 'Le nom est requis'),
   description: z.string().optional(),
-  startDate: z.string().datetime(),
-  endDate: z.string().datetime(),
+  startDate: z.string().min(1, 'La date de début est requise'),
+  endDate: z.string().min(1, 'La date de fin est requise'),
   metric: z.enum(['CA_ENCAISSE', 'DEALS_GAGNES', 'CONTACTS_CREES', 'ACTIVITES', 'APPELS', 'EMAILS', 'REUNIONS']),
   prizes: z.record(z.string(), z.string()), // {"1": "1000€", "2": "500€", "3": "250€"}
 });

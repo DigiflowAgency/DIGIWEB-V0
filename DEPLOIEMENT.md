@@ -153,6 +153,7 @@ SHOW TABLES;
 npx prisma db push --force-reset
 ```
 
+
 ### Problème : Tables non créées
 ```bash
 # Regénérer le client Prisma

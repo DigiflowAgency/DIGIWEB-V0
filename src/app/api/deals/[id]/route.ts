@@ -292,7 +292,7 @@ export async function PATCH(
     // Préparer les données de mise à jour
     const updateData: any = {};
 
-    // Autoriser uniquement certains champs pour PATCH (productionStage principalement)
+    // Autoriser uniquement certains champs pour PATCH
     if ('productionStage' in body) {
       updateData.productionStage = body.productionStage;
     }
@@ -301,6 +301,42 @@ export async function PATCH(
       updateData.stage = body.stage;
       // Calculer automatiquement la probabilité selon la nouvelle étape
       updateData.probability = getProbabilityByStage(body.stage);
+    }
+
+    if ('ownerId' in body) {
+      updateData.ownerId = body.ownerId;
+    }
+
+    if ('value' in body) {
+      updateData.value = body.value;
+    }
+
+    if ('probability' in body && !('stage' in body)) {
+      updateData.probability = body.probability;
+    }
+
+    if ('expectedCloseDate' in body) {
+      updateData.expectedCloseDate = body.expectedCloseDate ? new Date(body.expectedCloseDate) : null;
+    }
+
+    if ('product' in body) {
+      updateData.product = body.product;
+    }
+
+    if ('origin' in body) {
+      updateData.origin = body.origin;
+    }
+
+    if ('emailReminderSent' in body) {
+      updateData.emailReminderSent = body.emailReminderSent;
+    }
+
+    if ('smsReminderSent' in body) {
+      updateData.smsReminderSent = body.smsReminderSent;
+    }
+
+    if ('comments' in body) {
+      updateData.comments = body.comments;
     }
 
     // Mettre à jour le deal

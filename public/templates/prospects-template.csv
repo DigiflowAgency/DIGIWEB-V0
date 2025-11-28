@@ -1,0 +1,3 @@
+nom,siret,activite,adresse,ville,code_postal,telephone,email,site_web,statut
+Entreprise Exemple,12345678901234,Commerce de détail,123 Rue Example,Paris,75001,0123456789,contact@example.com,https://example.com,A_TRAITER
+Prospect Hot,98765432109876,Services informatiques,456 Avenue Tech,Lyon,69001,0987654321,tech@example.com,https://tech-example.com,A_CONTACTER

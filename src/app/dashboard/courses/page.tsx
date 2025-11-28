@@ -406,10 +406,12 @@ function CreateRaceModal({ show, onClose, onSuccess }: CreateRaceModalProps) {
     },
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       const res = await fetch('/api/races', {
@@ -428,9 +430,13 @@ function CreateRaceModal({ show, onClose, onSuccess }: CreateRaceModalProps) {
           metric: 'CA_ENCAISSE',
           prizes: { '1': '', '2': '', '3': '' },
         });
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Une erreur est survenue');
       }
     } catch (error) {
       console.error('Erreur lors de la création:', error);
+      setError('Erreur de connexion au serveur');
     } finally {
       setLoading(false);
     }
@@ -453,6 +459,12 @@ function CreateRaceModal({ show, onClose, onSuccess }: CreateRaceModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Nom de la course *</label>
             <input

@@ -3,6 +3,19 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+// Statuts qui déclenchent la création d'un deal
+const DEAL_STAGES = ['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT'];
+const VALID_STATUSES = ['A_TRAITER', ...DEAL_STAGES, 'NON_QUALIFIE'];
+
+// Probabilités par stage
+const STAGE_PROBABILITIES: Record<string, number> = {
+  A_CONTACTER: 10,
+  EN_DISCUSSION: 30,
+  A_RELANCER: 20,
+  RDV_PRIS: 50,
+  NEGO_HOT: 70,
+};
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,6 +27,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
     const assignedToId = formData.get('assignedToId') as string | null;
     const enrichWith = formData.get('enrichWith') as string | null; // "pappers", "mlist", "none"
+    const defaultStatus = formData.get('defaultStatus') as string | null;
 
     if (!file) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
@@ -73,9 +87,18 @@ export async function POST(request: NextRequest) {
           rowData[header] = values[index] || '';
         });
 
+        // Utiliser le statut par défaut passé par le frontend, sinon celui du CSV, sinon A_TRAITER
+        let csvStatus = defaultStatus || (rowData.statut || rowData.status || 'A_TRAITER').toUpperCase();
+        if (!VALID_STATUSES.includes(csvStatus)) {
+          csvStatus = 'A_TRAITER';
+        }
+
+        const shouldCreateDeal = DEAL_STAGES.includes(csvStatus);
+        const prospectId = `PROS-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
         // Mapping des champs CSV vers les champs de la base
         const prospectData: any = {
-          id: `PROS-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          id: prospectId,
           name: rowData.nom || rowData.name || rowData.entreprise || '',
           siret: rowData.siret || null,
           activity: rowData.activite || rowData.activity || rowData.secteur || '',
@@ -89,7 +112,10 @@ export async function POST(request: NextRequest) {
           source: 'csv_import',
           importBatchId: batchId,
           assignedToId: assignedToId || null,
-          status: 'A_TRAITER',
+          status: csvStatus,
+          convertedToDeal: shouldCreateDeal,
+          convertedAt: shouldCreateDeal ? new Date() : null,
+          updatedAt: new Date(),
         };
 
         // Valider que les champs obligatoires sont présents
@@ -97,7 +123,27 @@ export async function POST(request: NextRequest) {
           throw new Error('Nom et activité sont obligatoires');
         }
 
+        // Créer le prospect
         await prisma.prospects.create({ data: prospectData });
+
+        // Si statut deal, créer automatiquement le deal
+        if (shouldCreateDeal) {
+          const dealOwnerId = assignedToId || session.user.id;
+          await prisma.deals.create({
+            data: {
+              id: `DEAL-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              title: prospectData.name,
+              description: `Prospect importé: ${prospectData.activity}`,
+              value: 0,
+              currency: 'EUR',
+              stage: csvStatus as any,
+              probability: STAGE_PROBABILITIES[csvStatus] || 10,
+              ownerId: dealOwnerId,
+              updatedAt: new Date(),
+            },
+          });
+        }
+
         successCount++;
       } catch (error: any) {
         errorCount++;
