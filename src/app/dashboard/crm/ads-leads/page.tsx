@@ -348,7 +348,7 @@ export default function AdsLeadsPage() {
                       </button>
                     ) : lead.dealId ? (
                       <a
-                        href={`/dashboard/crm/pipeline`}
+                        href={`/dashboard/crm`}
                         className="px-4 py-2 bg-violet-100 text-violet-700 rounded-lg hover:bg-violet-200 transition-colors inline-flex items-center gap-2"
                       >
                         <CheckCircle className="h-4 w-4" />
