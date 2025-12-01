@@ -174,6 +174,7 @@ Si tu modifies le schéma Prisma en local et veux l'appliquer en prod :
 cd /var/www/digiweb-erp
 git pull origin main
 npx prisma db push
+#test
 # Les nouvelles tables/colonnes seront ajoutées automatiquement
 ```
 
