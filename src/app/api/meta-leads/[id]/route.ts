@@ -81,6 +81,27 @@ export async function PATCH(
         );
       }
 
+      // Parser le nom complet pour extraire prénom et nom
+      const nameParts = (lead.fullName || 'Lead Meta').split(' ');
+      const firstName = nameParts[0] || 'Lead';
+      const lastName = nameParts.slice(1).join(' ') || 'Meta';
+
+      // Créer un contact
+      const contactId = `CONTACT-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      await prisma.contacts.create({
+        data: {
+          id: contactId,
+          firstName,
+          lastName,
+          email: lead.email,
+          phone: lead.phone,
+          status: 'LEAD',
+          source: 'Meta Ads',
+          assignedToId: userId,
+          updatedAt: new Date(),
+        },
+      });
+
       // Créer automatiquement un deal
       const dealId = `DEAL-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -95,6 +116,7 @@ export async function PATCH(
           probability: 10,
           ownerId: userId,
           origin: 'ADS',
+          contactId: contactId,
           comments: lead.email ? `Email: ${lead.email}` : null,
           updatedAt: new Date(),
         },
