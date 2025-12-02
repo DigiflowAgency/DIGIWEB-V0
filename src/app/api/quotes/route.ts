@@ -65,10 +65,16 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const status = searchParams.get('status');
     const contactId = searchParams.get('contactId');
+    const ownerId = searchParams.get('ownerId');
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
     const where: Prisma.quotesWhereInput = {};
+
+    // Filtre par propriétaire (ownerId)
+    if (ownerId) {
+      where.ownerId = ownerId;
+    }
 
     // Filtre par texte de recherche
     if (search) {

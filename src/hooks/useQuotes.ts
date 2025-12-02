@@ -77,6 +77,7 @@ export function useQuotes(params?: {
   search?: string;
   status?: string;
   contactId?: string;
+  ownerId?: string;
   limit?: number;
 }) {
   // Construire l'URL avec les paramètres
@@ -84,6 +85,7 @@ export function useQuotes(params?: {
   if (params?.search) queryParams.append('search', params.search);
   if (params?.status) queryParams.append('status', params.status);
   if (params?.contactId) queryParams.append('contactId', params.contactId);
+  if (params?.ownerId) queryParams.append('ownerId', params.ownerId);
   if (params?.limit) queryParams.append('limit', params.limit.toString());
 
   const url = `/api/quotes${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;

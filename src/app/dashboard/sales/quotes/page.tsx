@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useSession } from 'next-auth/react';
 import {
   FileText,
   Plus,
@@ -56,6 +57,10 @@ const getStatusLabel = (status: string) => {
 };
 
 export default function QuotesPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'ADMIN';
+  const userId = session?.user?.id;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
@@ -87,11 +92,17 @@ export default function QuotesPage() {
   const [selectedContactForFill, setSelectedContactForFill] = useState<string>('');
   const [calculatorData, setCalculatorData] = useState<any>(null);
 
+  // Paramètres de filtrage : les non-admins ne voient que leurs propres devis
+  const quotesParams = useMemo(() => {
+    const params: { search?: string; status?: string; ownerId?: string } = {};
+    if (searchQuery) params.search = searchQuery;
+    if (selectedStatus !== 'all') params.status = selectedStatus.toUpperCase();
+    if (!isAdmin && userId) params.ownerId = userId;
+    return params;
+  }, [searchQuery, selectedStatus, isAdmin, userId]);
+
   // Utiliser le hook useQuotes pour récupérer les données depuis l'API
-  const { quotes, stats, isLoading, isError, mutate } = useQuotes({
-    search: searchQuery || undefined,
-    status: selectedStatus !== 'all' ? selectedStatus.toUpperCase() : undefined,
-  });
+  const { quotes, stats, isLoading, isError, mutate } = useQuotes(quotesParams);
 
   // Hook de mutations
   const { createQuote, updateQuote, deleteQuote, loading: submitting, error: submitError } = useQuoteMutations();

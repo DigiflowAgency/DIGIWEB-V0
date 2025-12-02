@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useSession } from 'next-auth/react';
 import {
   Receipt,
   Plus,
@@ -54,6 +55,10 @@ const getStatusLabel = (status: string) => {
 };
 
 export default function InvoicesPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'ADMIN';
+  const userId = session?.user?.id;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -79,11 +84,17 @@ export default function InvoicesPage() {
     contactId: '',
   });
 
+  // Paramètres de filtrage : les non-admins ne voient que leurs propres factures
+  const invoicesParams = useMemo(() => {
+    const params: { search?: string; status?: string; ownerId?: string } = {};
+    if (searchQuery) params.search = searchQuery;
+    if (selectedStatus !== 'all') params.status = selectedStatus.toUpperCase();
+    if (!isAdmin && userId) params.ownerId = userId;
+    return params;
+  }, [searchQuery, selectedStatus, isAdmin, userId]);
+
   // Utiliser le hook useInvoices pour récupérer les données depuis l'API
-  const { invoices, stats, isLoading, isError, mutate } = useInvoices({
-    search: searchQuery || undefined,
-    status: selectedStatus !== 'all' ? selectedStatus.toUpperCase() : undefined,
-  });
+  const { invoices, stats, isLoading, isError, mutate } = useInvoices(invoicesParams);
 
   const { createInvoice, loading: submitting, error: submitError } = useInvoiceMutations();
   const { contacts } = useContacts({});
