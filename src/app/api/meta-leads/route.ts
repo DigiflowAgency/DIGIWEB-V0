@@ -86,8 +86,25 @@ export async function POST(_request: NextRequest) {
 
     console.log('Début synchronisation leads Meta (multi-pages)...');
 
-    // Récupérer tous les leads depuis Meta (toutes les pages)
-    const { leads: metaLeads, forms } = await getAllLeads();
+    // Récupérer le dernier lead synchronisé pour optimiser la requête
+    const lastLead = await prisma.meta_leads.findFirst({
+      orderBy: { metaCreatedAt: 'desc' },
+      select: { metaCreatedAt: true }
+    });
+
+    // Convertir en timestamp Unix (secondes) si on a un lead
+    const sinceTimestamp = lastLead?.metaCreatedAt
+      ? Math.floor(lastLead.metaCreatedAt.getTime() / 1000)
+      : undefined;
+
+    if (sinceTimestamp) {
+      console.log(`Récupération des leads créés après le ${new Date(sinceTimestamp * 1000).toLocaleString('fr-FR')}`);
+    } else {
+      console.log('Première synchronisation - récupération de tous les leads');
+    }
+
+    // Récupérer les leads depuis Meta (filtrés par date si possible)
+    const { leads: metaLeads, forms } = await getAllLeads(sinceTimestamp);
     console.log(`${metaLeads.length} leads trouvés dans ${forms.length} formulaires`);
 
     let created = 0;
@@ -119,8 +136,12 @@ export async function POST(_request: NextRequest) {
             pageName: metaLead.page_name || null,
             adId: metaLead.ad_id || null,
             adName: metaLead.ad_name || null,
+            adsetId: metaLead.adset_id || null,
+            adsetName: metaLead.adset_name || null,
             campaignId: metaLead.campaign_id || null,
             campaignName: metaLead.campaign_name || null,
+            platform: metaLead.platform || null,
+            isOrganic: metaLead.is_organic ?? null,
             fullName: parsedData.fullName,
             email: parsedData.email,
             phone: parsedData.phone,

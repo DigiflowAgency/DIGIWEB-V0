@@ -17,12 +17,16 @@ interface MetaLead {
   field_data: MetaLeadField[];
   ad_id?: string;
   ad_name?: string;
+  adset_id?: string;
+  adset_name?: string;
   campaign_id?: string;
   campaign_name?: string;
   form_id?: string;
   form_name?: string;
   page_id?: string;
   page_name?: string;
+  platform?: string;       // facebook, instagram, messenger
+  is_organic?: boolean;    // true si lead organique (pas une pub)
 }
 
 interface MetaLeadsResponse {
@@ -116,9 +120,29 @@ export async function getLeadgenFormsForPage(pageId: string, pageAccessToken: st
 
 /**
  * Récupère les leads d'un formulaire spécifique
+ * @param formId - ID du formulaire
+ * @param pageAccessToken - Token d'accès de la page
+ * @param since - Timestamp Unix (secondes) pour ne récupérer que les leads créés après cette date
  */
-export async function getLeadsByForm(formId: string, pageAccessToken: string): Promise<MetaLead[]> {
-  const url = `${META_GRAPH_URL}/${formId}/leads?fields=id,created_time,field_data,ad_id,ad_name,campaign_id,campaign_name,form_id&access_token=${pageAccessToken}`;
+export async function getLeadsByForm(
+  formId: string,
+  pageAccessToken: string,
+  since?: number
+): Promise<MetaLead[]> {
+  // Champs à récupérer (incluant les nouveaux)
+  const fields = 'id,created_time,field_data,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,form_id,is_organic,platform';
+
+  let url = `${META_GRAPH_URL}/${formId}/leads?fields=${fields}&access_token=${pageAccessToken}`;
+
+  // Filtrage par date si spécifié
+  if (since) {
+    const filtering = JSON.stringify([{
+      field: 'time_created',
+      operator: 'GREATER_THAN',
+      value: since
+    }]);
+    url += `&filtering=${encodeURIComponent(filtering)}`;
+  }
 
   const response = await fetch(url);
   const data: MetaLeadsResponse = await response.json();
@@ -197,8 +221,9 @@ export function parseLeadData(lead: MetaLead): {
 /**
  * Récupère tous les leads de toutes les pages accessibles
  * C'est la fonction principale à utiliser pour récupérer TOUS les leads
+ * @param since - Timestamp Unix (secondes) pour ne récupérer que les leads créés après cette date
  */
-export async function getAllLeadsFromAllPages(): Promise<{
+export async function getAllLeadsFromAllPages(since?: number): Promise<{
   leads: MetaLead[];
   forms: MetaLeadgenForm[];
   pages: MetaPage[];
@@ -207,7 +232,8 @@ export async function getAllLeadsFromAllPages(): Promise<{
   const allLeads: MetaLead[] = [];
   const allForms: MetaLeadgenForm[] = [];
 
-  console.log(`Récupération des leads de ${pages.length} page(s): ${pages.map(p => p.name).join(', ')}`);
+  const sinceInfo = since ? ` (depuis ${new Date(since * 1000).toLocaleString('fr-FR')})` : ' (tous)';
+  console.log(`Récupération des leads de ${pages.length} page(s)${sinceInfo}: ${pages.map(p => p.name).join(', ')}`);
 
   for (const page of pages) {
     try {
@@ -223,7 +249,8 @@ export async function getAllLeadsFromAllPages(): Promise<{
 
       for (const form of forms) {
         try {
-          const leads = await getLeadsByForm(form.id, page.access_token);
+          // Passer le paramètre since pour filtrer par date
+          const leads = await getLeadsByForm(form.id, page.access_token, since);
 
           // Ajouter les infos du formulaire et de la page à chaque lead
           const leadsWithInfo = leads.map(lead => ({
@@ -252,14 +279,15 @@ export async function getAllLeadsFromAllPages(): Promise<{
 
 /**
  * Récupère tous les leads d'une page spécifique (ancien comportement)
+ * @param since - Timestamp Unix (secondes) pour ne récupérer que les leads créés après cette date
  * @deprecated Utiliser getAllLeadsFromAllPages() pour récupérer les leads de toutes les pages
  */
-export async function getAllLeads(): Promise<{
+export async function getAllLeads(since?: number): Promise<{
   leads: MetaLead[];
   forms: MetaLeadgenForm[];
 }> {
   // Utilise maintenant la nouvelle fonction multi-pages
-  const result = await getAllLeadsFromAllPages();
+  const result = await getAllLeadsFromAllPages(since);
   return { leads: result.leads, forms: result.forms };
 }
 

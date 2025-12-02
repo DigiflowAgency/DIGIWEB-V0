@@ -1164,8 +1164,12 @@ model meta_leads {
   pageName        String?           // Nom de la page (entreprise)
   adId            String?
   adName          String?
+  adsetId         String?           // ID de l'ensemble de publicités
+  adsetName       String?           // Nom de l'ensemble de publicités
   campaignId      String?
   campaignName    String?
+  platform        String?           // facebook, instagram, messenger
+  isOrganic       Boolean?          // true si post organique (pas une pub)
 
   // Données du lead
   fullName        String?
