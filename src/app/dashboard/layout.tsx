@@ -52,6 +52,7 @@ interface NavCategory {
   icon: React.ComponentType<{ className?: string }>;
   subItems: SubNavItem[];
   disabled?: boolean;
+  adminOnly?: boolean;
 }
 
 const navigationCategories: NavCategory[] = [
@@ -63,6 +64,7 @@ const navigationCategories: NavCategory[] = [
   {
     name: 'Analytics',
     icon: BarChart3,
+    adminOnly: true,
     subItems: [
       { name: 'Vue d\'ensemble', href: '/dashboard/analytics', icon: BarChart3, adminOnly: true },
     ],
@@ -275,13 +277,16 @@ export default function DashboardLayout({
               const isExpanded = expandedCategories.includes(category.name);
               const isDashboard = category.name === 'Dashboard';
               const isDashboardActive = isDashboard && pathname === '/dashboard';
+              // Griser les catégories adminOnly pour les non-admins
+              const isDisabledForUser = category.adminOnly && session?.user?.role !== 'ADMIN';
+              const isCategoryDisabled = category.disabled || isDisabledForUser;
 
               return (
                 <div key={category.name}>
                   {/* Category Header */}
                   <button
                     onClick={() => {
-                      if (category.disabled) return;
+                      if (isCategoryDisabled) return;
                       if (isDashboard) {
                         router.push('/dashboard');
                       } else {
@@ -293,25 +298,26 @@ export default function DashboardLayout({
                         }
                       }
                     }}
-                    disabled={category.disabled}
+                    disabled={isCategoryDisabled}
                     className={`w-full group flex items-center justify-center ${sidebarCollapsed ? 'px-0 py-3' : 'justify-between px-3 py-2.5'} text-sm font-medium rounded-lg transition-all ${
-                      category.disabled
+                      isCategoryDisabled
                         ? 'text-blue-300/50 cursor-not-allowed opacity-50'
                         : isDashboardActive
                         ? 'bg-blue-700/50 text-white'
                         : 'text-blue-100 hover:bg-blue-800/50'
                     }`}
-                    title={sidebarCollapsed ? category.name : ''}
+                    title={sidebarCollapsed ? (isDisabledForUser ? `${category.name} (Admin uniquement)` : category.name) : ''}
                   >
                     {sidebarCollapsed ? (
-                      <CategoryIcon className={`h-6 w-6 ${category.disabled ? 'text-blue-300/50' : isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
+                      <CategoryIcon className={`h-6 w-6 ${isCategoryDisabled ? 'text-blue-300/50' : isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
                     ) : (
                       <>
                         <div className="flex items-center">
-                          <CategoryIcon className={`h-5 w-5 mr-3 ${category.disabled ? 'text-blue-300/50' : isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
+                          <CategoryIcon className={`h-5 w-5 mr-3 ${isCategoryDisabled ? 'text-blue-300/50' : isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
                           <span>{category.name}</span>
+                          {isDisabledForUser && <span className="ml-2 text-xs text-blue-400/60">(Admin)</span>}
                         </div>
-                        {!isDashboard && category.subItems.length > 0 && !category.disabled && (
+                        {!isDashboard && category.subItems.length > 0 && !isCategoryDisabled && (
                           isExpanded ? (
                             <ChevronDown className="h-4 w-4 text-blue-200" />
                           ) : (
@@ -323,7 +329,7 @@ export default function DashboardLayout({
                   </button>
 
                   {/* Sub Items */}
-                  {!sidebarCollapsed && isExpanded && category.subItems.length > 0 && !category.disabled && (
+                  {!sidebarCollapsed && isExpanded && category.subItems.length > 0 && !isCategoryDisabled && (
                     <div className="ml-4 mt-1 space-y-0.5">
                       {category.subItems.map((subItem) => {
                         const SubIcon = subItem.icon;
@@ -453,12 +459,15 @@ export default function DashboardLayout({
                 const isExpanded = expandedCategories.includes(category.name);
                 const isDashboard = category.name === 'Dashboard';
                 const isDashboardActive = isDashboard && pathname === '/dashboard';
+                // Griser les catégories adminOnly pour les non-admins
+                const isDisabledForUser = category.adminOnly && session?.user?.role !== 'ADMIN';
+                const isCategoryDisabled = category.disabled || isDisabledForUser;
 
                 return (
                   <div key={category.name}>
                     <button
                       onClick={() => {
-                        if (category.disabled) return;
+                        if (isCategoryDisabled) return;
                         if (isDashboard) {
                           router.push('/dashboard');
                           setSidebarOpen(false);
@@ -466,9 +475,9 @@ export default function DashboardLayout({
                           toggleCategory(category.name);
                         }
                       }}
-                      disabled={category.disabled}
+                      disabled={isCategoryDisabled}
                       className={`w-full group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                        category.disabled
+                        isCategoryDisabled
                           ? 'text-blue-300/50 cursor-not-allowed opacity-50'
                           : isDashboardActive
                           ? 'bg-blue-700/50 text-white'
@@ -476,10 +485,11 @@ export default function DashboardLayout({
                       }`}
                     >
                       <div className="flex items-center">
-                        <CategoryIcon className={`mr-3 h-5 w-5 ${category.disabled ? 'text-blue-300/50' : isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
+                        <CategoryIcon className={`mr-3 h-5 w-5 ${isCategoryDisabled ? 'text-blue-300/50' : isDashboardActive ? 'text-white' : 'text-blue-200'}`} />
                         <span>{category.name}</span>
+                        {isDisabledForUser && <span className="ml-2 text-xs text-blue-400/60">(Admin)</span>}
                       </div>
-                      {!isDashboard && category.subItems.length > 0 && !category.disabled && (
+                      {!isDashboard && category.subItems.length > 0 && !isCategoryDisabled && (
                         isExpanded ? (
                           <ChevronDown className="h-4 w-4 text-blue-200" />
                         ) : (
@@ -488,7 +498,7 @@ export default function DashboardLayout({
                       )}
                     </button>
 
-                    {isExpanded && category.subItems.length > 0 && !category.disabled && (
+                    {isExpanded && category.subItems.length > 0 && !isCategoryDisabled && (
                       <div className="ml-4 mt-1 space-y-0.5">
                         {category.subItems.map((subItem) => {
                           const SubIcon = subItem.icon;

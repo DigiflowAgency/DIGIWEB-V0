@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
     const contactId = searchParams.get('contactId');
     const dealId = searchParams.get('dealId');
     const priority = searchParams.get('priority');
+    const assignedToId = searchParams.get('assignedToId');
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     // Construire la query Prisma
@@ -74,6 +75,11 @@ export async function GET(request: NextRequest) {
     // Filtre par deal
     if (dealId) {
       where.dealId = dealId;
+    }
+
+    // Filtre par utilisateur assigné
+    if (assignedToId) {
+      where.assignedToId = assignedToId;
     }
 
     // Récupérer les activités

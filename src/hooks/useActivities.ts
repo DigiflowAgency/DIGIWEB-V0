@@ -70,6 +70,7 @@ export function useActivities(params?: {
   priority?: string;
   contactId?: string;
   dealId?: string;
+  assignedToId?: string;
   limit?: number;
 }) {
   // Construire l'URL avec les paramètres
@@ -80,6 +81,7 @@ export function useActivities(params?: {
   if (params?.priority) queryParams.append('priority', params.priority);
   if (params?.contactId) queryParams.append('contactId', params.contactId);
   if (params?.dealId) queryParams.append('dealId', params.dealId);
+  if (params?.assignedToId) queryParams.append('assignedToId', params.assignedToId);
   if (params?.limit) queryParams.append('limit', params.limit.toString());
 
   const url = `/api/activities${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;

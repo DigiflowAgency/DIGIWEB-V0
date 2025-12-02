@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
+import { useSession } from 'next-auth/react';
 import {
   Users,
   Calendar,
@@ -92,8 +93,28 @@ const getScoreBadge = (score: number) => {
 };
 
 export default function DashboardPage() {
-  const { deals, isLoading: dealsLoading, isError: dealsError } = useDeals();
-  const { activities, isLoading: activitiesLoading, isError: activitiesError } = useActivities({ limit: 10 });
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'ADMIN';
+  const userId = session?.user?.id;
+
+  // Paramètres de filtrage : les non-admins ne voient que leurs propres données
+  const dealsParams = useMemo(() => {
+    if (!isAdmin && userId) {
+      return { ownerId: userId };
+    }
+    return {};
+  }, [isAdmin, userId]);
+
+  const activitiesParams = useMemo(() => {
+    const params: { limit: number; assignedToId?: string } = { limit: 10 };
+    if (!isAdmin && userId) {
+      params.assignedToId = userId;
+    }
+    return params;
+  }, [isAdmin, userId]);
+
+  const { deals, isLoading: dealsLoading, isError: dealsError } = useDeals(dealsParams);
+  const { activities, isLoading: activitiesLoading, isError: activitiesError } = useActivities(activitiesParams);
 
   // Calculer les stats principales
   const stats = useMemo(() => {
