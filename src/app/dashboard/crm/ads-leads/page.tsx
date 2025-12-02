@@ -13,9 +13,17 @@ import {
   CheckCircle,
   AlertCircle,
   Facebook,
+  Instagram,
   Filter,
   Building2,
+  Shuffle,
+  Megaphone,
+  Layers,
+  FileText,
+  Leaf,
+  MessageCircle,
 } from 'lucide-react';
+import AutoAssignModal from '@/components/auto-assign-modal';
 
 interface MetaLead {
   id: string;
@@ -23,7 +31,14 @@ interface MetaLead {
   formName: string | null;
   pageId: string | null;
   pageName: string | null;
+  adId: string | null;
+  adName: string | null;
+  adsetId: string | null;
+  adsetName: string | null;
+  campaignId: string | null;
   campaignName: string | null;
+  platform: string | null;
+  isOrganic: boolean | null;
   fullName: string | null;
   email: string | null;
   phone: string | null;
@@ -94,6 +109,8 @@ export default function AdsLeadsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [pageFilter, setPageFilter] = useState<string>('all');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showAutoAssign, setShowAutoAssign] = useState(false);
+  const [commerciaux, setCommerciaux] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
 
   const fetchLeads = async () => {
     try {
@@ -126,6 +143,22 @@ export default function AdsLeadsPage() {
   useEffect(() => {
     fetchLeads();
   }, [statusFilter, pageFilter]);
+
+  // Charger les commerciaux au montage
+  useEffect(() => {
+    const fetchCommerciaux = async () => {
+      try {
+        const response = await fetch('/api/users?role=VENTE');
+        const data = await response.json();
+        if (response.ok && data.users) {
+          setCommerciaux(data.users.filter((u: any) => u.status === 'ACTIVE'));
+        }
+      } catch (error) {
+        console.error('Erreur chargement commerciaux:', error);
+      }
+    };
+    fetchCommerciaux();
+  }, []);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -209,14 +242,25 @@ export default function AdsLeadsPage() {
                 <p className="text-gray-600">Leads provenant de Meta Ads (Facebook/Instagram)</p>
               </div>
             </div>
-            <button
-              onClick={handleSync}
-              disabled={isSyncing}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`h-5 w-5 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Synchronisation...' : 'Synchroniser'}
-            </button>
+            <div className="flex items-center gap-3">
+              {stats.libre > 0 && commerciaux.length >= 2 && (
+                <button
+                  onClick={() => setShowAutoAssign(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-700 hover:to-purple-700 transition-all"
+                >
+                  <Shuffle className="h-5 w-5" />
+                  Attribution auto ({stats.libre})
+                </button>
+              )}
+              <button
+                onClick={handleSync}
+                disabled={isSyncing}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`h-5 w-5 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? 'Synchronisation...' : 'Synchroniser'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -239,7 +283,7 @@ export default function AdsLeadsPage() {
         )}
 
         {/* Stats globales */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
             <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
             <div className="text-sm text-gray-500">Total leads</div>
@@ -247,10 +291,6 @@ export default function AdsLeadsPage() {
           <div className="bg-white rounded-xl shadow-sm p-4 border border-green-200">
             <div className="text-2xl font-bold text-green-600">{stats.libre}</div>
             <div className="text-sm text-gray-500">Libres</div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-blue-200">
-            <div className="text-2xl font-bold text-blue-600">{stats.assigne}</div>
-            <div className="text-sm text-gray-500">Assignés</div>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-4 border border-violet-200">
             <div className="text-2xl font-bold text-violet-600">{stats.converti}</div>
@@ -333,120 +373,196 @@ export default function AdsLeadsPage() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {leads.map((lead) => (
-              <div
-                key={lead.id}
-                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 bg-blue-50 rounded-lg">
-                        <User className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">
-                          {lead.fullName || 'Nom non renseigné'}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span
-                            className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full border ${
-                              STATUS_COLORS[lead.status]
-                            }`}
-                          >
-                            {STATUS_LABELS[lead.status]}
-                          </span>
-                          {lead.pageName && (
+            {leads.map((lead) => {
+              const PlatformIcon = lead.platform === 'instagram' ? Instagram : lead.platform === 'messenger' ? MessageCircle : Facebook;
+              const platformColor = lead.platform === 'instagram' ? 'text-pink-500' : lead.platform === 'messenger' ? 'text-blue-500' : 'text-blue-600';
+
+              return (
+                <div
+                  key={lead.id}
+                  className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      {/* Header: Nom + Badges */}
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                          <User className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 text-lg">
+                            {lead.fullName || 'Nom non renseigné'}
+                          </h3>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
                             <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border ${getPageColor(lead.pageName)}`}
+                              className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full border ${STATUS_COLORS[lead.status]}`}
                             >
-                              <Building2 className="h-3 w-3" />
-                              {lead.pageName}
+                              {STATUS_LABELS[lead.status]}
                             </span>
-                          )}
+                            {lead.pageName && (
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border ${getPageColor(lead.pageName)}`}>
+                                <Building2 className="h-3 w-3" />
+                                {lead.pageName}
+                              </span>
+                            )}
+                            {lead.platform && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border border-gray-200 bg-gray-50 text-gray-600">
+                                <PlatformIcon className={`h-3 w-3 ${platformColor}`} />
+                                {lead.platform}
+                              </span>
+                            )}
+                            {lead.isOrganic && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border border-green-200 bg-green-50 text-green-600">
+                                <Leaf className="h-3 w-3" />
+                                Organique
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      {lead.email && (
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Mail className="h-4 w-4 text-gray-400" />
-                          <a
-                            href={`mailto:${lead.email}`}
-                            className="hover:text-blue-600 truncate"
-                          >
-                            {lead.email}
-                          </a>
-                        </div>
-                      )}
-                      {lead.phone && (
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Phone className="h-4 w-4 text-gray-400" />
-                          <a href={`tel:${lead.phone}`} className="hover:text-blue-600">
-                            {lead.phone}
-                          </a>
-                        </div>
-                      )}
-                      {lead.formName && (
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Target className="h-4 w-4 text-gray-400" />
-                          <span className="truncate">{lead.formName}</span>
-                        </div>
-                      )}
-                      {lead.metaCreatedAt && (
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          <span>
-                            {new Date(lead.metaCreatedAt).toLocaleDateString('fr-FR')}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {lead.assignedTo && (
-                      <div className="mt-3 text-sm text-gray-500">
-                        Assigné à: <span className="font-medium">{lead.assignedTo.firstName} {lead.assignedTo.lastName}</span>
-                      </div>
-                    )}
-
-                    {lead.campaignName && (
-                      <div className="mt-2 text-xs text-gray-400">
-                        Campagne: {lead.campaignName}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="ml-4">
-                    {lead.status === 'LIBRE' ? (
-                      <button
-                        onClick={() => handleAssign(lead.id)}
-                        disabled={isAssigning === lead.id}
-                        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-lg hover:from-blue-700 hover:to-violet-700 transition-all disabled:opacity-50 flex items-center gap-2"
-                      >
-                        {isAssigning === lead.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <User className="h-4 w-4" />
+                      {/* Contact: Email + Téléphone + Date */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm mb-4">
+                        {lead.email && (
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <Mail className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <a href={`mailto:${lead.email}`} className="hover:text-blue-600 truncate">
+                              {lead.email}
+                            </a>
+                          </div>
                         )}
-                        S'attribuer
-                      </button>
-                    ) : lead.dealId ? (
-                      <a
-                        href={`/dashboard/crm`}
-                        className="px-4 py-2 bg-violet-100 text-violet-700 rounded-lg hover:bg-violet-200 transition-colors inline-flex items-center gap-2"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                        Voir le deal
-                      </a>
-                    ) : null}
+                        {lead.phone && (
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <a href={`tel:${lead.phone}`} className="hover:text-blue-600">
+                              {lead.phone}
+                            </a>
+                          </div>
+                        )}
+                        {lead.metaCreatedAt && (
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <span>
+                              {new Date(lead.metaCreatedAt).toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Infos Pub: Campagne, Adset, Ad, Formulaire */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-sm border-t border-gray-100 pt-4">
+                        {lead.campaignName && (
+                          <div className="flex items-start gap-2 text-gray-600">
+                            <Megaphone className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <div className="text-xs text-gray-400">Campagne</div>
+                              <div className="font-medium truncate" title={lead.campaignName}>{lead.campaignName}</div>
+                            </div>
+                          </div>
+                        )}
+                        {lead.adsetName && (
+                          <div className="flex items-start gap-2 text-gray-600">
+                            <Layers className="h-4 w-4 text-purple-400 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <div className="text-xs text-gray-400">Ensemble</div>
+                              <div className="font-medium truncate" title={lead.adsetName}>{lead.adsetName}</div>
+                            </div>
+                          </div>
+                        )}
+                        {lead.adName && (
+                          <div className="flex items-start gap-2 text-gray-600">
+                            <Target className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <div className="text-xs text-gray-400">Publicité</div>
+                              <div className="font-medium truncate" title={lead.adName}>{lead.adName}</div>
+                            </div>
+                          </div>
+                        )}
+                        {lead.formName && (
+                          <div className="flex items-start gap-2 text-gray-600">
+                            <FileText className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <div className="text-xs text-gray-400">Formulaire</div>
+                              <div className="font-medium truncate" title={lead.formName}>{lead.formName}</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Assignation */}
+                      {lead.assignedTo && (
+                        <div className="mt-4 pt-3 border-t border-gray-100 text-sm text-gray-500">
+                          <User className="h-4 w-4 inline mr-1" />
+                          Assigné à: <span className="font-medium text-gray-700">{lead.assignedTo.firstName} {lead.assignedTo.lastName}</span>
+                        </div>
+                      )}
+
+                      {/* Champs personnalisés */}
+                      {lead.customFields && Object.keys(lead.customFields).length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <div className="text-xs text-gray-400 mb-2">Champs personnalisés</div>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(lead.customFields).map(([key, value]) => (
+                              <span key={key} className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
+                                <span className="font-medium">{key}:</span> {String(value)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bouton action */}
+                    <div className="ml-4 flex-shrink-0">
+                      {lead.status === 'LIBRE' ? (
+                        <button
+                          onClick={() => handleAssign(lead.id)}
+                          disabled={isAssigning === lead.id}
+                          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-lg hover:from-blue-700 hover:to-violet-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {isAssigning === lead.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <User className="h-4 w-4" />
+                          )}
+                          S'attribuer
+                        </button>
+                      ) : lead.dealId ? (
+                        <a
+                          href={`/dashboard/crm`}
+                          className="px-4 py-2 bg-violet-100 text-violet-700 rounded-lg hover:bg-violet-200 transition-colors inline-flex items-center gap-2"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Voir le deal
+                        </a>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Modal d'attribution automatique */}
+      <AutoAssignModal
+        isOpen={showAutoAssign}
+        onClose={() => setShowAutoAssign(false)}
+        leads={leads.filter((l) => l.status === 'LIBRE')}
+        users={commerciaux}
+        onComplete={() => {
+          fetchLeads();
+          setShowAutoAssign(false);
+        }}
+        onLeadAssigned={fetchLeads}
+      />
     </div>
   );
 }
