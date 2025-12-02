@@ -1160,6 +1160,8 @@ model meta_leads {
   metaLeadId      String            @unique // ID du lead côté Meta
   formId          String?           // ID du formulaire
   formName        String?
+  pageId          String?           // ID de la page Facebook
+  pageName        String?           // Nom de la page (entreprise)
   adId            String?
   adName          String?
   campaignId      String?
@@ -1185,6 +1187,7 @@ model meta_leads {
   @@index([status])
   @@index([assignedToId])
   @@index([metaCreatedAt])
+  @@index([pageId])
 }
 
 enum meta_lead_status {

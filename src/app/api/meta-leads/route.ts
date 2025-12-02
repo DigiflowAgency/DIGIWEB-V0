@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { getAllLeads, parseLeadData } from '@/lib/meta-leads';
+import { getAllLeads, parseLeadData, getPagesInfo } from '@/lib/meta-leads';
 
 // GET /api/meta-leads - Récupérer tous les leads Meta
 export async function GET(request: NextRequest) {
@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status');
     const assignedToId = searchParams.get('assignedToId');
+    const pageId = searchParams.get('pageId'); // Filtre par entreprise/page
 
     // Construire le filtre
     const where: any = {};
@@ -23,6 +24,9 @@ export async function GET(request: NextRequest) {
     }
     if (assignedToId) {
       where.assignedToId = assignedToId;
+    }
+    if (pageId) {
+      where.pageId = pageId;
     }
 
     const leads = await prisma.meta_leads.findMany({
@@ -40,7 +44,7 @@ export async function GET(request: NextRequest) {
       orderBy: { metaCreatedAt: 'desc' },
     });
 
-    // Stats
+    // Stats globales
     const stats = {
       total: await prisma.meta_leads.count(),
       libre: await prisma.meta_leads.count({ where: { status: 'LIBRE' } }),
@@ -48,7 +52,21 @@ export async function GET(request: NextRequest) {
       converti: await prisma.meta_leads.count({ where: { status: 'CONVERTI' } }),
     };
 
-    return NextResponse.json({ leads, stats });
+    // Stats par page/entreprise
+    const pageStats = await prisma.meta_leads.groupBy({
+      by: ['pageId', 'pageName'],
+      _count: { id: true },
+    });
+
+    // Récupérer les pages disponibles
+    let pages: { id: string; name: string; category?: string }[] = [];
+    try {
+      pages = await getPagesInfo();
+    } catch (error) {
+      console.error('Erreur récupération pages:', error);
+    }
+
+    return NextResponse.json({ leads, stats, pageStats, pages });
   } catch (error) {
     console.error('Erreur GET /api/meta-leads:', error);
     return NextResponse.json(
@@ -66,9 +84,9 @@ export async function POST(_request: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    console.log('Début synchronisation leads Meta...');
+    console.log('Début synchronisation leads Meta (multi-pages)...');
 
-    // Récupérer tous les leads depuis Meta
+    // Récupérer tous les leads depuis Meta (toutes les pages)
     const { leads: metaLeads, forms } = await getAllLeads();
     console.log(`${metaLeads.length} leads trouvés dans ${forms.length} formulaires`);
 
@@ -96,7 +114,9 @@ export async function POST(_request: NextRequest) {
           data: {
             metaLeadId: metaLead.id,
             formId: metaLead.form_id || null,
-            formName: (metaLead as any).form_name || null,
+            formName: metaLead.form_name || null,
+            pageId: metaLead.page_id || null,
+            pageName: metaLead.page_name || null,
             adId: metaLead.ad_id || null,
             adName: metaLead.ad_name || null,
             campaignId: metaLead.campaign_id || null,
@@ -121,12 +141,19 @@ export async function POST(_request: NextRequest) {
 
     console.log(`Synchronisation terminée: ${created} créés, ${skipped} ignorés`);
 
+    // Récupérer les stats par page pour le retour
+    const pageStats = await prisma.meta_leads.groupBy({
+      by: ['pageId', 'pageName'],
+      _count: { id: true },
+    });
+
     return NextResponse.json({
       success: true,
       created,
       skipped,
       total: metaLeads.length,
       forms: forms.length,
+      pageStats,
       errors: errors.length > 0 ? errors : null,
     });
   } catch (error: any) {

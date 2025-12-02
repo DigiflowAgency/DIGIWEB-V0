@@ -181,4 +181,3 @@ npx prisma db push
 ---
 
 **🎉 Base de données production prête !** 🚀
-

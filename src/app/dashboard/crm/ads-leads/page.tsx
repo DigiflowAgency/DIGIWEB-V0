@@ -14,12 +14,15 @@ import {
   AlertCircle,
   Facebook,
   Filter,
+  Building2,
 } from 'lucide-react';
 
 interface MetaLead {
   id: string;
   metaLeadId: string;
   formName: string | null;
+  pageId: string | null;
+  pageName: string | null;
   campaignName: string | null;
   fullName: string | null;
   email: string | null;
@@ -44,6 +47,18 @@ interface Stats {
   converti: number;
 }
 
+interface PageStat {
+  pageId: string | null;
+  pageName: string | null;
+  _count: { id: number };
+}
+
+interface MetaPage {
+  id: string;
+  name: string;
+  category?: string;
+}
+
 const STATUS_COLORS = {
   LIBRE: 'bg-green-100 text-green-700 border-green-300',
   ASSIGNE: 'bg-blue-100 text-blue-700 border-blue-300',
@@ -56,22 +71,39 @@ const STATUS_LABELS = {
   CONVERTI: 'Converti',
 };
 
+// Couleurs pour les différentes entreprises
+const PAGE_COLORS: Record<string, string> = {
+  'Digiflow': 'bg-blue-100 text-blue-700 border-blue-300',
+  'Be Hype': 'bg-orange-100 text-orange-700 border-orange-300',
+};
+
+const getPageColor = (pageName: string | null) => {
+  if (!pageName) return 'bg-gray-100 text-gray-700 border-gray-300';
+  return PAGE_COLORS[pageName] || 'bg-purple-100 text-purple-700 border-purple-300';
+};
+
 export default function AdsLeadsPage() {
   useSession(); // Ensures user is authenticated
   const [leads, setLeads] = useState<MetaLead[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, libre: 0, assigne: 0, converti: 0 });
+  const [pageStats, setPageStats] = useState<PageStat[]>([]);
+  const [pages, setPages] = useState<MetaPage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isAssigning, setIsAssigning] = useState<string | null>(null);
-  const [filter, setFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [pageFilter, setPageFilter] = useState<string>('all');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchLeads = async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
-      if (filter !== 'all') {
-        params.append('status', filter);
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter);
+      }
+      if (pageFilter !== 'all') {
+        params.append('pageId', pageFilter);
       }
       const response = await fetch(`/api/meta-leads?${params.toString()}`);
       const data = await response.json();
@@ -79,6 +111,8 @@ export default function AdsLeadsPage() {
       if (response.ok) {
         setLeads(data.leads || []);
         setStats(data.stats || { total: 0, libre: 0, assigne: 0, converti: 0 });
+        setPageStats(data.pageStats || []);
+        setPages(data.pages || []);
       } else {
         console.error('Erreur:', data.error);
       }
@@ -91,7 +125,7 @@ export default function AdsLeadsPage() {
 
   useEffect(() => {
     fetchLeads();
-  }, [filter]);
+  }, [statusFilter, pageFilter]);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -101,9 +135,12 @@ export default function AdsLeadsPage() {
       const data = await response.json();
 
       if (response.ok) {
+        const pagesSummary = data.pageStats
+          ?.map((ps: PageStat) => `${ps.pageName}: ${ps._count.id}`)
+          .join(', ') || '';
         setMessage({
           type: 'success',
-          text: `Synchronisation réussie: ${data.created} nouveaux leads importés (${data.skipped} ignorés)`,
+          text: `Synchronisation réussie: ${data.created} nouveaux leads importés (${data.skipped} ignorés). ${pagesSummary}`,
         });
         fetchLeads();
       } else {
@@ -201,8 +238,8 @@ export default function AdsLeadsPage() {
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
+        {/* Stats globales */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
             <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
             <div className="text-sm text-gray-500">Total leads</div>
@@ -221,18 +258,56 @@ export default function AdsLeadsPage() {
           </div>
         </div>
 
-        {/* Filter */}
-        <div className="mb-6 flex items-center gap-2">
-          <Filter className="h-5 w-5 text-gray-400" />
+        {/* Stats par entreprise */}
+        {pageStats.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {pageStats.map((ps) => (
+              <div
+                key={ps.pageId || 'unknown'}
+                className={`rounded-xl shadow-sm p-4 border ${getPageColor(ps.pageName)}`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Building2 className="h-4 w-4" />
+                  <span className="font-medium truncate">{ps.pageName || 'Inconnu'}</span>
+                </div>
+                <div className="text-2xl font-bold">{ps._count.id}</div>
+                <div className="text-xs opacity-75">leads</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Filtres */}
+        <div className="mb-6 flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5 text-gray-400" />
+            <span className="text-sm text-gray-500">Filtres:</span>
+          </div>
+
+          {/* Filtre par statut */}
           <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="all">Tous les leads</option>
+            <option value="all">Tous les statuts</option>
             <option value="LIBRE">Libres uniquement</option>
             <option value="ASSIGNE">Assignés</option>
             <option value="CONVERTI">Convertis</option>
+          </select>
+
+          {/* Filtre par entreprise */}
+          <select
+            value={pageFilter}
+            onChange={(e) => setPageFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">Toutes les entreprises</option>
+            {pages.map((page) => (
+              <option key={page.id} value={page.id}>
+                {page.name}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -273,13 +348,23 @@ export default function AdsLeadsPage() {
                         <h3 className="font-semibold text-gray-900">
                           {lead.fullName || 'Nom non renseigné'}
                         </h3>
-                        <span
-                          className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full border ${
-                            STATUS_COLORS[lead.status]
-                          }`}
-                        >
-                          {STATUS_LABELS[lead.status]}
-                        </span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span
+                            className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full border ${
+                              STATUS_COLORS[lead.status]
+                            }`}
+                          >
+                            {STATUS_LABELS[lead.status]}
+                          </span>
+                          {lead.pageName && (
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border ${getPageColor(lead.pageName)}`}
+                            >
+                              <Building2 className="h-3 w-3" />
+                              {lead.pageName}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
