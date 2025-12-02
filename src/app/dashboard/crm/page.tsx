@@ -26,7 +26,6 @@ const getProbabilityBadge = (probability: number) => {
 };
 
 export default function CRMPage() {
-  const { deals, isLoading, isError, mutate } = useDeals();
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,6 +33,21 @@ export default function CRMPage() {
   const [draggedDeal, setDraggedDeal] = useState<any>(null);
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedOwnerIds, setSelectedOwnerIds] = useState<string[]>([]);
+
+  // Hook avec filtre par utilisateurs
+  const { deals, isLoading, isError, mutate } = useDeals({
+    ownerIds: selectedOwnerIds.length > 0 ? selectedOwnerIds : undefined,
+  });
+
+  // Toggle filtre utilisateur
+  const toggleOwnerFilter = (userId: string) => {
+    setSelectedOwnerIds(prev =>
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
 
   useEffect(() => {
     // Récupérer la liste des utilisateurs
@@ -233,6 +247,35 @@ export default function CRMPage() {
             </div>
           </div>
         </div>
+
+        {/* Filtre par commercial */}
+        {users.length > 0 && (
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            <span className="text-sm text-gray-500 mr-2">Filtrer par :</span>
+            {users.map((user) => (
+              <button
+                key={user.id}
+                onClick={() => toggleOwnerFilter(user.id)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  selectedOwnerIds.includes(user.id)
+                    ? 'bg-orange-500 text-white shadow-md'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <User className="h-3.5 w-3.5" />
+                {user.firstName} {user.lastName}
+              </button>
+            ))}
+            {selectedOwnerIds.length > 0 && (
+              <button
+                onClick={() => setSelectedOwnerIds([])}
+                className="text-sm text-gray-400 hover:text-gray-600 ml-2 underline"
+              >
+                Effacer les filtres
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Kanban Board View */}
         {viewMode === 'kanban' && (

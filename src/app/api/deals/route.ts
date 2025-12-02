@@ -79,11 +79,19 @@ export async function GET(request: NextRequest) {
       where.companyId = companyId;
     }
 
-    // Filtre optionnel par utilisateur (tout le monde voit tous les deals par défaut)
-    const ownerIdFilter = searchParams.get('ownerId');
+    // Filtre optionnel par utilisateur(s) (tout le monde voit tous les deals par défaut)
+    const ownerIdsParam = searchParams.get('ownerIds'); // Multi-select (ex: "id1,id2,id3")
+    const ownerIdFilter = searchParams.get('ownerId'); // Single select (rétrocompat)
 
-    // Si un ownerId spécifique est demandé, filtrer par ce commercial
-    if (ownerIdFilter) {
+    // Si plusieurs ownerIds sont demandés (nouveau format multi-select)
+    if (ownerIdsParam) {
+      const ownerIds = ownerIdsParam.split(',').filter(id => id.trim());
+      if (ownerIds.length > 0) {
+        where.ownerId = { in: ownerIds };
+      }
+    }
+    // Sinon, si un seul ownerId est demandé (ancien format)
+    else if (ownerIdFilter) {
       where.ownerId = ownerIdFilter;
     }
     // Sinon, pas de filtre - tout le monde voit tous les deals

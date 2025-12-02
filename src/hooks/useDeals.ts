@@ -100,6 +100,7 @@ export function useDeals(params?: {
   limit?: number;
   showAll?: boolean;
   ownerId?: string;
+  ownerIds?: string[]; // Multi-select filter
 }) {
   // Construire l'URL avec les paramètres
   const queryParams = new URLSearchParams();
@@ -110,6 +111,7 @@ export function useDeals(params?: {
   if (params?.limit) queryParams.append('limit', params.limit.toString());
   if (params?.showAll) queryParams.append('showAll', 'true');
   if (params?.ownerId) queryParams.append('ownerId', params.ownerId);
+  if (params?.ownerIds?.length) queryParams.append('ownerIds', params.ownerIds.join(','));
 
   const url = `/api/deals${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
