@@ -332,7 +332,6 @@ export default function AdsLeadsPage() {
           >
             <option value="all">Tous les statuts</option>
             <option value="LIBRE">Libres uniquement</option>
-            <option value="ASSIGNE">Assignés</option>
             <option value="CONVERTI">Convertis</option>
           </select>
 
