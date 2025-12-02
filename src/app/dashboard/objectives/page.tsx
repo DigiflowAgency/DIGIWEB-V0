@@ -46,8 +46,13 @@ export default function ObjectivesPage() {
 
   useEffect(() => {
     fetchGoals();
-    fetchStats();
   }, []);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchStats();
+    }
+  }, [session?.user?.id, isAdmin]);
 
   const fetchGoals = async () => {
     try {
@@ -63,12 +68,20 @@ export default function ObjectivesPage() {
 
   const fetchStats = async () => {
     try {
-      // Récupérer les deals ENCAISSE pour calculer les stats
-      const res = await fetch('/api/deals?productionStage=ENCAISSE');
+      // Récupérer les deals CLOSING (ventes signées) filtrés par utilisateur
+      const params = new URLSearchParams();
+      params.append('stage', 'CLOSING');
+
+      // Pour les non-admins, filtrer par leur propre ID
+      if (!isAdmin && session?.user?.id) {
+        params.append('ownerId', session.user.id);
+      }
+
+      const res = await fetch(`/api/deals?${params.toString()}`);
       const data = await res.json();
 
       const totalSales = data.deals?.length || 0;
-      const totalRevenue = data.deals?.reduce((sum: number, deal: any) => sum + deal.value, 0) || 0;
+      const totalRevenue = data.deals?.reduce((sum: number, deal: any) => sum + (deal.value || 0), 0) || 0;
 
       setStats({ totalSales, totalRevenue });
     } catch (error) {
@@ -223,7 +236,7 @@ export default function ObjectivesPage() {
         <div className="bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-violet-100 text-sm font-medium">Nombre de ventes</p>
+              <p className="text-violet-100 text-sm font-medium">Ventes signées</p>
               <p className="text-4xl font-bold mt-2">{stats.totalSales}</p>
             </div>
             <div className="bg-white/20 rounded-full p-4">
@@ -235,7 +248,7 @@ export default function ObjectivesPage() {
         <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-emerald-100 text-sm font-medium">CA encaissé</p>
+              <p className="text-emerald-100 text-sm font-medium">CA signé</p>
               <p className="text-4xl font-bold mt-2">{stats.totalRevenue.toLocaleString('fr-FR')} €</p>
             </div>
             <div className="bg-white/20 rounded-full p-4">
