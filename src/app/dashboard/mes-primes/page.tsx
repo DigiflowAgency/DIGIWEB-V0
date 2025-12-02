@@ -48,15 +48,20 @@ export default function MesPrimesPage() {
 
   // Préparer les paramètres pour useDeals
   const dealsParams = useMemo(() => {
-    if (!isAdmin) return {};
+    // Utilisateur normal: UNIQUEMENT ses propres deals
+    if (!isAdmin) {
+      return { ownerId: session?.user?.id };
+    }
 
+    // Admin: peut choisir
     if (filterMode === 'all') {
       return { showAll: true };
     } else if (filterMode === 'user' && selectedUserId) {
       return { ownerId: selectedUserId };
     }
-    return {}; // 'mine' = pas de paramètres = mes deals
-  }, [isAdmin, filterMode, selectedUserId]);
+    // 'mine' = ses propres deals
+    return { ownerId: session?.user?.id };
+  }, [isAdmin, filterMode, selectedUserId, session?.user?.id]);
 
   // Charger les deals et activités
   const { deals } = useDeals(dealsParams);
