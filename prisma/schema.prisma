@@ -187,6 +187,7 @@ model contacts {
   deals        deals[]
   notes        notes[]
   quotes       quotes[]
+  reminders    reminders[]
 
   @@index([assignedToId])
   @@index([companyId])
@@ -245,12 +246,53 @@ model deals {
   contacts           contacts?                @relation(fields: [contactId], references: [id])
   users              users                    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   notes              notes[]
+  deal_assignees     deal_assignees[]
+  reminders          reminders[]
 
   @@index([companyId])
   @@index([contactId])
   @@index([ownerId])
   @@index([stage])
   @@index([productionStage])
+}
+
+// Table pivot pour assigner plusieurs utilisateurs à un deal
+model deal_assignees {
+  id        String   @id @default(uuid())
+  dealId    String
+  userId    String
+  role      String?  // "principal", "support", "observateur", etc.
+  createdAt DateTime @default(now())
+
+  deal      deals    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([dealId, userId])
+  @@index([dealId])
+  @@index([userId])
+}
+
+// Table pour les rappels programmés (style Notion)
+model reminders {
+  id          String   @id @default(uuid())
+  dealId      String?
+  contactId   String?
+  userId      String   // Qui doit être notifié
+  title       String
+  description String?  @db.Text
+  remindAt    DateTime // Date/heure du rappel
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  deal    deals?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  contact contacts? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  user    users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([dealId])
+  @@index([contactId])
+  @@index([userId])
+  @@index([remindAt])
+  @@index([isRead])
 }
 
 model email_campaigns {
@@ -691,6 +733,7 @@ model users {
   companies                           companies[]
   contacts                            contacts[]
   deals                               deals[]
+  deal_assignees                      deal_assignees[]
   formation_progress                  formation_progress[]
   invoices                            invoices[]
   notes                               notes[]
@@ -711,6 +754,7 @@ model users {
   prospects                           prospects[]
   sales_performance                   sales_performance[]
   meta_leads                          meta_leads[]        @relation("MetaLeadsAssignedTo")
+  reminders                           reminders[]
 
   @@index([email])
   @@index([managerId])

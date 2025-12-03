@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { X, Play, CheckCircle, Loader2, Users, Shuffle } from 'lucide-react';
+import { X, Play, CheckCircle, Loader2, Users, Shuffle, Zap } from 'lucide-react';
 import SpinWheel from './spin-wheel';
 
 interface MetaLead {
@@ -43,6 +43,7 @@ export default function AutoAssignModal({
   onLeadAssigned,
 }: AutoAssignModalProps) {
   const [isRunning, setIsRunning] = useState(false);
+  const [isBatchMode, setIsBatchMode] = useState(false);
   const [currentLeadIndex, setCurrentLeadIndex] = useState(0);
   const [currentUserIndex, setCurrentUserIndex] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -149,6 +150,7 @@ export default function AutoAssignModal({
     currentUserIndexRef.current = 0;
 
     setIsRunning(true);
+    setIsBatchMode(false);
     setIsComplete(false);
     setAssignments([]);
     setCurrentLeadIndex(0);
@@ -160,11 +162,61 @@ export default function AutoAssignModal({
     }, 100);
   };
 
+  const handleBatchStart = async () => {
+    // Mode batch: attribuer tous les leads rapidement sans animation
+    setIsRunning(true);
+    setIsBatchMode(true);
+    setIsComplete(false);
+    setAssignments([]);
+    setCurrentLeadIndex(0);
+    setCurrentUserIndex(0);
+
+    const newAssignments: Assignment[] = [];
+    let userIndex = 0;
+
+    // Traiter tous les leads en parallèle par lots de 5
+    const batchSize = 5;
+    for (let i = 0; i < leads.length; i += batchSize) {
+      const batch = leads.slice(i, Math.min(i + batchSize, leads.length));
+
+      const batchPromises = batch.map(async (lead, batchIndex) => {
+        const assignUserIndex = (userIndex + batchIndex) % users.length;
+        const user = users[assignUserIndex];
+
+        const success = await assignLead(lead.id, user.id);
+
+        return {
+          leadId: lead.id,
+          leadName: lead.fullName || 'Sans nom',
+          userId: user.id,
+          userName: `${user.firstName} ${user.lastName}`,
+          success,
+        };
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      newAssignments.push(...batchResults);
+      setAssignments([...newAssignments]);
+      setCurrentLeadIndex(Math.min(i + batchSize, leads.length));
+
+      userIndex = (userIndex + batch.length) % users.length;
+
+      // Rafraîchir les stats
+      if (onLeadAssigned) {
+        onLeadAssigned();
+      }
+    }
+
+    setIsComplete(true);
+    setIsRunning(false);
+  };
+
   const handleClose = () => {
     if (isComplete || assignments.length > 0) {
       onComplete();
     }
     setIsRunning(false);
+    setIsBatchMode(false);
     setIsComplete(false);
     setAssignments([]);
     setCurrentLeadIndex(0);
@@ -327,7 +379,11 @@ export default function AutoAssignModal({
             <>
               <div className="flex items-center gap-2 text-blue-600">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Attribution en cours...</span>
+                <span>
+                  {isBatchMode
+                    ? `Attribution rapide... ${assignments.length}/${leads.length}`
+                    : 'Attribution en cours...'}
+                </span>
               </div>
               <button
                 disabled
@@ -344,14 +400,25 @@ export default function AutoAssignModal({
               >
                 Annuler
               </button>
-              <button
-                onClick={handleStart}
-                disabled={users.length < 2 || leads.length === 0}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-lg hover:from-blue-700 hover:to-violet-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Play className="h-5 w-5" />
-                Lancer l'attribution
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleBatchStart}
+                  disabled={leads.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Attribution rapide sans animation"
+                >
+                  <Zap className="h-5 w-5" />
+                  Mode rapide
+                </button>
+                <button
+                  onClick={handleStart}
+                  disabled={users.length < 2 || leads.length === 0}
+                  className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-lg hover:from-blue-700 hover:to-violet-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Play className="h-5 w-5" />
+                  Avec la roue
+                </button>
+              </div>
             </>
           )}
         </div>

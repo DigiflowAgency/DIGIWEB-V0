@@ -1,8 +1,10 @@
 'use client';
 
-import { Plus, Mail, MapPin, Euro, Loader2, LayoutGrid, List as ListIcon, User, Building2, Phone, MessageSquare } from 'lucide-react';
-import { useDeals } from '@/hooks/useDeals';
-import { useState, useEffect } from 'react';
+import { Plus, Mail, MapPin, Euro, Loader2, LayoutGrid, List as ListIcon, User, Building2, Phone, MessageSquare, Search, Settings2, Check, Eye, EyeOff, TrendingUp, Target, Calendar, BarChart3 } from 'lucide-react';
+import { useMemo } from 'react';
+import { useDeals, useDealMutations } from '@/hooks/useDeals';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Modal from '@/components/Modal';
 import DealSidebar from '@/components/DealSidebar';
 
@@ -25,7 +27,17 @@ const getProbabilityBadge = (probability: number) => {
   return { label: 'FROID', color: 'bg-blue-500' };
 };
 
+// Configuration des badges produits avec couleurs distinctes
+const productConfig: Record<string, { label: string; color: string; bgColor: string; emoji: string }> = {
+  'DIGIFLOW': { label: 'Digiflow', color: 'text-violet-700', bgColor: 'bg-violet-100', emoji: '🚀' },
+  'BEHYPE': { label: 'BeHype', color: 'text-pink-700', bgColor: 'bg-pink-100', emoji: '🔥' },
+  'PISTACHE': { label: 'Pistache', color: 'text-green-700', bgColor: 'bg-green-100', emoji: '🌿' },
+  'COMPTES_FOOD': { label: 'Comptes Food', color: 'text-orange-700', bgColor: 'bg-orange-100', emoji: '🍽️' },
+};
+
 export default function CRMPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,11 +46,116 @@ export default function CRMPage() {
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedOwnerIds, setSelectedOwnerIds] = useState<string[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [hiddenColumns, setHiddenColumns] = useState<DealStage[]>([]);
+  const [isColumnsMenuOpen, setIsColumnsMenuOpen] = useState(false);
+  const columnsMenuRef = useRef<HTMLDivElement>(null);
 
-  // Hook avec filtre par utilisateurs
-  const { deals, isLoading, isError, mutate } = useDeals({
+  // Charger les colonnes cachées depuis localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('crm-hidden-columns');
+    if (saved) {
+      try {
+        setHiddenColumns(JSON.parse(saved));
+      } catch (e) {
+        console.error('Erreur parsing colonnes cachées:', e);
+      }
+    }
+  }, []);
+
+  // Sauvegarder les colonnes cachées dans localStorage
+  useEffect(() => {
+    localStorage.setItem('crm-hidden-columns', JSON.stringify(hiddenColumns));
+  }, [hiddenColumns]);
+
+  // Fermer le menu des colonnes au clic extérieur
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (columnsMenuRef.current && !columnsMenuRef.current.contains(event.target as Node)) {
+        setIsColumnsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Toggle la visibilité d'une colonne
+  const toggleColumnVisibility = (columnId: DealStage) => {
+    setHiddenColumns(prev =>
+      prev.includes(columnId)
+        ? prev.filter(id => id !== columnId)
+        : [...prev, columnId]
+    );
+  };
+
+  // Toggle le filtre produit
+  const toggleProductFilter = (productId: string) => {
+    setSelectedProducts(prev =>
+      prev.includes(productId)
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  // Colonnes visibles
+  const visibleColumns = columns.filter(col => !hiddenColumns.includes(col.id));
+
+  // Debounce la recherche
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Hook avec filtre par utilisateurs et recherche
+  const { deals: rawDeals, isLoading, isError, mutate } = useDeals({
     ownerIds: selectedOwnerIds.length > 0 ? selectedOwnerIds : undefined,
+    search: debouncedSearch || undefined,
   });
+
+  // Filtrage côté client par produit
+  const deals = useMemo(() => {
+    if (selectedProducts.length === 0) return rawDeals;
+    return rawDeals.filter(deal => deal.product && selectedProducts.includes(deal.product));
+  }, [rawDeals, selectedProducts]);
+
+  // Hook pour les mutations (supprimer)
+  const { deleteDeal } = useDealMutations();
+
+  // Supprimer un deal
+  const handleDeleteDeal = async (dealId: string) => {
+    await deleteDeal(dealId);
+    setIsSidebarOpen(false);
+    setSelectedDeal(null);
+    mutate();
+  };
+
+  // Ouvrir automatiquement la sidebar si dealId est dans l'URL
+  useEffect(() => {
+    const dealIdFromUrl = searchParams.get('dealId');
+    if (dealIdFromUrl && deals.length > 0) {
+      const deal = deals.find(d => d.id === dealIdFromUrl);
+      if (deal) {
+        setSelectedDeal(deal);
+        setIsSidebarOpen(true);
+        // Nettoyer l'URL après avoir ouvert le deal
+        router.replace('/dashboard/crm', { scroll: false });
+      }
+    }
+  }, [searchParams, deals, router]);
+
+  // Synchroniser selectedDeal avec les données rafraîchies
+  useEffect(() => {
+    if (selectedDeal && deals.length > 0) {
+      const updatedDeal = deals.find(d => d.id === selectedDeal.id);
+      if (updatedDeal && JSON.stringify(updatedDeal) !== JSON.stringify(selectedDeal)) {
+        setSelectedDeal(updatedDeal);
+      }
+    }
+  }, [deals, selectedDeal]);
 
   // Toggle filtre utilisateur
   const toggleOwnerFilter = (userId: string) => {
@@ -68,6 +185,44 @@ export default function CRMPage() {
         setUsers([]);
       });
   }, []);
+
+  // Stats des commerciaux filtrés (doit être avant les early returns)
+  const filteredStats = useMemo(() => {
+    if (selectedOwnerIds.length === 0) return null;
+
+    // Total des deals
+    const totalDeals = deals.length;
+
+    // Valeur totale du pipeline
+    const totalValue = deals.reduce((sum, d) => sum + d.value, 0);
+
+    // Deals gagnés (CLOSING ou ENCAISSE)
+    const wonDeals = deals.filter(d => d.stage === 'CLOSING' || d.productionStage === 'ENCAISSE');
+    const wonValue = wonDeals.reduce((sum, d) => sum + d.value, 0);
+
+    // Taux de conversion
+    const conversionRate = totalDeals > 0 ? Math.round((wonDeals.length / totalDeals) * 100) : 0;
+
+    // RDV (deals au stage RDV_PRIS ou plus)
+    const rdvStages = ['RDV_PRIS', 'NEGO_HOT', 'CLOSING'];
+    const rdvCount = deals.filter(d => rdvStages.includes(d.stage)).length;
+
+    // Noms des commerciaux filtrés
+    const filteredUserNames = users
+      .filter(u => selectedOwnerIds.includes(u.id))
+      .map(u => `${u.firstName} ${u.lastName}`)
+      .join(', ');
+
+    return {
+      totalDeals,
+      totalValue,
+      wonDeals: wonDeals.length,
+      wonValue,
+      conversionRate,
+      rdvCount,
+      userNames: filteredUserNames,
+    };
+  }, [deals, selectedOwnerIds, users]);
 
   const [formData, setFormData] = useState({
     // Contact
@@ -200,6 +355,26 @@ export default function CRMPage() {
     setIsSidebarOpen(true);
   };
 
+  // Mise à jour rapide du stage inline
+  const handleInlineStageChange = async (dealId: string, newStage: DealStage, e: React.MouseEvent) => {
+    e.stopPropagation(); // Empêcher l'ouverture de la sidebar
+    try {
+      const response = await fetch(`/api/deals/${dealId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage: newStage }),
+      });
+      if (response.ok) {
+        mutate();
+      } else {
+        alert('Erreur lors de la mise à jour du stage');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Erreur lors de la mise à jour');
+    }
+  };
+
   return (
     <div className="min-h-screen gradient-mesh py-8">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -215,6 +390,25 @@ export default function CRMPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {/* Recherche */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher un prospect..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
               {/* View Mode Toggle */}
               <div className="flex items-center bg-white rounded-lg border border-gray-300 p-1">
                 <button
@@ -240,6 +434,74 @@ export default function CRMPage() {
                   Liste
                 </button>
               </div>
+
+              {/* Gestion des colonnes (mode Kanban uniquement) */}
+              {viewMode === 'kanban' && (
+                <div className="relative" ref={columnsMenuRef}>
+                  <button
+                    onClick={() => setIsColumnsMenuOpen(!isColumnsMenuOpen)}
+                    className={`px-3 py-2 rounded-lg border transition-colors flex items-center gap-2 ${
+                      hiddenColumns.length > 0
+                        ? 'bg-orange-50 border-orange-300 text-orange-700'
+                        : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+                    }`}
+                    title="Gérer les colonnes"
+                  >
+                    <Settings2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">Colonnes</span>
+                    {hiddenColumns.length > 0 && (
+                      <span className="px-1.5 py-0.5 text-xs bg-orange-500 text-white rounded-full">
+                        {hiddenColumns.length}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Dropdown menu */}
+                  {isColumnsMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 z-50 py-2">
+                      <div className="px-3 py-2 border-b border-gray-100">
+                        <p className="text-sm font-semibold text-gray-900">Afficher/Masquer</p>
+                        <p className="text-xs text-gray-500">Sélectionnez les colonnes visibles</p>
+                      </div>
+                      <div className="py-1">
+                        {columns.map((column) => {
+                          const isHidden = hiddenColumns.includes(column.id);
+                          return (
+                            <button
+                              key={column.id}
+                              onClick={() => toggleColumnVisibility(column.id)}
+                              className="w-full px-3 py-2 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                {isHidden ? (
+                                  <EyeOff className="h-4 w-4 text-gray-400" />
+                                ) : (
+                                  <Eye className="h-4 w-4 text-violet-600" />
+                                )}
+                                <span className={`text-sm ${isHidden ? 'text-gray-400' : 'text-gray-700'}`}>
+                                  {column.title}
+                                </span>
+                              </div>
+                              {!isHidden && <Check className="h-4 w-4 text-green-500" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {hiddenColumns.length > 0 && (
+                        <div className="px-3 pt-2 border-t border-gray-100">
+                          <button
+                            onClick={() => setHiddenColumns([])}
+                            className="w-full py-2 text-sm text-violet-600 hover:text-violet-700 font-medium"
+                          >
+                            Afficher toutes les colonnes
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <button onClick={() => setIsModalOpen(true)} className="btn-primary">
                 <Plus className="h-5 w-5 mr-2" />
                 New
@@ -277,10 +539,93 @@ export default function CRMPage() {
           </div>
         )}
 
+        {/* Filtre par produit */}
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-gray-500 mr-2">Produit :</span>
+          {Object.entries(productConfig).map(([key, config]) => (
+            <button
+              key={key}
+              onClick={() => toggleProductFilter(key)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
+                selectedProducts.includes(key)
+                  ? `${config.bgColor} ${config.color} ring-2 ring-offset-1 ring-violet-400`
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <span>{config.emoji}</span>
+              {config.label}
+            </button>
+          ))}
+          {selectedProducts.length > 0 && (
+            <button
+              onClick={() => setSelectedProducts([])}
+              className="text-sm text-gray-400 hover:text-gray-600 ml-2 underline"
+            >
+              Effacer
+            </button>
+          )}
+        </div>
+
+        {/* Stats du commercial filtré */}
+        {filteredStats && (
+          <div className="mb-6 bg-gradient-to-r from-violet-50 to-orange-50 rounded-xl p-4 border border-violet-100">
+            <div className="flex items-center gap-2 mb-3">
+              <BarChart3 className="h-5 w-5 text-violet-600" />
+              <h3 className="font-semibold text-gray-900">
+                Stats : {filteredStats.userNames}
+              </h3>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <div className="bg-white rounded-lg p-3 shadow-sm">
+                <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  Deals actifs
+                </div>
+                <p className="text-xl font-bold text-gray-900">{filteredStats.totalDeals}</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 shadow-sm">
+                <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+                  <Euro className="h-3.5 w-3.5" />
+                  Pipeline
+                </div>
+                <p className="text-xl font-bold text-violet-700">{filteredStats.totalValue.toLocaleString()} €</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 shadow-sm">
+                <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  RDV
+                </div>
+                <p className="text-xl font-bold text-orange-600">{filteredStats.rdvCount}</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 shadow-sm">
+                <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+                  <Target className="h-3.5 w-3.5" />
+                  Gagnés
+                </div>
+                <p className="text-xl font-bold text-green-600">{filteredStats.wonDeals}</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 shadow-sm">
+                <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+                  <Euro className="h-3.5 w-3.5" />
+                  CA Gagné
+                </div>
+                <p className="text-xl font-bold text-green-700">{filteredStats.wonValue.toLocaleString()} €</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 shadow-sm">
+                <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  Conversion
+                </div>
+                <p className="text-xl font-bold text-blue-600">{filteredStats.conversionRate}%</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Kanban Board View */}
         {viewMode === 'kanban' && (
           <div className="flex gap-4 overflow-x-auto pb-4">
-          {columns.map((column) => {
+          {visibleColumns.map((column) => {
             const columnDeals = getDealsByStage(column.id);
             const totalValue = columnDeals.reduce((sum, deal) => sum + deal.value, 0);
 
@@ -324,7 +669,7 @@ export default function CRMPage() {
                         className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition cursor-move border border-gray-200"
                       >
                         {/* Deal Header */}
-                        <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-start justify-between mb-2">
                           <h4 className="text-sm font-semibold text-gray-900 flex-1 pr-2">
                             {companyName}
                           </h4>
@@ -333,6 +678,36 @@ export default function CRMPage() {
                           >
                             {deal.probability}%
                           </span>
+                        </div>
+
+                        {/* Stage Quick Edit */}
+                        <div className="mb-3">
+                          <select
+                            value={deal.stage}
+                            onChange={(e) => handleInlineStageChange(deal.id, e.target.value as DealStage, e as unknown as React.MouseEvent)}
+                            onClick={(e) => e.stopPropagation()}
+                            className={`w-full px-2 py-1 rounded text-xs font-medium cursor-pointer border focus:ring-2 focus:ring-violet-500 transition-colors ${
+                              deal.stage === 'A_CONTACTER'
+                                ? 'bg-gray-50 text-gray-700 border-gray-200'
+                                : deal.stage === 'EN_DISCUSSION'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                : deal.stage === 'RDV_PRIS'
+                                ? 'bg-violet-50 text-violet-700 border-violet-200'
+                                : deal.stage === 'NEGO_HOT'
+                                ? 'bg-orange-50 text-orange-700 border-orange-200'
+                                : deal.stage === 'A_RELANCER'
+                                ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                : deal.stage === 'CLOSING'
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : 'bg-red-50 text-red-700 border-red-200'
+                            }`}
+                          >
+                            {columns.map((col) => (
+                              <option key={col.id} value={col.id}>
+                                {col.title}
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
                         {/* Contact Info */}
@@ -357,6 +732,16 @@ export default function CRMPage() {
                             </div>
                           )}
                         </div>
+
+                        {/* Product Badge */}
+                        {deal.product && productConfig[deal.product] && (
+                          <div className="mb-3">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${productConfig[deal.product].bgColor} ${productConfig[deal.product].color}`}>
+                              <span>{productConfig[deal.product].emoji}</span>
+                              {productConfig[deal.product].label}
+                            </span>
+                          </div>
+                        )}
 
                         {/* Description & Value */}
                         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
@@ -398,7 +783,13 @@ export default function CRMPage() {
                       Contact
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Téléphone
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Ville
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Produit
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Stage
@@ -419,7 +810,6 @@ export default function CRMPage() {
                       : 'Contact non défini';
                     const companyName = deal.companies?.name || deal.title;
                     const city = deal.companies?.city || '';
-                    const stageInfo = columns.find((c) => c.id === deal.stage);
 
                     return (
                       <tr key={deal.id} className="hover:bg-gray-50 transition-colors">
@@ -441,6 +831,19 @@ export default function CRMPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
+                          {deal.contacts?.phone ? (
+                            <a
+                              href={`tel:${deal.contacts.phone}`}
+                              className="flex items-center text-sm text-violet-600 hover:text-violet-800 hover:underline"
+                            >
+                              <Phone className="h-4 w-4 mr-1.5" />
+                              {deal.contacts.phone}
+                            </a>
+                          ) : (
+                            <span className="text-gray-400 text-sm">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
                           {city && (
                             <div className="flex items-center text-sm text-gray-700">
                               <MapPin className="h-4 w-4 mr-1.5 text-gray-400" />
@@ -449,8 +852,21 @@ export default function CRMPage() {
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          {deal.product && productConfig[deal.product] ? (
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${productConfig[deal.product].bgColor} ${productConfig[deal.product].color}`}>
+                              <span>{productConfig[deal.product].emoji}</span>
+                              {productConfig[deal.product].label}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-sm">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <select
+                            value={deal.stage}
+                            onChange={(e) => handleInlineStageChange(deal.id, e.target.value as DealStage, e as unknown as React.MouseEvent)}
+                            onClick={(e) => e.stopPropagation()}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 focus:ring-2 focus:ring-violet-500 transition-colors ${
                               deal.stage === 'A_CONTACTER'
                                 ? 'bg-gray-100 text-gray-700'
                                 : deal.stage === 'EN_DISCUSSION'
@@ -466,8 +882,12 @@ export default function CRMPage() {
                                 : 'bg-red-100 text-red-700'
                             }`}
                           >
-                            {stageInfo?.title || deal.stage}
-                          </span>
+                            {columns.map((col) => (
+                              <option key={col.id} value={col.id}>
+                                {col.title}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 text-xs font-bold text-white ${badge.color} rounded`}>
@@ -841,6 +1261,7 @@ export default function CRMPage() {
               setSelectedDeal(null);
             }}
             onUpdate={mutate}
+            onDelete={handleDeleteDeal}
           />
         )}
       </div>

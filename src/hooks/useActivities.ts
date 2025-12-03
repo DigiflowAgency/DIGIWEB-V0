@@ -72,6 +72,8 @@ export function useActivities(params?: {
   dealId?: string;
   assignedToId?: string;
   limit?: number;
+  orderBy?: string;
+  order?: 'asc' | 'desc';
 }) {
   // Construire l'URL avec les paramètres
   const queryParams = new URLSearchParams();
@@ -83,6 +85,8 @@ export function useActivities(params?: {
   if (params?.dealId) queryParams.append('dealId', params.dealId);
   if (params?.assignedToId) queryParams.append('assignedToId', params.assignedToId);
   if (params?.limit) queryParams.append('limit', params.limit.toString());
+  if (params?.orderBy) queryParams.append('orderBy', params.orderBy);
+  if (params?.order) queryParams.append('order', params.order);
 
   const url = `/api/activities${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 

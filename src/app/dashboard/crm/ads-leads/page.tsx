@@ -22,7 +22,64 @@ import {
   FileText,
   Leaf,
   MessageCircle,
+  MapPin,
 } from 'lucide-react';
+
+// Helper pour extraire les infos de localisation des customFields
+const extractLocationFromCustomFields = (customFields: any): { city?: string; address?: string; postalCode?: string } | null => {
+  if (!customFields || typeof customFields !== 'object') return null;
+
+  const result: { city?: string; address?: string; postalCode?: string } = {};
+
+  // Chercher les champs de ville avec différents noms possibles
+  const cityKeys = ['city', 'ville', 'Ville', 'City', 'CITY', 'localite', 'Localité', 'localité', 'commune'];
+  for (const key of cityKeys) {
+    if (customFields[key]) {
+      result.city = String(customFields[key]);
+      break;
+    }
+  }
+
+  // Chercher les champs d'adresse
+  const addressKeys = ['address', 'adresse', 'Adresse', 'Address', 'ADDRESS', 'street', 'rue', 'Rue'];
+  for (const key of addressKeys) {
+    if (customFields[key]) {
+      result.address = String(customFields[key]);
+      break;
+    }
+  }
+
+  // Chercher le code postal
+  const postalKeys = ['postal_code', 'postalCode', 'zip', 'zipcode', 'code_postal', 'codePostal', 'cp', 'CP'];
+  for (const key of postalKeys) {
+    if (customFields[key]) {
+      result.postalCode = String(customFields[key]);
+      break;
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : null;
+};
+
+// Helper pour obtenir les champs personnalisés sans les champs de localisation
+const getOtherCustomFields = (customFields: any): Record<string, any> => {
+  if (!customFields || typeof customFields !== 'object') return {};
+
+  const locationKeys = [
+    'city', 'ville', 'Ville', 'City', 'CITY', 'localite', 'Localité', 'localité', 'commune',
+    'address', 'adresse', 'Adresse', 'Address', 'ADDRESS', 'street', 'rue', 'Rue',
+    'postal_code', 'postalCode', 'zip', 'zipcode', 'code_postal', 'codePostal', 'cp', 'CP'
+  ];
+
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(customFields)) {
+    if (!locationKeys.includes(key)) {
+      result[key] = value;
+    }
+  }
+  return result;
+};
+
 import AutoAssignModal from '@/components/auto-assign-modal';
 
 interface MetaLead {
@@ -502,19 +559,43 @@ export default function AdsLeadsPage() {
                         </div>
                       )}
 
-                      {/* Champs personnalisés */}
-                      {lead.customFields && Object.keys(lead.customFields).length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-gray-100">
-                          <div className="text-xs text-gray-400 mb-2">Champs personnalisés</div>
-                          <div className="flex flex-wrap gap-2">
-                            {Object.entries(lead.customFields).map(([key, value]) => (
-                              <span key={key} className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
-                                <span className="font-medium">{key}:</span> {String(value)}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      {/* Localisation (extraite des customFields) */}
+                      {(() => {
+                        const location = extractLocationFromCustomFields(lead.customFields);
+                        if (location) {
+                          return (
+                            <div className="mt-2 flex items-start gap-2 text-sm">
+                              <MapPin className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                              <div className="text-gray-600">
+                                {location.address && <span>{location.address}, </span>}
+                                {location.postalCode && <span>{location.postalCode} </span>}
+                                {location.city && <span className="font-medium text-gray-800">{location.city}</span>}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+
+                      {/* Autres champs personnalisés */}
+                      {(() => {
+                        const otherFields = getOtherCustomFields(lead.customFields);
+                        if (Object.keys(otherFields).length > 0) {
+                          return (
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <div className="text-xs text-gray-400 mb-2">Champs personnalisés</div>
+                              <div className="flex flex-wrap gap-2">
+                                {Object.entries(otherFields).map(([key, value]) => (
+                                  <span key={key} className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
+                                    <span className="font-medium">{key}:</span> {String(value)}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
 
                     {/* Bouton action */}
@@ -534,7 +615,7 @@ export default function AdsLeadsPage() {
                         </button>
                       ) : lead.dealId ? (
                         <a
-                          href={`/dashboard/crm`}
+                          href={`/dashboard/crm?dealId=${lead.dealId}`}
                           className="px-4 py-2 bg-violet-100 text-violet-700 rounded-lg hover:bg-violet-200 transition-colors inline-flex items-center gap-2"
                         >
                           <CheckCircle className="h-4 w-4" />

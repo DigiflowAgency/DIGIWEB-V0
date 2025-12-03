@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bell, X, Loader2, CheckCheck } from 'lucide-react';
+import { Bell, X, Loader2, CheckCheck, Clock } from 'lucide-react';
 import { useNotifications, useNotificationMutations, Notification } from '@/hooks/useNotifications';
-import { formatDistanceToNow } from 'date-fns';
+import { useReminders } from '@/hooks/useReminders';
+import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 
@@ -14,6 +15,16 @@ export default function NotificationDropdown() {
 
   const { notifications, unreadCount, isLoading, mutate } = useNotifications();
   const { markAsRead, markAllAsRead, deleteNotification } = useNotificationMutations();
+  const { reminders, markAsRead: markReminderAsRead, deleteReminder } = useReminders({ upcoming: true });
+
+  // Rappels en retard (date passée et non lus)
+  const dueReminders = reminders.filter(r => {
+    const remindAt = new Date(r.remindAt);
+    return remindAt <= new Date() && !r.isRead;
+  });
+
+  // Total des éléments non lus
+  const totalUnread = unreadCount + dueReminders.length;
 
   // Fermer le dropdown quand on clique en dehors
   useEffect(() => {
@@ -76,6 +87,16 @@ export default function NotificationDropdown() {
     }
   };
 
+  const handleReminderClick = async (reminder: any) => {
+    if (!reminder.isRead) {
+      await markReminderAsRead(reminder.id);
+    }
+    if (reminder.dealId) {
+      router.push(`/dashboard/crm?dealId=${reminder.dealId}`);
+    }
+    setIsOpen(false);
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
@@ -84,9 +105,11 @@ export default function NotificationDropdown() {
         className="relative p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition"
       >
         <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white">
-            {unreadCount > 9 ? '9+' : unreadCount}
+        {totalUnread > 0 && (
+          <span className={`absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white ${
+            dueReminders.length > 0 ? 'bg-red-500' : 'bg-blue-500'
+          }`}>
+            {totalUnread > 9 ? '9+' : totalUnread}
           </span>
         )}
       </button>
@@ -114,62 +137,104 @@ export default function NotificationDropdown() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
               </div>
-            ) : notifications.length === 0 ? (
+            ) : notifications.length === 0 && dueReminders.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <Bell className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                 <p className="text-sm">Aucune notification</p>
               </div>
             ) : (
-              notifications.map((notification) => (
-                <button
-                  key={notification.id}
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50 transition relative ${
-                    !notification.read ? 'bg-blue-50' : ''
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Type Badge */}
-                    <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${
-                      !notification.read ? 'bg-blue-500' : 'bg-gray-300'
-                    }`} />
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium text-sm text-gray-900 line-clamp-1">
-                          {notification.title}
-                        </p>
-                        <button
-                          onClick={(e) => handleDelete(notification.id, e)}
-                          className="text-gray-400 hover:text-gray-600 p-0.5"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                      <p className="text-sm text-gray-600 line-clamp-2 mt-0.5">
-                        {notification.message}
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className={`text-xs px-2 py-0.5 rounded ${getTypeColor(notification.type)}`}>
-                          {notification.type}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {formatDistanceToNow(new Date(notification.createdAt), {
-                            addSuffix: true,
-                            locale: fr,
-                          })}
-                        </span>
+              <>
+                {/* Rappels en retard */}
+                {dueReminders.map((reminder: any) => (
+                  <button
+                    key={`reminder-${reminder.id}`}
+                    onClick={() => handleReminderClick(reminder)}
+                    className="w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50 transition bg-red-50"
+                  >
+                    <div className="flex items-start gap-3">
+                      <Clock className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-medium text-sm text-gray-900 line-clamp-1">
+                            {reminder.title}
+                          </p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteReminder(reminder.id);
+                            }}
+                            className="text-gray-400 hover:text-gray-600 p-0.5"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        {reminder.deal && (
+                          <p className="text-sm text-gray-600 line-clamp-1 mt-0.5">
+                            {reminder.deal.companies?.name || reminder.deal.title}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-600">
+                            Rappel en retard
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {format(new Date(reminder.remindAt), "d MMM 'a' HH:mm", { locale: fr })}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </button>
-              ))
+                  </button>
+                ))}
+
+                {/* Notifications normales */}
+                {notifications.map((notification) => (
+                  <button
+                    key={notification.id}
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50 transition relative ${
+                      !notification.read ? 'bg-blue-50' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                        !notification.read ? 'bg-blue-500' : 'bg-gray-300'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-medium text-sm text-gray-900 line-clamp-1">
+                            {notification.title}
+                          </p>
+                          <button
+                            onClick={(e) => handleDelete(notification.id, e)}
+                            className="text-gray-400 hover:text-gray-600 p-0.5"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <p className="text-sm text-gray-600 line-clamp-2 mt-0.5">
+                          {notification.message}
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className={`text-xs px-2 py-0.5 rounded ${getTypeColor(notification.type)}`}>
+                            {notification.type}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {formatDistanceToNow(new Date(notification.createdAt), {
+                              addSuffix: true,
+                              locale: fr,
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </>
             )}
           </div>
 
           {/* Footer */}
-          {notifications.length > 0 && (
+          {(notifications.length > 0 || dueReminders.length > 0) && (
             <div className="p-3 border-t border-gray-200 text-center">
               <button
                 onClick={() => {

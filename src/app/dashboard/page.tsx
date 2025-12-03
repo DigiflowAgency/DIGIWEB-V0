@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   Users,
@@ -19,9 +19,74 @@ import {
   Euro,
   TrendingDown,
   Loader2,
+  CalendarDays,
 } from 'lucide-react';
 import { useDeals } from '@/hooks/useDeals';
 import { useActivities } from '@/hooks/useActivities';
+import { useGoals } from '@/hooks/useGoals';
+
+type PeriodType = '7d' | '30d' | '90d' | 'year' | 'all';
+
+const periodOptions: { id: PeriodType; label: string }[] = [
+  { id: '7d', label: '7 jours' },
+  { id: '30d', label: '30 jours' },
+  { id: '90d', label: '90 jours' },
+  { id: 'year', label: 'Cette année' },
+  { id: 'all', label: 'Tout' },
+];
+
+const getPeriodDates = (period: PeriodType): { start: Date; end: Date; previousStart: Date; previousEnd: Date } => {
+  const now = new Date();
+  const end = new Date(now);
+  let start: Date;
+  let previousStart: Date;
+  let previousEnd: Date;
+
+  switch (period) {
+    case '7d':
+      start = new Date(now);
+      start.setDate(now.getDate() - 7);
+      previousEnd = new Date(start);
+      previousEnd.setTime(previousEnd.getTime() - 1);
+      previousStart = new Date(previousEnd);
+      previousStart.setDate(previousEnd.getDate() - 7);
+      break;
+    case '30d':
+      start = new Date(now);
+      start.setDate(now.getDate() - 30);
+      previousEnd = new Date(start);
+      previousEnd.setTime(previousEnd.getTime() - 1);
+      previousStart = new Date(previousEnd);
+      previousStart.setDate(previousEnd.getDate() - 30);
+      break;
+    case '90d':
+      start = new Date(now);
+      start.setDate(now.getDate() - 90);
+      previousEnd = new Date(start);
+      previousEnd.setTime(previousEnd.getTime() - 1);
+      previousStart = new Date(previousEnd);
+      previousStart.setDate(previousEnd.getDate() - 90);
+      break;
+    case 'year':
+      start = new Date(now.getFullYear(), 0, 1);
+      previousEnd = new Date(start);
+      previousEnd.setTime(previousEnd.getTime() - 1);
+      previousStart = new Date(previousEnd.getFullYear(), 0, 1);
+      break;
+    case 'all':
+    default:
+      start = new Date(2020, 0, 1); // Date très ancienne
+      previousStart = new Date(2019, 0, 1);
+      previousEnd = new Date(start);
+      previousEnd.setTime(previousEnd.getTime() - 1);
+      break;
+  }
+
+  start.setHours(0, 0, 0, 0);
+  previousStart.setHours(0, 0, 0, 0);
+
+  return { start, end, previousStart, previousEnd };
+};
 
 // V2 - Actions rapides désactivées pour l'instant
 // const quickActions = [
@@ -96,6 +161,7 @@ export default function DashboardPage() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'ADMIN';
   const userId = session?.user?.id;
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('30d');
 
   // Paramètres de filtrage : les non-admins ne voient que leurs propres données
   const dealsParams = useMemo(() => {
@@ -106,7 +172,11 @@ export default function DashboardPage() {
   }, [isAdmin, userId]);
 
   const activitiesParams = useMemo(() => {
-    const params: { limit: number; assignedToId?: string } = { limit: 10 };
+    const params: { limit: number; assignedToId?: string; orderBy: string; order: 'asc' | 'desc' } = {
+      limit: 10,
+      orderBy: 'createdAt',
+      order: 'desc',
+    };
     if (!isAdmin && userId) {
       params.assignedToId = userId;
     }
@@ -115,21 +185,12 @@ export default function DashboardPage() {
 
   const { deals, isLoading: dealsLoading, isError: dealsError } = useDeals(dealsParams);
   const { activities, isLoading: activitiesLoading, isError: activitiesError } = useActivities(activitiesParams);
+  const { goals, isLoading: goalsLoading } = useGoals();
 
-  // Calculer les stats principales
+  // Calculer les stats principales basées sur la période sélectionnée
   const stats = useMemo(() => {
+    const { start: periodStart, end: periodEnd, previousStart, previousEnd } = getPeriodDates(selectedPeriod);
     const activeDeals = deals.filter(d => d.productionStage !== 'ENCAISSE');
-
-    // Mois actuel
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
-
-    // Mois précédent
-    const lastMonthStart = new Date(monthStart);
-    lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
-    const lastMonthEnd = new Date(monthStart);
-    lastMonthEnd.setTime(lastMonthEnd.getTime() - 1); // Dernière milliseconde du mois précédent
 
     // Fonction pour calculer le pourcentage de changement
     const calculateChange = (current: number, previous: number): { change: string; trend: 'up' | 'down' | 'stable' } => {
@@ -143,54 +204,64 @@ export default function DashboardPage() {
       return { change: '0%', trend: 'stable' };
     };
 
-    // Deals actifs - comparer avec le mois précédent
-    const lastMonthDeals = deals.filter(d => {
+    // Deals actifs - comparer avec la période précédente
+    const previousPeriodDeals = deals.filter(d => {
       const createdDate = new Date(d.createdAt);
-      return createdDate >= lastMonthStart && createdDate < monthStart;
+      return createdDate >= previousStart && createdDate <= previousEnd;
     });
-    const activeDealsLastMonth = lastMonthDeals.filter(d => d.productionStage !== 'ENCAISSE').length;
-    const dealsChange = calculateChange(activeDeals.length, activeDealsLastMonth);
+    const activeDealsLastPeriod = previousPeriodDeals.filter(d => d.productionStage !== 'ENCAISSE').length;
+    const dealsChange = calculateChange(activeDeals.length, activeDealsLastPeriod);
 
-    // Deals et CA ce mois
-    const dealsThisMonth = deals.filter(d => new Date(d.createdAt) >= monthStart);
-    const wonDealsThisMonth = deals.filter(
-      d => d.productionStage === 'ENCAISSE' && d.closedAt && new Date(d.closedAt) >= monthStart
-    );
-    const caThisMonth = wonDealsThisMonth.reduce((sum, d) => sum + d.value, 0);
-
-    // CA mois précédent
-    const wonDealsLastMonth = deals.filter(
+    // Deals et CA cette période
+    const dealsThisPeriod = deals.filter(d => {
+      const createdDate = new Date(d.createdAt);
+      return createdDate >= periodStart && createdDate <= periodEnd;
+    });
+    const wonDealsThisPeriod = deals.filter(
       d => d.productionStage === 'ENCAISSE' && d.closedAt &&
-           new Date(d.closedAt) >= lastMonthStart && new Date(d.closedAt) <= lastMonthEnd
+           new Date(d.closedAt) >= periodStart && new Date(d.closedAt) <= periodEnd
     );
-    const caLastMonth = wonDealsLastMonth.reduce((sum, d) => sum + d.value, 0);
-    const caChange = calculateChange(caThisMonth, caLastMonth);
+    const caThisPeriod = wonDealsThisPeriod.reduce((sum, d) => sum + d.value, 0);
 
-    // RDV ce mois
-    const meetingsThisMonth = activities.filter(
-      a => (a.type === 'REUNION' || a.type === 'VISIO') &&
-           new Date(a.scheduledAt) >= monthStart
+    // CA période précédente
+    const wonDealsLastPeriod = deals.filter(
+      d => d.productionStage === 'ENCAISSE' && d.closedAt &&
+           new Date(d.closedAt) >= previousStart && new Date(d.closedAt) <= previousEnd
+    );
+    const caLastPeriod = wonDealsLastPeriod.reduce((sum, d) => sum + d.value, 0);
+    const caChange = calculateChange(caThisPeriod, caLastPeriod);
+
+    // RDV cette période - compter les deals au stage RDV_PRIS (ou plus avancé)
+    const rdvStages = ['RDV_PRIS', 'NEGO_HOT', 'CLOSING'];
+    const dealsWithRdvThisPeriod = deals.filter(
+      d => rdvStages.includes(d.stage) &&
+           new Date(d.createdAt) >= periodStart && new Date(d.createdAt) <= periodEnd
     ).length;
 
-    // RDV mois précédent
-    const meetingsLastMonth = activities.filter(
-      a => (a.type === 'REUNION' || a.type === 'VISIO') &&
-           new Date(a.scheduledAt) >= lastMonthStart && new Date(a.scheduledAt) <= lastMonthEnd
+    // RDV période précédente
+    const dealsWithRdvLastPeriod = deals.filter(
+      d => rdvStages.includes(d.stage) &&
+           new Date(d.createdAt) >= previousStart && new Date(d.createdAt) <= previousEnd
     ).length;
-    const meetingsChange = calculateChange(meetingsThisMonth, meetingsLastMonth);
+    const meetingsChange = calculateChange(dealsWithRdvThisPeriod, dealsWithRdvLastPeriod);
 
     // Taux de conversion
-    const conversionRate = dealsThisMonth.length > 0
-      ? Math.round((wonDealsThisMonth.length / dealsThisMonth.length) * 100)
+    const conversionRate = dealsThisPeriod.length > 0
+      ? Math.round((wonDealsThisPeriod.length / dealsThisPeriod.length) * 100)
       : 0;
 
-    const dealsLastMonthCount = deals.filter(
-      d => new Date(d.createdAt) >= lastMonthStart && new Date(d.createdAt) <= lastMonthEnd
-    ).length;
-    const conversionRateLastMonth = dealsLastMonthCount > 0
-      ? Math.round((wonDealsLastMonth.length / dealsLastMonthCount) * 100)
+    const dealsLastPeriodCount = previousPeriodDeals.length;
+    const conversionRateLastPeriod = dealsLastPeriodCount > 0
+      ? Math.round((wonDealsLastPeriod.length / dealsLastPeriodCount) * 100)
       : 0;
-    const conversionChange = calculateChange(conversionRate, conversionRateLastMonth);
+    const conversionChange = calculateChange(conversionRate, conversionRateLastPeriod);
+
+    // Label dynamique selon la période
+    const periodLabel = selectedPeriod === '7d' ? '7j'
+      : selectedPeriod === '30d' ? 'mois'
+      : selectedPeriod === '90d' ? 'trim.'
+      : selectedPeriod === 'year' ? 'année'
+      : 'total';
 
     return [
       {
@@ -203,8 +274,8 @@ export default function DashboardPage() {
         bgColor: 'bg-violet-50',
       },
       {
-        name: 'RDV ce mois',
-        value: meetingsThisMonth.toString(),
+        name: `RDV (${periodLabel})`,
+        value: dealsWithRdvThisPeriod.toString(),
         change: meetingsChange.change,
         trend: meetingsChange.trend,
         icon: Calendar,
@@ -212,8 +283,8 @@ export default function DashboardPage() {
         bgColor: 'bg-orange-50',
       },
       {
-        name: 'CA du mois',
-        value: `${caThisMonth.toLocaleString()} €`,
+        name: `CA (${periodLabel})`,
+        value: `${caThisPeriod.toLocaleString()} €`,
         change: caChange.change,
         trend: caChange.trend,
         icon: Euro,
@@ -230,12 +301,12 @@ export default function DashboardPage() {
         bgColor: 'bg-blue-50',
       },
     ];
-  }, [deals, activities]);
+  }, [deals, selectedPeriod]);
 
-  // Hot leads (deals avec haute probabilité)
+  // Hot leads (deals en négo hot ou avec haute probabilité, excluant CLOSING qui sont des ventes signées)
   const hotLeads = useMemo(() => {
     return deals
-      .filter(d => d.probability >= 75 && d.productionStage !== 'ENCAISSE')
+      .filter(d => (d.probability >= 70 || d.stage === 'NEGO_HOT') && d.stage !== 'CLOSING' && d.productionStage !== 'ENCAISSE')
       .sort((a, b) => b.probability - a.probability)
       .slice(0, 3)
       .map(d => ({
@@ -312,7 +383,7 @@ export default function DashboardPage() {
     });
   }, [deals, activities]);
 
-  // Objectifs mensuels
+  // Objectifs mensuels - récupérés depuis l'API avec fallback sur valeurs par défaut
   const monthlyGoals = useMemo(() => {
     const monthStart = new Date();
     monthStart.setDate(1);
@@ -329,36 +400,43 @@ export default function DashboardPage() {
       d => new Date(d.createdAt) >= monthStart
     ).length;
 
-    // RDV réalisés = Activités REUNION/VISIO qui sont terminées ce mois
-    const completedMeetingsThisMonth = activities.filter(
-      a => (a.type === 'REUNION' || a.type === 'VISIO') &&
-           a.status === 'COMPLETEE' &&
-           new Date(a.scheduledAt) >= monthStart
+    // RDV réalisés = Deals passés par RDV_PRIS ce mois
+    const rdvStages = ['RDV_PRIS', 'NEGO_HOT', 'CLOSING'];
+    const rdvThisMonth = deals.filter(
+      d => rdvStages.includes(d.stage) && new Date(d.createdAt) >= monthStart
     ).length;
+
+    // Récupérer les objectifs depuis l'API (par titre)
+    const findGoalTarget = (titlePattern: string, defaultValue: number): number => {
+      const goal = goals.find(g =>
+        g.title.toLowerCase().includes(titlePattern.toLowerCase())
+      );
+      return goal?.targetValue ?? defaultValue;
+    };
 
     return [
       {
         name: 'CA Mensuel',
         current: caThisMonth,
-        target: 60000,
+        target: findGoalTarget('ca', 60000),
         unit: '€',
       },
       {
         name: 'Nouveaux Deals',
         current: newDealsThisMonth,
-        target: 12,
+        target: findGoalTarget('deal', 12),
         unit: 'deals',
       },
       {
         name: 'RDV Réalisés',
-        current: completedMeetingsThisMonth,
-        target: 30,
+        current: rdvThisMonth,
+        target: findGoalTarget('rdv', 30),
         unit: 'RDV',
       },
     ];
-  }, [deals, activities]);
+  }, [deals, goals]);
 
-  if (dealsLoading || activitiesLoading) {
+  if (dealsLoading || activitiesLoading || goalsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
@@ -395,11 +473,31 @@ export default function DashboardPage() {
                 Vue d&apos;ensemble de votre activité commerciale
               </p>
             </div>
-            <div className="flex items-center gap-3 glass px-4 py-3 rounded-xl">
-              <Sun className="h-5 w-5 text-orange-500" />
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Paris</p>
-                <p className="text-xs text-gray-500">18°C • Ensoleillé</p>
+            <div className="flex items-center gap-4">
+              {/* Sélecteur de période */}
+              <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200 p-1 shadow-sm">
+                <CalendarDays className="h-4 w-4 text-gray-400 ml-2" />
+                {periodOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => setSelectedPeriod(option.id)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      selectedPeriod === option.id
+                        ? 'bg-gradient-to-r from-violet-600 to-orange-500 text-white shadow-sm'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              {/* Météo */}
+              <div className="flex items-center gap-3 glass px-4 py-3 rounded-xl">
+                <Sun className="h-5 w-5 text-orange-500" />
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Paris</p>
+                  <p className="text-xs text-gray-500">18°C • Ensoleillé</p>
+                </div>
               </div>
             </div>
           </div>
@@ -542,43 +640,51 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="divide-y divide-gray-200/50">
-              {hotLeads.map((lead, index) => {
-                const badge = getScoreBadge(lead.score);
-                return (
-                  <motion.div
-                    key={lead.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.7 + index * 0.1 }}
-                    className="px-6 py-4 hover:bg-violet-50/50 transition-all cursor-pointer group"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="text-sm font-bold text-gray-900 group-hover:text-violet-700 transition-colors">
-                            {lead.name}
-                          </h4>
-                          <span className={`px-3 py-1 text-xs font-bold rounded-full ${badge.color} ${badge.pulse ? 'animate-pulse' : ''}`}>
-                            {lead.score}
-                          </span>
+              {hotLeads.length === 0 ? (
+                <div className="px-6 py-8 text-center text-gray-500">
+                  <Flame className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm">Aucun lead ultra chaud</p>
+                  <p className="text-xs text-gray-400 mt-1">Les leads avec plus de 75% de probabilité apparaîtront ici</p>
+                </div>
+              ) : (
+                hotLeads.map((lead, index) => {
+                  const badge = getScoreBadge(lead.score);
+                  return (
+                    <motion.div
+                      key={lead.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.7 + index * 0.1 }}
+                      className="px-6 py-4 hover:bg-violet-50/50 transition-all cursor-pointer group"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h4 className="text-sm font-bold text-gray-900 group-hover:text-violet-700 transition-colors">
+                              {lead.name}
+                            </h4>
+                            <span className={`px-3 py-1 text-xs font-bold rounded-full ${badge.color} ${badge.pulse ? 'animate-pulse' : ''}`}>
+                              {lead.score}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                            <Users className="h-3.5 w-3.5" />
+                            {lead.contact}
+                          </p>
+                          <p className="text-xs text-gray-500 flex items-center gap-2">
+                            <Clock className="h-3.5 w-3.5" />
+                            {lead.nextAction}
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
-                          <Users className="h-3.5 w-3.5" />
-                          {lead.contact}
-                        </p>
-                        <p className="text-xs text-gray-500 flex items-center gap-2">
-                          <Clock className="h-3.5 w-3.5" />
-                          {lead.nextAction}
-                        </p>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500 mb-1">{lead.activity}</p>
+                          <p className="text-lg font-bold text-violet-700">{lead.value}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500 mb-1">{lead.activity}</p>
-                        <p className="text-lg font-bold text-violet-700">{lead.value}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                    </motion.div>
+                  );
+                })
+              )}
             </div>
           </motion.div>
 
@@ -645,29 +751,37 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="divide-y divide-gray-200/50">
-              {recentActivity.map((activity, index) => {
-                const Icon = activity.icon;
-                return (
-                  <motion.div
-                    key={activity.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 1.0 + index * 0.1 }}
-                    className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer flex gap-4"
-                  >
-                    <div className={`p-2 rounded-lg ${activity.bgColor} h-fit`}>
-                      <Icon className={`h-4 w-4 ${activity.color}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 mb-1">
-                        {activity.title}
-                      </p>
-                      <p className="text-xs text-gray-600 mb-1">{activity.description}</p>
-                      <p className="text-xs text-gray-400">{activity.time}</p>
-                    </div>
-                  </motion.div>
-                );
-              })}
+              {recentActivity.length === 0 ? (
+                <div className="px-6 py-8 text-center text-gray-500">
+                  <Activity className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm">Aucune activité récente</p>
+                  <p className="text-xs text-gray-400 mt-1">Les activités apparaîtront ici</p>
+                </div>
+              ) : (
+                recentActivity.map((activity, index) => {
+                  const Icon = activity.icon;
+                  return (
+                    <motion.div
+                      key={activity.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 1.0 + index * 0.1 }}
+                      className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer flex gap-4"
+                    >
+                      <div className={`p-2 rounded-lg ${activity.bgColor} h-fit`}>
+                        <Icon className={`h-4 w-4 ${activity.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 mb-1">
+                          {activity.title}
+                        </p>
+                        <p className="text-xs text-gray-600 mb-1">{activity.description}</p>
+                        <p className="text-xs text-gray-400">{activity.time}</p>
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
             </div>
           </motion.div>
 

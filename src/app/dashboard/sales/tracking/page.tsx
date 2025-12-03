@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useDeals } from '@/hooks/useDeals';
 import { useContacts } from '@/hooks/useContacts';
+import { useGoals } from '@/hooks/useGoals';
 import { useSession } from 'next-auth/react';
 
 interface Deal {
@@ -69,6 +70,7 @@ export default function TrackingPage() {
 
   const { deals, isLoading: dealsLoading, isError: dealsError } = useDeals(dealsParams);
   const { contacts, isLoading: contactsLoading, isError: contactsError } = useContacts();
+  const { goals } = useGoals();
 
   // Données mensuelles (12 derniers mois)
   const monthlyData = useMemo(() => {
@@ -192,12 +194,20 @@ export default function TrackingPage() {
     return Math.max(...monthlyData.map(d => d.revenue), 1);
   }, [monthlyData]);
 
-  // Objectifs (goals)
-  const monthlyGoals = {
-    revenue: 60000,
-    deals: 12,
-    contacts: 120,
-  };
+  // Objectifs (goals) - récupérés depuis l'API avec fallback
+  const monthlyGoals = useMemo(() => {
+    // Fonction helper pour trouver un objectif par titre
+    const findGoalTarget = (titlePattern: string, defaultValue: number): number => {
+      const goal = goals.find(g => g.title.toLowerCase().includes(titlePattern.toLowerCase()));
+      return goal?.targetValue ?? defaultValue;
+    };
+
+    return {
+      revenue: findGoalTarget('ca', 60000),
+      deals: findGoalTarget('deal', 12),
+      contacts: findGoalTarget('contact', 120),
+    };
+  }, [goals]);
 
   // Loading state
   if (dealsLoading || contactsLoading) {

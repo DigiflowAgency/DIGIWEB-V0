@@ -119,6 +119,23 @@ export async function GET(
           },
           orderBy: { createdAt: 'desc' },
         },
+        deal_assignees: {
+          select: {
+            id: true,
+            role: true,
+            createdAt: true,
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                avatar: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
 
@@ -301,6 +318,10 @@ export async function PATCH(
       updateData.stage = body.stage;
       // Calculer automatiquement la probabilité selon la nouvelle étape
       updateData.probability = getProbabilityByStage(body.stage);
+      // Si le stage devient CLOSING ou REFUSE, définir closedAt
+      if ((body.stage === 'CLOSING' || body.stage === 'REFUSE') && !existingDeal.closedAt) {
+        updateData.closedAt = new Date();
+      }
     }
 
     if ('ownerId' in body) {

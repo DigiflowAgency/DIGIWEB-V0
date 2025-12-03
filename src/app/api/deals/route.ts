@@ -124,6 +124,23 @@ export async function GET(request: NextRequest) {
             email: true,
           },
         },
+        deal_assignees: {
+          select: {
+            id: true,
+            role: true,
+            createdAt: true,
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                avatar: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
       },
       orderBy: [
         { expectedCloseDate: 'asc' },

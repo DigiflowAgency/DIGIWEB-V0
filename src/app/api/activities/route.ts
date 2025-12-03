@@ -37,6 +37,8 @@ export async function GET(request: NextRequest) {
     const priority = searchParams.get('priority');
     const assignedToId = searchParams.get('assignedToId');
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
+    const orderBy = searchParams.get('orderBy') || 'scheduledAt';
+    const order = searchParams.get('order') || 'asc';
 
     // Construire la query Prisma
     const where: Prisma.activitiesWhereInput = {};
@@ -112,7 +114,7 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: [
-        { scheduledAt: 'asc' },
+        { [orderBy]: order as 'asc' | 'desc' },
       ],
       take: limit,
     });
