@@ -147,15 +147,23 @@ export default function CRMPage() {
     }
   }, [searchParams, deals, router]);
 
-  // Synchroniser selectedDeal avec les données rafraîchies
+  // Synchroniser selectedDeal avec les données rafraîchies (mais garder metaLead)
   useEffect(() => {
     if (selectedDeal && deals.length > 0) {
       const updatedDeal = deals.find(d => d.id === selectedDeal.id);
-      if (updatedDeal && JSON.stringify(updatedDeal) !== JSON.stringify(selectedDeal)) {
-        setSelectedDeal(updatedDeal);
+      if (updatedDeal) {
+        // Fusionner les données de la liste avec les données détaillées (metaLead, notes, etc.)
+        const mergedDeal = {
+          ...updatedDeal,
+          metaLead: selectedDeal.metaLead,
+          notes: selectedDeal.notes,
+        };
+        if (JSON.stringify(mergedDeal) !== JSON.stringify(selectedDeal)) {
+          setSelectedDeal(mergedDeal);
+        }
       }
     }
-  }, [deals, selectedDeal]);
+  }, [deals]);
 
   // Toggle filtre utilisateur
   const toggleOwnerFilter = (userId: string) => {
@@ -350,9 +358,19 @@ export default function CRMPage() {
     }
   };
 
-  const handleDealClick = (deal: any) => {
-    setSelectedDeal(deal);
+  const handleDealClick = async (deal: any) => {
+    // Charger le détail complet du deal (avec metaLead)
     setIsSidebarOpen(true);
+    setSelectedDeal(deal); // Afficher d'abord les données de base
+    try {
+      const response = await fetch(`/api/deals/${deal.id}`);
+      if (response.ok) {
+        const fullDeal = await response.json();
+        setSelectedDeal(fullDeal);
+      }
+    } catch (error) {
+      console.error('Erreur chargement détail deal:', error);
+    }
   };
 
   // Mise à jour rapide du stage inline

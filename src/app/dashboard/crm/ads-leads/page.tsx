@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   RefreshCw,
@@ -23,6 +23,7 @@ import {
   Leaf,
   MessageCircle,
   MapPin,
+  Search,
 } from 'lucide-react';
 
 // Helper pour extraire les infos de localisation des customFields
@@ -168,6 +169,7 @@ export default function AdsLeadsPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showAutoAssign, setShowAutoAssign] = useState(false);
   const [commerciaux, setCommerciaux] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchLeads = async () => {
     try {
@@ -216,6 +218,37 @@ export default function AdsLeadsPage() {
     };
     fetchCommerciaux();
   }, []);
+
+  // Filtrer les leads par recherche
+  const filteredLeads = useMemo(() => {
+    if (!searchQuery.trim()) return leads;
+
+    const query = searchQuery.toLowerCase().trim();
+    return leads.filter((lead) => {
+      const searchableFields = [
+        lead.fullName,
+        lead.email,
+        lead.phone,
+        lead.pageName,
+        lead.campaignName,
+        lead.adName,
+        lead.formName,
+      ].filter(Boolean);
+
+      // Chercher aussi dans les customFields
+      if (lead.customFields && typeof lead.customFields === 'object') {
+        Object.values(lead.customFields).forEach((value) => {
+          if (value && typeof value === 'string') {
+            searchableFields.push(value);
+          }
+        });
+      }
+
+      return searchableFields.some((field) =>
+        String(field).toLowerCase().includes(query)
+      );
+    });
+  }, [leads, searchQuery]);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -376,6 +409,18 @@ export default function AdsLeadsPage() {
 
         {/* Filtres */}
         <div className="mb-6 flex flex-wrap items-center gap-4">
+          {/* Barre de recherche */}
+          <div className="flex-1 min-w-[250px] relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher par nom, email, téléphone, campagne..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
           <div className="flex items-center gap-2">
             <Filter className="h-5 w-5 text-gray-400" />
             <span className="text-sm text-gray-500">Filtres:</span>
@@ -405,6 +450,13 @@ export default function AdsLeadsPage() {
               </option>
             ))}
           </select>
+
+          {/* Compteur de résultats */}
+          {searchQuery && (
+            <span className="text-sm text-gray-500">
+              {filteredLeads.length} résultat{filteredLeads.length > 1 ? 's' : ''}
+            </span>
+          )}
         </div>
 
         {/* Leads List */}
@@ -427,9 +479,23 @@ export default function AdsLeadsPage() {
               Lancer la synchronisation
             </button>
           </div>
+        ) : filteredLeads.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+            <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">Aucun résultat</h3>
+            <p className="text-gray-500 mb-4">
+              Aucun lead ne correspond à votre recherche "{searchQuery}"
+            </p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Effacer la recherche
+            </button>
+          </div>
         ) : (
           <div className="grid gap-4">
-            {leads.map((lead) => {
+            {filteredLeads.map((lead) => {
               const PlatformIcon = lead.platform === 'instagram' ? Instagram : lead.platform === 'messenger' ? MessageCircle : Facebook;
               const platformColor = lead.platform === 'instagram' ? 'text-pink-500' : lead.platform === 'messenger' ? 'text-blue-500' : 'text-blue-600';
 

@@ -28,6 +28,61 @@ const originConfig: Record<string, { label: string; color: string; bgColor: stri
   'COLD_SMS': { label: 'Cold SMS', color: 'text-cyan-700', bgColor: 'bg-cyan-100', icon: MessageCircle },
 };
 
+// Helper pour extraire les infos de localisation des customFields
+const extractLocationFromCustomFields = (customFields: any): { city?: string; address?: string; postalCode?: string } | null => {
+  if (!customFields || typeof customFields !== 'object') return null;
+
+  const result: { city?: string; address?: string; postalCode?: string } = {};
+
+  // Chercher les champs de ville avec différents noms possibles
+  const cityKeys = ['city', 'ville', 'Ville', 'City', 'CITY', 'localite', 'Localité', 'localité', 'commune'];
+  for (const key of cityKeys) {
+    if (customFields[key]) {
+      result.city = String(customFields[key]);
+      break;
+    }
+  }
+
+  // Chercher les champs d'adresse
+  const addressKeys = ['address', 'adresse', 'Adresse', 'Address', 'ADDRESS', 'street', 'rue', 'Rue'];
+  for (const key of addressKeys) {
+    if (customFields[key]) {
+      result.address = String(customFields[key]);
+      break;
+    }
+  }
+
+  // Chercher le code postal
+  const postalKeys = ['postal_code', 'postalCode', 'zip', 'zipcode', 'code_postal', 'codePostal', 'cp', 'CP'];
+  for (const key of postalKeys) {
+    if (customFields[key]) {
+      result.postalCode = String(customFields[key]);
+      break;
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : null;
+};
+
+// Helper pour obtenir les champs personnalisés sans les champs de localisation
+const getOtherCustomFields = (customFields: any): Record<string, any> => {
+  if (!customFields || typeof customFields !== 'object') return {};
+
+  const locationKeys = [
+    'city', 'ville', 'Ville', 'City', 'CITY', 'localite', 'Localité', 'localité', 'commune',
+    'address', 'adresse', 'Adresse', 'Address', 'ADDRESS', 'street', 'rue', 'Rue',
+    'postal_code', 'postalCode', 'zip', 'zipcode', 'code_postal', 'codePostal', 'cp', 'CP'
+  ];
+
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(customFields)) {
+    if (!locationKeys.includes(key) && value) {
+      result[key] = value;
+    }
+  }
+  return result;
+};
+
 export default function DealSidebar({ deal, isOpen, onClose, onUpdate, onDelete }: DealSidebarProps) {
   const [width, setWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
@@ -48,6 +103,10 @@ export default function DealSidebar({ deal, isOpen, onClose, onUpdate, onDelete 
   const [reminderDate, setReminderDate] = useState('');
   const [reminderTime, setReminderTime] = useState('09:00');
   const [isAddingReminder, setIsAddingReminder] = useState(false);
+  // Notes/Commentaires
+  const [notes, setNotes] = useState<any[]>([]);
+  const [newNoteContent, setNewNoteContent] = useState('');
+  const [isAddingNote, setIsAddingNote] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Hook pour les rappels
@@ -57,6 +116,10 @@ export default function DealSidebar({ deal, isOpen, onClose, onUpdate, onDelete 
     setEditedDeal(deal);
     setEditedContact(deal?.contacts ? { ...deal.contacts } : null);
     setEditedCompany(deal?.companies ? { ...deal.companies } : null);
+    // Charger les notes depuis le deal
+    if (deal?.notes) {
+      setNotes(deal.notes);
+    }
   }, [deal]);
 
   useEffect(() => {
@@ -178,6 +241,35 @@ export default function DealSidebar({ deal, isOpen, onClose, onUpdate, onDelete 
       alert('Erreur lors de la suppression');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!newNoteContent.trim()) return;
+
+    setIsAddingNote(true);
+    try {
+      const response = await fetch(`/api/deals/${deal.id}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newNoteContent }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Ajouter la nouvelle note en haut de la liste
+        setNotes((prev) => [data.note, ...prev]);
+        setNewNoteContent('');
+        onUpdate(); // Rafraîchir les données du deal
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erreur lors de l\'ajout de la note');
+      }
+    } catch (error) {
+      console.error('Erreur ajout note:', error);
+      alert('Erreur lors de l\'ajout de la note');
+    } finally {
+      setIsAddingNote(false);
     }
   };
 
@@ -488,6 +580,71 @@ export default function DealSidebar({ deal, isOpen, onClose, onUpdate, onDelete 
                         </div>
                       )}
                     </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Informations complémentaires (depuis Meta Ads) */}
+            {deal.metaLead?.customFields && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Megaphone className="h-5 w-5 text-violet-600" />
+                  Infos Ads
+                </h3>
+                <div className="space-y-3">
+                  {/* Localisation */}
+                  {(() => {
+                    const location = extractLocationFromCustomFields(deal.metaLead.customFields);
+                    if (!location) return null;
+                    return (
+                      <div className="bg-violet-50 rounded-lg p-3 border border-violet-100">
+                        <p className="text-xs text-violet-600 font-medium mb-2">Localisation</p>
+                        <div className="space-y-1 text-sm">
+                          {location.address && (
+                            <p className="text-gray-700">{location.address}</p>
+                          )}
+                          {(location.postalCode || location.city) && (
+                            <p className="text-gray-700">
+                              {location.postalCode && <span>{location.postalCode} </span>}
+                              {location.city}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Autres champs personnalisés */}
+                  {(() => {
+                    const otherFields = getOtherCustomFields(deal.metaLead.customFields);
+                    const entries = Object.entries(otherFields);
+                    if (entries.length === 0) return null;
+                    return (
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500 font-medium">Champs personnalisés</p>
+                        <div className="flex flex-wrap gap-2">
+                          {entries.map(([key, value]) => (
+                            <span
+                              key={key}
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs"
+                            >
+                              <span className="font-medium">{key}:</span>
+                              <span>{String(value)}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Source Ads */}
+                  {(deal.metaLead.campaignName || deal.metaLead.pageName) && (
+                    <div className="text-xs text-gray-500 pt-2 border-t border-gray-100">
+                      {deal.metaLead.pageName && <p>Page: {deal.metaLead.pageName}</p>}
+                      {deal.metaLead.campaignName && <p>Campagne: {deal.metaLead.campaignName}</p>}
+                      {deal.metaLead.adName && <p>Pub: {deal.metaLead.adName}</p>}
+                    </div>
                   )}
                 </div>
               </div>
@@ -852,22 +1009,84 @@ export default function DealSidebar({ deal, isOpen, onClose, onUpdate, onDelete 
               </div>
             </div>
 
-            {/* Commentaires */}
+            {/* Commentaires / Notes */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-violet-600" />
-                Commentaires
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-violet-600" />
+                  Commentaires
+                  {notes.length > 0 && (
+                    <span className="bg-violet-100 text-violet-700 text-xs px-2 py-0.5 rounded-full">
+                      {notes.length}
+                    </span>
+                  )}
+                </span>
               </h3>
-              {isEditing ? (
-                <textarea
-                  value={editedDeal.comments || ''}
-                  onChange={(e) => setEditedDeal({ ...editedDeal, comments: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
-                  rows={4}
-                  placeholder="Ajouter des notes..."
-                />
-              ) : (
-                <p className="text-gray-700 whitespace-pre-wrap">{deal.comments || 'Aucun commentaire'}</p>
+
+              {/* Formulaire d'ajout de note */}
+              <div className="mb-4">
+                <div className="flex gap-2">
+                  <textarea
+                    value={newNoteContent}
+                    onChange={(e) => setNewNoteContent(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm resize-none"
+                    rows={2}
+                    placeholder="Ajouter un commentaire..."
+                  />
+                  <button
+                    onClick={handleAddNote}
+                    disabled={isAddingNote || !newNoteContent.trim()}
+                    className="px-3 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors self-end"
+                  >
+                    {isAddingNote ? (
+                      <Clock className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Liste des notes */}
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {notes.length === 0 ? (
+                  <p className="text-gray-500 text-sm italic">Aucun commentaire</p>
+                ) : (
+                  notes.map((note: any) => (
+                    <div
+                      key={note.id}
+                      className="bg-gray-50 rounded-lg p-3 border border-gray-100"
+                    >
+                      <p className="text-gray-700 text-sm whitespace-pre-wrap mb-2">
+                        {note.content}
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span className="font-medium">
+                          {note.users?.firstName} {note.users?.lastName}
+                        </span>
+                        <span>
+                          {new Date(note.createdAt).toLocaleDateString('fr-FR', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Ancien champ comments (rétro-compatibilité) */}
+              {deal.comments && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 mb-2">Notes anciennes :</p>
+                  <p className="text-gray-600 text-sm whitespace-pre-wrap bg-gray-50 p-2 rounded">
+                    {deal.comments}
+                  </p>
+                </div>
               )}
             </div>
 

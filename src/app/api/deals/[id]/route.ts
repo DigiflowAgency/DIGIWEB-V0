@@ -146,7 +146,28 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(deal);
+    // Récupérer le meta_lead associé à ce deal (si converti depuis Ads)
+    const metaLead = await prisma.meta_leads.findFirst({
+      where: { dealId: params.id },
+      select: {
+        id: true,
+        customFields: true,
+        pageName: true,
+        campaignName: true,
+        adName: true,
+        formName: true,
+        platform: true,
+        isOrganic: true,
+      },
+    });
+
+    // Combiner le deal avec les infos du meta_lead
+    const dealWithMetaLead = {
+      ...deal,
+      metaLead: metaLead || null,
+    };
+
+    return NextResponse.json(dealWithMetaLead);
   } catch (error) {
     console.error(`Erreur GET /api/deals/${params.id}:`, error);
     return NextResponse.json(
