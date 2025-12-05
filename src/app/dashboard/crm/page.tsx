@@ -44,6 +44,7 @@ export default function CRMPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [draggedDeal, setDraggedDeal] = useState<any>(null);
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
+  const [dealDetailData, setDealDetailData] = useState<{ metaLead: any; notes: any[] } | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedOwnerIds, setSelectedOwnerIds] = useState<string[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -141,26 +142,32 @@ export default function CRMPage() {
       if (deal) {
         setSelectedDeal(deal);
         setIsSidebarOpen(true);
+        // Charger le détail complet du deal (avec metaLead)
+        fetch(`/api/deals/${dealIdFromUrl}`)
+          .then(response => {
+            if (response.ok) return response.json();
+            throw new Error('Erreur API');
+          })
+          .then(fullDeal => {
+            setDealDetailData({
+              metaLead: fullDeal.metaLead || null,
+              notes: fullDeal.notes || [],
+            });
+            setSelectedDeal(fullDeal);
+          })
+          .catch(error => console.error('Erreur chargement détail deal:', error));
         // Nettoyer l'URL après avoir ouvert le deal
         router.replace('/dashboard/crm', { scroll: false });
       }
     }
   }, [searchParams, deals, router]);
 
-  // Synchroniser selectedDeal avec les données rafraîchies (mais garder metaLead)
+  // Synchroniser selectedDeal avec les données rafraîchies de la liste
   useEffect(() => {
     if (selectedDeal && deals.length > 0) {
       const updatedDeal = deals.find(d => d.id === selectedDeal.id);
-      if (updatedDeal) {
-        // Fusionner les données de la liste avec les données détaillées (metaLead, notes, etc.)
-        const mergedDeal = {
-          ...updatedDeal,
-          metaLead: selectedDeal.metaLead,
-          notes: selectedDeal.notes,
-        };
-        if (JSON.stringify(mergedDeal) !== JSON.stringify(selectedDeal)) {
-          setSelectedDeal(mergedDeal);
-        }
+      if (updatedDeal && JSON.stringify(updatedDeal) !== JSON.stringify(selectedDeal)) {
+        setSelectedDeal(updatedDeal);
       }
     }
   }, [deals]);
@@ -362,10 +369,16 @@ export default function CRMPage() {
     // Charger le détail complet du deal (avec metaLead)
     setIsSidebarOpen(true);
     setSelectedDeal(deal); // Afficher d'abord les données de base
+    setDealDetailData(null); // Réinitialiser les données détaillées
     try {
       const response = await fetch(`/api/deals/${deal.id}`);
       if (response.ok) {
         const fullDeal = await response.json();
+        // Stocker metaLead et notes dans un état séparé qui ne sera pas écrasé
+        setDealDetailData({
+          metaLead: fullDeal.metaLead || null,
+          notes: fullDeal.notes || [],
+        });
         setSelectedDeal(fullDeal);
       }
     } catch (error) {
@@ -1272,11 +1285,16 @@ export default function CRMPage() {
         {/* Deal Sidebar */}
         {selectedDeal && (
           <DealSidebar
-            deal={selectedDeal}
+            deal={{
+              ...selectedDeal,
+              metaLead: dealDetailData?.metaLead ?? selectedDeal.metaLead,
+              notes: dealDetailData?.notes ?? selectedDeal.notes,
+            }}
             isOpen={isSidebarOpen}
             onClose={() => {
               setIsSidebarOpen(false);
               setSelectedDeal(null);
+              setDealDetailData(null);
             }}
             onUpdate={mutate}
             onDelete={handleDeleteDeal}
