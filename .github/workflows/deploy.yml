@@ -16,7 +16,7 @@ jobs:
         host: 83.228.207.79
         username: ubuntu
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
+        port: 49125
         script: |
           echo "🚀 Déploiement de digibe.app sur Infomaniak..."
 
