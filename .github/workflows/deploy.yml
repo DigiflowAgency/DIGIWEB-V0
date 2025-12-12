@@ -59,7 +59,7 @@ jobs:
         host: 54.37.228.99
         username: ubuntu
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
+        port: 49148
         script: |
           echo "🚀 Déploiement de digibe.app sur OVH..."
 
