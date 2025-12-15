@@ -172,15 +172,17 @@ export default function AutoAssignModal({
     setCurrentUserIndex(0);
 
     const newAssignments: Assignment[] = [];
-    let userIndex = 0;
 
     // Traiter tous les leads en parallèle par lots de 5
+    // IMPORTANT: utiliser l'index global du lead pour un round-robin équitable
     const batchSize = 5;
     for (let i = 0; i < leads.length; i += batchSize) {
       const batch = leads.slice(i, Math.min(i + batchSize, leads.length));
 
       const batchPromises = batch.map(async (lead, batchIndex) => {
-        const assignUserIndex = (userIndex + batchIndex) % users.length;
+        // Utiliser l'index global (i + batchIndex) pour une distribution équitable
+        const globalLeadIndex = i + batchIndex;
+        const assignUserIndex = globalLeadIndex % users.length;
         const user = users[assignUserIndex];
 
         const success = await assignLead(lead.id, user.id);
@@ -198,8 +200,6 @@ export default function AutoAssignModal({
       newAssignments.push(...batchResults);
       setAssignments([...newAssignments]);
       setCurrentLeadIndex(Math.min(i + batchSize, leads.length));
-
-      userIndex = (userIndex + batch.length) % users.length;
 
       // Rafraîchir les stats
       if (onLeadAssigned) {
