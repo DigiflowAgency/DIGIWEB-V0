@@ -77,7 +77,20 @@ export async function GET(
         assignedToId: userId,
         scheduledAt: dateFilter,
       },
-      include: {
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        scheduledAt: true,
+        completedAt: true,
+        duration: true,
+        outcome: true,
+        resultNotes: true,
+        temperature: true,
+        budgetDiscussed: true,
+        decisionMaker: true,
+        mainObjection: true,
+        nextAction: true,
         deals: {
           select: {
             id: true,

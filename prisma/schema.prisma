@@ -27,24 +27,34 @@ model accounts {
 }
 
 model activities {
-  id            String              @id
-  title         String
-  description   String?             @db.Text
-  type          activities_type
-  status        activities_status   @default(PLANIFIEE)
-  priority      activities_priority @default(MOYENNE)
-  scheduledAt   DateTime
-  duration      Int?
-  completedAt   DateTime?
-  contactId     String?
-  dealId        String?
-  assignedToId  String
-  aircallCallId String?             @unique
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime
-  users         users               @relation(fields: [assignedToId], references: [id], onDelete: Cascade)
-  contacts      contacts?           @relation(fields: [contactId], references: [id])
-  deals         deals?              @relation(fields: [dealId], references: [id])
+  id              String              @id
+  title           String
+  description     String?             @db.Text
+  type            activities_type
+  status          activities_status   @default(PLANIFIEE)
+  priority        activities_priority @default(MOYENNE)
+  scheduledAt     DateTime
+  duration        Int?
+  completedAt     DateTime?
+  contactId       String?
+  dealId          String?
+  assignedToId    String
+  aircallCallId   String?             @unique
+  outcome         String?             // ANSWERED | VOICEMAIL | NO_ANSWER | CALLBACK | PROPOSAL_SENT
+  resultNotes     String?             @db.Text
+  // Champs qualification (NOUVEAU)
+  temperature     String?             // HOT | WARM | COLD
+  budgetDiscussed Boolean?
+  decisionMaker   Boolean?
+  mainObjection   String?             // PRICE | TIMING | COMPETITOR | NO_NEED | OTHER
+  // Champs prochaine action (NOUVEAU)
+  nextAction      String?             // CALLBACK | SEND_QUOTE | MEETING | FOLLOWUP | CLOSE
+  nextActionDate  DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime
+  users           users               @relation(fields: [assignedToId], references: [id], onDelete: Cascade)
+  contacts        contacts?           @relation(fields: [contactId], references: [id])
+  deals           deals?              @relation(fields: [dealId], references: [id])
 
   @@index([assignedToId])
   @@index([contactId])
@@ -230,6 +240,8 @@ model deals {
   probability        Int                      @default(50)
   expectedCloseDate  DateTime?
   closedAt           DateTime?
+  lostReason         String?                  // PRICE | TIMING | COMPETITOR | NO_BUDGET | NO_RESPONSE | OTHER
+  proposalSentAt     DateTime?                // Date envoi proposition
   contactId          String?
   companyId          String?
   ownerId            String
@@ -248,12 +260,32 @@ model deals {
   notes              notes[]
   deal_assignees     deal_assignees[]
   reminders          reminders[]
+  deal_documents     deal_documents[]
+  stage_history      deal_stage_history[]
 
   @@index([companyId])
   @@index([contactId])
   @@index([ownerId])
   @@index([stage])
   @@index([productionStage])
+}
+
+// Historique des changements de stage d'un deal
+model deal_stage_history {
+  id          String   @id @default(uuid())
+  dealId      String
+  fromStage   String
+  toStage     String
+  changedById String
+  notes       String?  @db.Text
+  changedAt   DateTime @default(now())
+
+  deal        deals    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  changedBy   users    @relation("StageChangedBy", fields: [changedById], references: [id])
+
+  @@index([dealId])
+  @@index([changedById])
+  @@index([changedAt])
 }
 
 // Table pivot pour assigner plusieurs utilisateurs à un deal
@@ -293,6 +325,24 @@ model reminders {
   @@index([userId])
   @@index([remindAt])
   @@index([isRead])
+}
+
+// Table pour les documents attachés aux deals
+model deal_documents {
+  id         String   @id @default(uuid())
+  dealId     String
+  name       String   // Nom du fichier original
+  fileUrl    String   // URL du fichier stocké
+  fileType   String   // Type MIME (application/pdf, etc.)
+  fileSize   Int      // Taille en bytes
+  uploadedBy String   // userId de l'uploader
+  uploadedAt DateTime @default(now())
+
+  deal deals @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  user users @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([dealId])
+  @@index([uploadedBy])
 }
 
 model email_campaigns {
@@ -744,7 +794,8 @@ model users {
   tickets_tickets_createdByIdTousers  tickets[]                   @relation("tickets_createdByIdTousers")
   users                               users?                      @relation("usersTousers", fields: [managerId], references: [id])
   other_users                         users[]                     @relation("usersTousers")
-  goals                               goals[]
+  goals                               goals[]                     @relation("GoalOwner")
+  assignedGoals                       goals[]                     @relation("GoalAssigner")
   checkins                            checkins[]
   internal_conversations              internal_conversations[]
   conversation_participants           conversation_participants[]
@@ -755,6 +806,8 @@ model users {
   sales_performance                   sales_performance[]
   meta_leads                          meta_leads[]        @relation("MetaLeadsAssignedTo")
   reminders                           reminders[]
+  deal_documents                      deal_documents[]
+  deal_stage_changes                  deal_stage_history[]        @relation("StageChangedBy")
 
   @@index([email])
   @@index([managerId])
@@ -826,12 +879,19 @@ model goals {
   completed    Boolean     @default(false)
   completedAt  DateTime?
   createdAt    DateTime    @default(now())
-  updatedAt    DateTime
-  users        users?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt    DateTime    @updatedAt
+
+  // Objectifs assignes par un admin a un commercial
+  assignedById String?     // ID de l'admin qui a assigne l'objectif
+  metricType   String?     // Type de metrique pour calcul auto (CA_MENSUEL, etc.)
+
+  users        users?      @relation("GoalOwner", fields: [userId], references: [id], onDelete: Cascade)
+  assignedBy   users?      @relation("GoalAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([type])
   @@index([completed])
+  @@index([assignedById])
 }
 
 model checkins {
@@ -1264,4 +1324,70 @@ model pipeline_stages {
 
   @@index([position])
   @@index([isActive])
+}
+
+// ============================================
+// ENTERPRISE OBJECTIVES (Objectifs Entreprise)
+// ============================================
+
+model enterprise_objectives {
+  id            String                @id @default(cuid())
+
+  // Type d'objectif predefini
+  metricType    ObjectiveMetricType
+
+  // Periode
+  period        ObjectivePeriod       @default(MONTHLY)
+  year          Int
+  month         Int?                  // 1-12 (null si quarterly/yearly)
+  quarter       Int?                  // 1-4 (null si monthly/yearly)
+
+  // Valeurs
+  targetValue   Float                 // Objectif cible
+  currentValue  Float                 @default(0) // Valeur actuelle (calculee auto)
+
+  // Metadata
+  title         String
+  description   String?               @db.Text
+  isActive      Boolean               @default(true)
+
+  // Timestamps
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  calculatedAt  DateTime?             // Derniere mise a jour auto
+
+  @@unique([metricType, period, year, month])
+  @@index([year, month])
+  @@index([metricType])
+  @@index([isActive])
+}
+
+enum ObjectiveMetricType {
+  CA_MENSUEL        // Chiffre d'affaires encaisse
+  CA_GENERE         // Chiffre d'affaires genere (deals signes)
+  NOUVEAUX_DEALS    // Nombre de nouveaux deals
+  RDV_REALISES      // Nombre de RDV effectues
+  APPELS_EFFECTUES  // Nombre d'appels passes
+  DEVIS_ENVOYES     // Nombre de devis envoyes
+  TAUX_CONVERSION   // Pourcentage conversion
+  CUSTOM            // Objectif personnalise
+}
+
+enum ObjectivePeriod {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+// ============================================
+// APP SETTINGS (Configuration globale)
+// ============================================
+
+model app_settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
 }
