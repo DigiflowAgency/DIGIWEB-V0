@@ -67,6 +67,7 @@ const navigationCategories: NavCategory[] = [
     adminOnly: true,
     subItems: [
       { name: 'Vue d\'ensemble', href: '/dashboard/analytics', icon: BarChart3, adminOnly: true },
+      { name: 'Commerciaux', href: '/dashboard/analytics/commerciaux', icon: Users, adminOnly: true },
     ],
   },
   {

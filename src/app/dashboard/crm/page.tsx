@@ -1,13 +1,13 @@
 'use client';
 
-import { Plus, Mail, MapPin, Euro, Loader2, LayoutGrid, List as ListIcon, User, Building2, Phone, MessageSquare, Search, Settings2, Check, Eye, EyeOff, TrendingUp, Target, Calendar, BarChart3, Settings, Palette, X } from 'lucide-react';
+import { Plus, Mail, MapPin, Euro, Loader2, LayoutGrid, List as ListIcon, User, Building2, Phone, MessageSquare, Search, Settings2, Check, Eye, EyeOff, TrendingUp, Target, Calendar, BarChart3, Settings, Palette, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useMemo } from 'react';
 import { useDeals, useDealMutations } from '@/hooks/useDeals';
 import { useStages } from '@/hooks/useStages';
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Modal from '@/components/Modal';
-import DealSidebar from '@/components/DealSidebar';
+import DealSidebar from '@/components/deal-sidebar';
 import StageSettingsModal from '@/components/StageSettingsModal';
 
 // Les stages sont maintenant dynamiques via useStages()
@@ -59,6 +59,12 @@ export default function CRMPage() {
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
   const [isColumnsMenuOpen, setIsColumnsMenuOpen] = useState(false);
   const columnsMenuRef = useRef<HTMLDivElement>(null);
+
+  // État pour tri et filtre par montant
+  const [sortBy, setSortBy] = useState<'value' | 'createdAt' | 'updatedAt' | 'expectedCloseDate'>('value');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [minValue, setMinValue] = useState<string>('');
+  const [maxValue, setMaxValue] = useState<string>('');
 
   // État pour le code couleur par montant (partagé avec Pipeline)
   const [colorThreshold, setColorThreshold] = useState<number>(3000);
@@ -179,10 +185,17 @@ export default function CRMPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Hook avec filtre par utilisateurs et recherche
+  // Vérifier si des filtres montant sont actifs
+  const hasAmountFilters = minValue !== '' || maxValue !== '';
+
+  // Hook avec filtre par utilisateurs, recherche, tri et filtre montant
   const { deals: rawDeals, isLoading, isError, mutate } = useDeals({
     ownerIds: selectedOwnerIds.length > 0 ? selectedOwnerIds : undefined,
     search: debouncedSearch || undefined,
+    sortBy,
+    sortOrder,
+    minValue: minValue !== '' ? parseFloat(minValue) : undefined,
+    maxValue: maxValue !== '' ? parseFloat(maxValue) : undefined,
   });
 
   // Filtrage côté client par produit
@@ -495,10 +508,10 @@ export default function CRMPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Rechercher un prospect..."
+                  placeholder="Rechercher par nom, email, téléphone, entreprise..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="pl-10 pr-8 py-2 w-80 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 />
                 {searchQuery && (
                   <button
@@ -601,6 +614,64 @@ export default function CRMPage() {
                   )}
                 </div>
               )}
+
+              {/* Tri par montant */}
+              <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-2">
+                <ArrowUpDown className="h-4 w-4 text-gray-500" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  className="border-0 bg-transparent text-sm font-medium text-gray-700 focus:ring-0 cursor-pointer"
+                >
+                  <option value="value">Montant</option>
+                  <option value="createdAt">Date création</option>
+                  <option value="updatedAt">Date MAJ</option>
+                  <option value="expectedCloseDate">Date clôture</option>
+                </select>
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  title={sortOrder === 'asc' ? 'Croissant' : 'Décroissant'}
+                >
+                  {sortOrder === 'asc' ? (
+                    <ArrowUp className="h-4 w-4 text-violet-600" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-violet-600" />
+                  )}
+                </button>
+              </div>
+
+              {/* Filtre par montant */}
+              <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-2">
+                <Euro className="h-4 w-4 text-gray-500" />
+                <input
+                  type="number"
+                  value={minValue}
+                  onChange={(e) => setMinValue(e.target.value)}
+                  placeholder="Min"
+                  className="w-16 border-0 bg-transparent text-sm text-gray-700 focus:ring-0 placeholder:text-gray-400"
+                />
+                <span className="text-gray-400">-</span>
+                <input
+                  type="number"
+                  value={maxValue}
+                  onChange={(e) => setMaxValue(e.target.value)}
+                  placeholder="Max"
+                  className="w-16 border-0 bg-transparent text-sm text-gray-700 focus:ring-0 placeholder:text-gray-400"
+                />
+                {hasAmountFilters && (
+                  <button
+                    onClick={() => {
+                      setMinValue('');
+                      setMaxValue('');
+                    }}
+                    className="p-1 hover:bg-red-100 rounded transition-colors"
+                    title="Réinitialiser les filtres"
+                  >
+                    <X className="h-4 w-4 text-red-500" />
+                  </button>
+                )}
+              </div>
 
               {/* Bouton Paramètres Pipeline (admin) */}
               <button

@@ -241,11 +241,15 @@ export async function PUT(
     // Préparer les données de mise à jour
     const updateData: Prisma.dealsUpdateInput = { ...validatedData };
 
-    // Si le stage devient CLOSING ou REFUSE, définir closedAt
+    // Gestion de closedAt selon le stage
     if (validatedData.stage === 'CLOSING' || validatedData.stage === 'REFUSE') {
+      // Si le stage devient CLOSING ou REFUSE, définir closedAt
       if (!existingDeal.closedAt) {
         updateData.closedAt = new Date();
       }
+    } else if (validatedData.stage) {
+      // Si on sort de CLOSING/REFUSE vers un autre stage, effacer closedAt
+      updateData.closedAt = null;
     }
 
     // Convertir expectedCloseDate si présent
@@ -289,8 +293,18 @@ export async function PUT(
       },
     });
 
-    // Notifications selon le changement de stage
+    // Historique et notifications selon le changement de stage
     if (validatedData.stage && validatedData.stage !== existingDeal.stage) {
+      // Créer l'entrée dans l'historique des stages
+      await prisma.deal_stage_history.create({
+        data: {
+          dealId: params.id,
+          fromStage: existingDeal.stage,
+          toStage: validatedData.stage,
+          changedById: session.user.id,
+        },
+      });
+
       const actorName = session.user.name || session.user.email;
       const assigneeIds = updatedDeal.deal_assignees.map((a: { userId: string }) => a.userId);
       const recipients = [updatedDeal.ownerId, ...assigneeIds];
@@ -382,9 +396,15 @@ export async function PATCH(
       updateData.stage = body.stage;
       // Calculer automatiquement la probabilité selon la nouvelle étape
       updateData.probability = getProbabilityByStage(body.stage);
-      // Si le stage devient CLOSING ou REFUSE, définir closedAt
-      if ((body.stage === 'CLOSING' || body.stage === 'REFUSE') && !existingDeal.closedAt) {
-        updateData.closedAt = new Date();
+      // Gestion de closedAt selon le stage
+      if (body.stage === 'CLOSING' || body.stage === 'REFUSE') {
+        // Si le stage devient CLOSING ou REFUSE, définir closedAt
+        if (!existingDeal.closedAt) {
+          updateData.closedAt = new Date();
+        }
+      } else {
+        // Si on sort de CLOSING/REFUSE vers un autre stage, effacer closedAt
+        updateData.closedAt = null;
       }
     }
 
@@ -440,8 +460,18 @@ export async function PATCH(
       },
     });
 
-    // Notifications selon le changement de stage
+    // Historique et notifications selon le changement de stage
     if ('stage' in body && body.stage !== existingDeal.stage) {
+      // Créer l'entrée dans l'historique des stages
+      await prisma.deal_stage_history.create({
+        data: {
+          dealId: params.id,
+          fromStage: existingDeal.stage,
+          toStage: body.stage,
+          changedById: session.user.id,
+        },
+      });
+
       const actorName = session.user.name || session.user.email;
       const assigneeIds = updatedDeal.deal_assignees.map((a: { userId: string }) => a.userId);
       const recipients = [updatedDeal.ownerId, ...assigneeIds];

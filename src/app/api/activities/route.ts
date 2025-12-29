@@ -14,9 +14,21 @@ const activitySchema = z.object({
   status: z.enum(['PLANIFIEE', 'COMPLETEE', 'ANNULEE']).default('PLANIFIEE'),
   priority: z.enum(['HAUTE', 'MOYENNE', 'BASSE']).default('MOYENNE'),
   scheduledAt: z.string().datetime(),
+  completedAt: z.string().datetime().optional().nullable(),
   duration: z.number().int().positive().optional().nullable(),
   contactId: z.string().optional().nullable(),
   dealId: z.string().optional().nullable(),
+  // Champs outcome et notes
+  outcome: z.enum(['ANSWERED', 'VOICEMAIL', 'NO_ANSWER', 'CALLBACK', 'PROPOSAL_SENT']).optional().nullable(),
+  resultNotes: z.string().optional().nullable(),
+  // Champs qualification
+  temperature: z.enum(['HOT', 'WARM', 'COLD']).optional().nullable(),
+  budgetDiscussed: z.boolean().optional().nullable(),
+  decisionMaker: z.boolean().optional().nullable(),
+  mainObjection: z.enum(['PRICE', 'TIMING', 'COMPETITOR', 'NO_NEED', 'OTHER']).optional().nullable(),
+  // Champs prochaine action
+  nextAction: z.enum(['CALLBACK', 'SEND_QUOTE', 'MEETING', 'FOLLOWUP', 'CLOSE']).optional().nullable(),
+  nextActionDate: z.string().datetime().optional().nullable(),
 });
 
 // GET /api/activities - Liste toutes les activités
@@ -198,9 +210,13 @@ export async function POST(request: NextRequest) {
     // Créer l'activité
     const activity = await prisma.activities.create({
       data: {
+        id: `activity_${Date.now()}`,
         ...validatedData,
         scheduledAt: new Date(validatedData.scheduledAt),
-        assignedToId: session.user.id, // Assigner au user connecté
+        completedAt: validatedData.completedAt ? new Date(validatedData.completedAt) : null,
+        nextActionDate: validatedData.nextActionDate ? new Date(validatedData.nextActionDate) : null,
+        assignedToId: session.user.id,
+        updatedAt: new Date(),
       } as any,
       include: {
         contacts: {

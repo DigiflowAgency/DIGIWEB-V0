@@ -13,14 +13,17 @@ const goalSchema = z.object({
   currentValue: z.number().optional().default(0),
   deadline: z.string().optional().nullable(),
   completed: z.boolean().optional().default(false),
+  // Nouveau: assignation a un utilisateur specifique
+  assignToUserId: z.string().optional().nullable(),
+  metricType: z.string().optional().nullable(),
 });
 
-// GET /api/goals - Récupérer tous les objectifs
+// GET /api/goals - Recuperer tous les objectifs
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      return NextResponse.json({ error: 'Non autorise' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -29,15 +32,15 @@ export async function GET(request: NextRequest) {
     // Construire la query
     const where: any = {};
 
-    // Les objectifs système sont visibles par tous
-    // Les objectifs personnels sont visibles uniquement par leur créateur
+    // Les objectifs systeme sont visibles par tous
+    // Les objectifs personnels (y compris assignes) sont visibles uniquement par leur proprietaire
     if (type === 'PERSONAL') {
       where.type = 'PERSONAL';
       where.userId = session.user.id;
     } else if (type === 'SYSTEM') {
       where.type = 'SYSTEM';
     } else {
-      // Par défaut, montrer les objectifs système + les objectifs personnels de l'utilisateur
+      // Par defaut, montrer les objectifs systeme + les objectifs personnels/assignes de l'utilisateur
       where.OR = [
         { type: 'SYSTEM' },
         { type: 'PERSONAL', userId: session.user.id },
@@ -48,6 +51,14 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         users: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        assignedBy: {
           select: {
             id: true,
             firstName: true,
@@ -73,26 +84,47 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/goals - Créer un nouvel objectif
+// POST /api/goals - Creer un nouvel objectif
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      return NextResponse.json({ error: 'Non autorise' }, { status: 401 });
     }
 
     const body = await request.json();
     const validatedData = goalSchema.parse(body);
 
-    // Vérifier les permissions
+    // Verifier les permissions
     if (validatedData.type === 'SYSTEM' && session.user.role !== 'ADMIN') {
       return NextResponse.json(
-        { error: 'Seuls les administrateurs peuvent créer des objectifs système' },
+        { error: 'Seuls les administrateurs peuvent creer des objectifs systeme' },
         { status: 403 }
       );
     }
 
-    // Créer l'objectif
+    // Si on assigne a un utilisateur, verifier que c'est un admin
+    if (validatedData.assignToUserId && session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Seuls les administrateurs peuvent assigner des objectifs' },
+        { status: 403 }
+      );
+    }
+
+    // Determiner le userId
+    let targetUserId = null;
+    let assignedById = null;
+
+    if (validatedData.assignToUserId) {
+      // Objectif assigne par un admin a un commercial
+      targetUserId = validatedData.assignToUserId;
+      assignedById = session.user.id;
+    } else if (validatedData.type === 'PERSONAL') {
+      // Objectif personnel cree par l'utilisateur lui-meme
+      targetUserId = session.user.id;
+    }
+
+    // Creer l'objectif
     const goal = await prisma.goals.create({
       data: {
         id: `GOAL-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -103,10 +135,20 @@ export async function POST(request: NextRequest) {
         currentValue: validatedData.currentValue || 0,
         deadline: validatedData.deadline ? new Date(validatedData.deadline) : null,
         completed: validatedData.completed || false,
-        userId: validatedData.type === 'PERSONAL' ? session.user.id : null,
-      } as any,
+        userId: targetUserId,
+        assignedById: assignedById,
+        metricType: validatedData.metricType || null,
+      },
       include: {
         users: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        assignedBy: {
           select: {
             id: true,
             firstName: true,
@@ -117,13 +159,27 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Si l'objectif est assigne, envoyer une notification
+    if (validatedData.assignToUserId && assignedById) {
+      await prisma.notifications.create({
+        data: {
+          id: `NOTIF-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          userId: validatedData.assignToUserId,
+          type: 'SYSTEM',
+          title: 'Nouvel objectif assigne',
+          message: `${session.user.name || 'Un administrateur'} vous a assigne un nouvel objectif: "${validatedData.title}"${validatedData.targetValue ? ` (Cible: ${validatedData.targetValue})` : ''}`,
+          link: '/dashboard/objectives',
+        },
+      });
+    }
+
     return NextResponse.json(goal, { status: 201 });
   } catch (error) {
     console.error('Erreur POST /api/goals:', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Données invalides', details: error.issues },
+        { error: 'Donnees invalides', details: error.issues },
         { status: 400 }
       );
     }

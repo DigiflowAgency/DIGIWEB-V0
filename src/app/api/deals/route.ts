@@ -60,14 +60,31 @@ export async function GET(request: NextRequest) {
     // Construire la query Prisma
     const where: Prisma.dealsWhereInput = {};
 
-    // Filtre par texte de recherche
+    // Filtre par texte de recherche (recherche étendue)
     if (search) {
       where.OR = [
+        // Deal fields
         { title: { contains: search } },
         { description: { contains: search } },
+        { product: { contains: search } },
+        { comments: { contains: search } },
+        { origin: { contains: search } },
+
+        // Contact fields
         { contacts: { firstName: { contains: search } } },
         { contacts: { lastName: { contains: search } } },
+        { contacts: { email: { contains: search } } },
+        { contacts: { phone: { contains: search } } },
+        { contacts: { city: { contains: search } } },
+        { contacts: { position: { contains: search } } },
+
+        // Company fields
         { companies: { name: { contains: search } } },
+        { companies: { city: { contains: search } } },
+        { companies: { siret: { contains: search } } },
+        { companies: { website: { contains: search } } },
+        { companies: { phone: { contains: search } } },
+        { companies: { email: { contains: search } } },
       ];
     }
 

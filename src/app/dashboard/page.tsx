@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useDeals } from '@/hooks/useDeals';
 import { useActivities } from '@/hooks/useActivities';
-import { useGoals } from '@/hooks/useGoals';
+import { useEnterpriseObjectives, METRIC_TYPE_LABELS } from '@/hooks/useEnterpriseObjectives';
 
 type PeriodType = '7d' | '30d' | '90d' | 'year' | 'all';
 
@@ -185,7 +185,14 @@ export default function DashboardPage() {
 
   const { deals, isLoading: dealsLoading, isError: dealsError } = useDeals(dealsParams);
   const { activities, isLoading: activitiesLoading, isError: activitiesError } = useActivities(activitiesParams);
-  const { goals, isLoading: goalsLoading } = useGoals();
+
+  // Enterprise objectives - current month
+  const currentDate = new Date();
+  const { objectives, isLoading: objectivesLoading } = useEnterpriseObjectives({
+    year: currentDate.getFullYear(),
+    month: currentDate.getMonth() + 1,
+    period: 'MONTHLY',
+  });
 
   // Calculer les stats principales basées sur la période sélectionnée
   const stats = useMemo(() => {
@@ -383,60 +390,42 @@ export default function DashboardPage() {
     });
   }, [deals, activities]);
 
-  // Objectifs mensuels - récupérés depuis l'API avec fallback sur valeurs par défaut
+  // Objectifs mensuels - récupérés depuis enterprise_objectives avec calcul automatique
   const monthlyGoals = useMemo(() => {
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
+    // Utiliser les objectifs entreprise avec leurs valeurs calculées automatiquement
+    const findObjective = (metricType: string) =>
+      objectives.find(o => o.metricType === metricType);
 
-    // CA = Deals encaissés ce mois
-    const wonDealsThisMonth = deals.filter(
-      d => d.productionStage === 'ENCAISSE' && d.closedAt && new Date(d.closedAt) >= monthStart
-    );
-    const caThisMonth = wonDealsThisMonth.reduce((sum, d) => sum + d.value, 0);
-
-    // Nouveaux deals = TOUS les deals créés ce mois (pas seulement les gagnés)
-    const newDealsThisMonth = deals.filter(
-      d => new Date(d.createdAt) >= monthStart
-    ).length;
-
-    // RDV réalisés = Deals passés par RDV_PRIS ce mois
-    const rdvStages = ['RDV_PRIS', 'NEGO_HOT', 'CLOSING'];
-    const rdvThisMonth = deals.filter(
-      d => rdvStages.includes(d.stage) && new Date(d.createdAt) >= monthStart
-    ).length;
-
-    // Récupérer les objectifs depuis l'API (par titre)
-    const findGoalTarget = (titlePattern: string, defaultValue: number): number => {
-      const goal = goals.find(g =>
-        g.title.toLowerCase().includes(titlePattern.toLowerCase())
-      );
-      return goal?.targetValue ?? defaultValue;
-    };
+    const caObjective = findObjective('CA_MENSUEL');
+    const dealsObjective = findObjective('NOUVEAUX_DEALS');
+    const rdvObjective = findObjective('RDV_REALISES');
 
     return [
       {
         name: 'CA Mensuel',
-        current: caThisMonth,
-        target: findGoalTarget('ca', 60000),
+        current: caObjective?.currentValue || 0,
+        target: caObjective?.targetValue || 60000,
         unit: '€',
+        percentage: caObjective?.percentage || 0,
       },
       {
         name: 'Nouveaux Deals',
-        current: newDealsThisMonth,
-        target: findGoalTarget('deal', 12),
+        current: dealsObjective?.currentValue || 0,
+        target: dealsObjective?.targetValue || 12,
         unit: 'deals',
+        percentage: dealsObjective?.percentage || 0,
       },
       {
-        name: 'RDV Réalisés',
-        current: rdvThisMonth,
-        target: findGoalTarget('rdv', 30),
+        name: 'RDV Realises',
+        current: rdvObjective?.currentValue || 0,
+        target: rdvObjective?.targetValue || 30,
         unit: 'RDV',
+        percentage: rdvObjective?.percentage || 0,
       },
     ];
-  }, [deals, goals]);
+  }, [objectives]);
 
-  if (dealsLoading || activitiesLoading || goalsLoading) {
+  if (dealsLoading || activitiesLoading || objectivesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
@@ -803,7 +792,7 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-6">
               {monthlyGoals.map((goal, index) => {
-                const percentage = Math.round((goal.current / goal.target) * 100);
+                const percentage = goal.percentage || Math.round((goal.current / goal.target) * 100);
                 return (
                   <motion.div
                     key={goal.name}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { X, Play, CheckCircle, Loader2, Users, Shuffle, Zap } from 'lucide-react';
 import SpinWheel from './spin-wheel';
 
@@ -49,10 +49,13 @@ export default function AutoAssignModal({
   const [isSpinning, setIsSpinning] = useState(false);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isComplete, setIsComplete] = useState(false);
+  const [wheelStartPosition, setWheelStartPosition] = useState(0);
+  const [isLoadingPosition, setIsLoadingPosition] = useState(false);
 
   // Refs pour éviter les problèmes de closure
   const currentLeadIndexRef = useRef(0);
   const currentUserIndexRef = useRef(0);
+  const wheelStartPositionRef = useRef(0);
   const leadsRef = useRef(leads);
   const usersRef = useRef(users);
 
@@ -62,6 +65,43 @@ export default function AutoAssignModal({
 
   const onLeadAssignedRef = useRef(onLeadAssigned);
   onLeadAssignedRef.current = onLeadAssigned;
+
+  // Charger la position de la roue au demarrage
+  useEffect(() => {
+    if (isOpen && !isRunning && !isComplete) {
+      setIsLoadingPosition(true);
+      fetch('/api/settings/wheel-position')
+        .then((r) => r.json())
+        .then((data) => {
+          const position = data.position || 0;
+          setWheelStartPosition(position);
+          wheelStartPositionRef.current = position;
+          setCurrentUserIndex(position % users.length);
+          currentUserIndexRef.current = position % users.length;
+        })
+        .catch((err) => {
+          console.error('Erreur chargement position roue:', err);
+          setWheelStartPosition(0);
+          wheelStartPositionRef.current = 0;
+        })
+        .finally(() => {
+          setIsLoadingPosition(false);
+        });
+    }
+  }, [isOpen, users.length, isRunning, isComplete]);
+
+  // Sauvegarder la nouvelle position apres attribution
+  const saveWheelPosition = async (newPosition: number) => {
+    try {
+      await fetch('/api/settings/wheel-position', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ position: newPosition }),
+      });
+    } catch (err) {
+      console.error('Erreur sauvegarde position roue:', err);
+    }
+  };
 
   const assignLead = async (leadId: string, userId: string) => {
     try {
@@ -134,7 +174,9 @@ export default function AutoAssignModal({
         setIsSpinning(true);
       }, 50);
     } else {
-      // Terminé
+      // Terminé - sauvegarder la nouvelle position de la roue
+      const newPosition = (wheelStartPositionRef.current + currentLeads.length) % currentUsers.length;
+      saveWheelPosition(newPosition);
       setIsComplete(true);
       setIsRunning(false);
     }
@@ -145,16 +187,18 @@ export default function AutoAssignModal({
   }, [processNextLead]);
 
   const handleStart = () => {
-    // Réinitialiser les refs et états
+    // Réinitialiser les refs et états avec la position persistante
     currentLeadIndexRef.current = 0;
-    currentUserIndexRef.current = 0;
+    // Utiliser la position de depart sauvegardee
+    const startUserIdx = wheelStartPosition % users.length;
+    currentUserIndexRef.current = startUserIdx;
 
     setIsRunning(true);
     setIsBatchMode(false);
     setIsComplete(false);
     setAssignments([]);
     setCurrentLeadIndex(0);
-    setCurrentUserIndex(0);
+    setCurrentUserIndex(startUserIdx);
 
     // Lancer le premier spin
     setTimeout(() => {
@@ -169,20 +213,23 @@ export default function AutoAssignModal({
     setIsComplete(false);
     setAssignments([]);
     setCurrentLeadIndex(0);
-    setCurrentUserIndex(0);
+
+    // Utiliser la position de depart sauvegardee pour une distribution equitable
+    const startPosition = wheelStartPosition % users.length;
+    setCurrentUserIndex(startPosition);
 
     const newAssignments: Assignment[] = [];
 
     // Traiter tous les leads en parallèle par lots de 5
-    // IMPORTANT: utiliser l'index global du lead pour un round-robin équitable
+    // IMPORTANT: utiliser la position de depart + index global pour un round-robin equitable
     const batchSize = 5;
     for (let i = 0; i < leads.length; i += batchSize) {
       const batch = leads.slice(i, Math.min(i + batchSize, leads.length));
 
       const batchPromises = batch.map(async (lead, batchIndex) => {
-        // Utiliser l'index global (i + batchIndex) pour une distribution équitable
+        // Utiliser startPosition + index global pour une distribution equitable
         const globalLeadIndex = i + batchIndex;
-        const assignUserIndex = globalLeadIndex % users.length;
+        const assignUserIndex = (startPosition + globalLeadIndex) % users.length;
         const user = users[assignUserIndex];
 
         const success = await assignLead(lead.id, user.id);
@@ -206,6 +253,10 @@ export default function AutoAssignModal({
         onLeadAssigned();
       }
     }
+
+    // Sauvegarder la nouvelle position de la roue pour les prochaines attributions
+    const newPosition = (startPosition + leads.length) % users.length;
+    await saveWheelPosition(newPosition);
 
     setIsComplete(true);
     setIsRunning(false);
@@ -394,16 +445,35 @@ export default function AutoAssignModal({
             </>
           ) : (
             <>
-              <button
-                onClick={handleClose}
-                className="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                Annuler
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleClose}
+                  className="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Annuler
+                </button>
+                {/* Indicateur du prochain commercial */}
+                {!isLoadingPosition && users.length >= 2 && (
+                  <div className="text-sm text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">
+                    Prochain: <span className="font-semibold text-violet-600">
+                      {users[wheelStartPosition % users.length]?.firstName}
+                    </span>
+                    <span className="text-gray-400 ml-1">
+                      (pos {(wheelStartPosition % users.length) + 1}/{users.length})
+                    </span>
+                  </div>
+                )}
+                {isLoadingPosition && (
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Chargement...
+                  </div>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleBatchStart}
-                  disabled={leads.length === 0}
+                  disabled={leads.length === 0 || isLoadingPosition}
                   className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Attribution rapide sans animation"
                 >
@@ -412,7 +482,7 @@ export default function AutoAssignModal({
                 </button>
                 <button
                   onClick={handleStart}
-                  disabled={users.length < 2 || leads.length === 0}
+                  disabled={users.length < 2 || leads.length === 0 || isLoadingPosition}
                   className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-lg hover:from-blue-700 hover:to-violet-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Play className="h-5 w-5" />
