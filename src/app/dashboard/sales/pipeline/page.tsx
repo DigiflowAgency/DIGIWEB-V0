@@ -10,7 +10,12 @@ import {
   Activity,
   ChevronRight,
   Loader2,
-  Filter
+  Filter,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  X,
+  Palette
 } from 'lucide-react';
 import { useDeals } from '@/hooks/useDeals';
 import { useRouter } from 'next/navigation';
@@ -49,6 +54,74 @@ export default function PipelinePage() {
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [users, setUsers] = useState<any[]>([]);
 
+  // États pour tri et filtre par montant
+  const [sortBy, setSortBy] = useState<'value' | 'createdAt' | 'updatedAt' | 'expectedCloseDate'>('value');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [minValue, setMinValue] = useState<string>('');
+  const [maxValue, setMaxValue] = useState<string>('');
+
+  // État pour le seuil et couleurs configurables
+  const [colorThreshold, setColorThreshold] = useState<number>(3000);
+  const [lowColor, setLowColor] = useState<string>('blue'); // < seuil
+  const [highColor, setHighColor] = useState<string>('violet'); // >= seuil
+  const [showColorModal, setShowColorModal] = useState(false);
+  const [tempThreshold, setTempThreshold] = useState<string>('3000');
+  const [tempLowColor, setTempLowColor] = useState<string>('blue');
+  const [tempHighColor, setTempHighColor] = useState<string>('violet');
+
+  // Options de couleurs disponibles
+  const colorOptions = [
+    { id: 'blue', label: 'Bleu', border: 'border-l-blue-500', bg: 'bg-blue-50', preview: 'bg-blue-500' },
+    { id: 'violet', label: 'Violet', border: 'border-l-violet-500', bg: 'bg-violet-50', preview: 'bg-violet-500' },
+    { id: 'green', label: 'Vert', border: 'border-l-green-500', bg: 'bg-green-50', preview: 'bg-green-500' },
+    { id: 'orange', label: 'Orange', border: 'border-l-orange-500', bg: 'bg-orange-50', preview: 'bg-orange-500' },
+    { id: 'pink', label: 'Rose', border: 'border-l-pink-500', bg: 'bg-pink-50', preview: 'bg-pink-500' },
+    { id: 'yellow', label: 'Jaune', border: 'border-l-yellow-500', bg: 'bg-yellow-50', preview: 'bg-yellow-500' },
+    { id: 'red', label: 'Rouge', border: 'border-l-red-500', bg: 'bg-red-50', preview: 'bg-red-500' },
+    { id: 'gray', label: 'Gris', border: 'border-l-gray-500', bg: 'bg-gray-50', preview: 'bg-gray-500' },
+  ];
+
+  // Charger les paramètres depuis localStorage
+  useEffect(() => {
+    const savedThreshold = localStorage.getItem('dealColorThreshold');
+    const savedLowColor = localStorage.getItem('dealLowColor');
+    const savedHighColor = localStorage.getItem('dealHighColor');
+    if (savedThreshold) {
+      setColorThreshold(Number(savedThreshold));
+      setTempThreshold(savedThreshold);
+    }
+    if (savedLowColor) {
+      setLowColor(savedLowColor);
+      setTempLowColor(savedLowColor);
+    }
+    if (savedHighColor) {
+      setHighColor(savedHighColor);
+      setTempHighColor(savedHighColor);
+    }
+  }, []);
+
+  // Sauvegarder les paramètres de couleur
+  const saveColorSettings = () => {
+    const threshold = Number(tempThreshold) || 3000;
+    setColorThreshold(threshold);
+    setLowColor(tempLowColor);
+    setHighColor(tempHighColor);
+    localStorage.setItem('dealColorThreshold', String(threshold));
+    localStorage.setItem('dealLowColor', tempLowColor);
+    localStorage.setItem('dealHighColor', tempHighColor);
+    setShowColorModal(false);
+  };
+
+  // Fonction pour obtenir la couleur selon le montant
+  const getDealColor = (value: number) => {
+    const colorConfig = value < colorThreshold
+      ? colorOptions.find(c => c.id === lowColor)
+      : colorOptions.find(c => c.id === highColor);
+    return colorConfig
+      ? `border-l-4 ${colorConfig.border} ${colorConfig.bg}`
+      : 'border-l-4 border-l-gray-300 bg-gray-50';
+  };
+
   // Charger la liste des utilisateurs (pour les admins)
   useEffect(() => {
     if (isAdmin) {
@@ -65,15 +138,41 @@ export default function PipelinePage() {
 
   // Préparer les paramètres pour useDeals
   const dealsParams = useMemo(() => {
-    if (!isAdmin) return {};
+    const params: {
+      showAll?: boolean;
+      ownerId?: string;
+      sortBy?: 'value' | 'createdAt' | 'updatedAt' | 'expectedCloseDate';
+      sortOrder?: 'asc' | 'desc';
+      minValue?: number;
+      maxValue?: number;
+    } = {};
 
-    if (filterMode === 'all') {
-      return { showAll: true };
-    } else if (filterMode === 'user' && selectedUserId) {
-      return { ownerId: selectedUserId };
+    // Filtre admin (propriétaire)
+    if (isAdmin) {
+      if (filterMode === 'all') {
+        params.showAll = true;
+      } else if (filterMode === 'user' && selectedUserId) {
+        params.ownerId = selectedUserId;
+      }
     }
-    return {}; // 'mine' = pas de paramètres = mes deals
-  }, [isAdmin, filterMode, selectedUserId]);
+
+    // Tri
+    params.sortBy = sortBy;
+    params.sortOrder = sortOrder;
+
+    // Filtre par montant
+    if (minValue !== '') {
+      params.minValue = parseFloat(minValue);
+    }
+    if (maxValue !== '') {
+      params.maxValue = parseFloat(maxValue);
+    }
+
+    return params;
+  }, [isAdmin, filterMode, selectedUserId, sortBy, sortOrder, minValue, maxValue]);
+
+  // Vérifier si des filtres sont actifs
+  const hasActiveFilters = minValue !== '' || maxValue !== '';
 
   const { deals, isLoading, isError } = useDeals(dealsParams);
 
@@ -91,18 +190,23 @@ export default function PipelinePage() {
   }, [deals]);
 
   const recentDeals = useMemo(() => {
-    return deals
-      .filter(d => d.stage !== 'CLOSING')
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      .slice(0, 8)
-      .map(d => ({
-        ...d,
-        daysInStage: getDaysInStage(d.updatedAt),
-        trend: d.probability >= 70 ? 'up' as const : d.probability <= 40 ? 'down' as const : 'stable' as const,
-        contactName: d.contacts ? `${d.contacts.firstName} ${d.contacts.lastName}` : 'N/A',
-        companyName: d.companies?.name || d.title,
-      }));
-  }, [deals]);
+    // Filtrer les deals non-closing
+    let filteredDeals = deals.filter(d => d.stage !== 'CLOSING');
+
+    // Si pas de filtre montant actif, limiter à 8 deals
+    // Sinon afficher tous les deals filtrés
+    if (!hasActiveFilters) {
+      filteredDeals = filteredDeals.slice(0, 8);
+    }
+
+    return filteredDeals.map(d => ({
+      ...d,
+      daysInStage: getDaysInStage(d.updatedAt),
+      trend: d.probability >= 70 ? 'up' as const : d.probability <= 40 ? 'down' as const : 'stable' as const,
+      contactName: d.contacts ? `${d.contacts.firstName} ${d.contacts.lastName}` : 'N/A',
+      companyName: d.companies?.name || d.title,
+    }));
+  }, [deals, hasActiveFilters]);
 
   const conversionRates = useMemo(() => {
     return stageConfig.slice(0, -1).map((stage, index) => {
@@ -169,7 +273,7 @@ export default function PipelinePage() {
               </h1>
               <p className="text-gray-600 mt-1">Visualisez et optimisez votre pipeline commercial</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               {isAdmin && (
                 <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-2">
                   <Filter className="h-4 w-4 text-gray-500" />
@@ -204,6 +308,79 @@ export default function PipelinePage() {
                   )}
                 </div>
               )}
+
+              {/* Tri par */}
+              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-2">
+                <ArrowUpDown className="h-4 w-4 text-gray-500" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  className="border-0 bg-transparent text-sm font-medium text-gray-700 focus:ring-0 cursor-pointer"
+                >
+                  <option value="value">Montant</option>
+                  <option value="createdAt">Date création</option>
+                  <option value="updatedAt">Date MAJ</option>
+                  <option value="expectedCloseDate">Date clôture</option>
+                </select>
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  title={sortOrder === 'asc' ? 'Croissant' : 'Décroissant'}
+                >
+                  {sortOrder === 'asc' ? (
+                    <ArrowUp className="h-4 w-4 text-orange-600" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-orange-600" />
+                  )}
+                </button>
+              </div>
+
+              {/* Filtre par montant */}
+              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-2">
+                <Euro className="h-4 w-4 text-gray-500" />
+                <input
+                  type="number"
+                  value={minValue}
+                  onChange={(e) => setMinValue(e.target.value)}
+                  placeholder="Min"
+                  className="w-20 border-0 bg-transparent text-sm text-gray-700 focus:ring-0 placeholder:text-gray-400"
+                />
+                <span className="text-gray-400">-</span>
+                <input
+                  type="number"
+                  value={maxValue}
+                  onChange={(e) => setMaxValue(e.target.value)}
+                  placeholder="Max"
+                  className="w-20 border-0 bg-transparent text-sm text-gray-700 focus:ring-0 placeholder:text-gray-400"
+                />
+                {hasActiveFilters && (
+                  <button
+                    onClick={() => {
+                      setMinValue('');
+                      setMaxValue('');
+                    }}
+                    className="p-1 hover:bg-red-100 rounded transition-colors"
+                    title="Réinitialiser les filtres"
+                  >
+                    <X className="h-4 w-4 text-red-500" />
+                  </button>
+                )}
+              </div>
+
+              {/* Bouton config couleurs */}
+              <button
+                onClick={() => {
+                  setTempThreshold(String(colorThreshold));
+                  setTempLowColor(lowColor);
+                  setTempHighColor(highColor);
+                  setShowColorModal(true);
+                }}
+                className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-2 hover:bg-gray-50 transition-colors"
+                title="Configurer les couleurs par montant"
+              >
+                <Palette className="h-4 w-4 text-gray-500" />
+              </button>
+
               <button
                 onClick={() => router.push('/dashboard/crm/deals')}
                 className="flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-semibold shadow-sm"
@@ -301,7 +478,7 @@ export default function PipelinePage() {
 
             <div className="space-y-3">
               {recentDeals.map((deal) => (
-                <div key={deal.id} className="p-4 border border-gray-200 rounded-lg hover:border-orange-300 transition-colors cursor-pointer">
+                <div key={deal.id} className={`p-4 border border-gray-200 rounded-lg hover:border-orange-300 transition-colors cursor-pointer ${getDealColor(deal.value)}`}>
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900 mb-1">{deal.companyName}</h3>
@@ -397,6 +574,125 @@ export default function PipelinePage() {
           </div>
         </div>
       </div>
+
+      {/* Modal configuration couleurs */}
+      {showColorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowColorModal(false)}
+          />
+          <div className="relative bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Palette className="h-5 w-5 text-orange-600" />
+                Configuration des couleurs
+              </h3>
+              <button
+                onClick={() => setShowColorModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Seuil de montant */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Seuil de montant (€)
+                </label>
+                <input
+                  type="number"
+                  value={tempThreshold}
+                  onChange={(e) => setTempThreshold(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="3000"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Les deals en dessous de ce montant auront la première couleur
+                </p>
+              </div>
+
+              {/* Couleur pour petits montants */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Couleur pour montants &lt; {tempThreshold}€
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {colorOptions.map((color) => (
+                    <button
+                      key={color.id}
+                      onClick={() => setTempLowColor(color.id)}
+                      className={`p-2 rounded-lg border-2 transition-all ${
+                        tempLowColor === color.id
+                          ? 'border-orange-500 ring-2 ring-orange-200'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className={`w-full h-6 rounded ${color.preview}`} />
+                      <span className="text-xs text-gray-600 mt-1 block">{color.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Couleur pour gros montants */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Couleur pour montants &ge; {tempThreshold}€
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {colorOptions.map((color) => (
+                    <button
+                      key={color.id}
+                      onClick={() => setTempHighColor(color.id)}
+                      className={`p-2 rounded-lg border-2 transition-all ${
+                        tempHighColor === color.id
+                          ? 'border-orange-500 ring-2 ring-orange-200'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className={`w-full h-6 rounded ${color.preview}`} />
+                      <span className="text-xs text-gray-600 mt-1 block">{color.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Aperçu */}
+              <div className="pt-4 border-t border-gray-200">
+                <p className="text-sm font-medium text-gray-700 mb-2">Aperçu</p>
+                <div className="flex gap-3">
+                  <div className={`flex-1 p-3 rounded-lg border-l-4 ${colorOptions.find(c => c.id === tempLowColor)?.border} ${colorOptions.find(c => c.id === tempLowColor)?.bg}`}>
+                    <p className="text-sm font-semibold">Deal 2 500€</p>
+                    <p className="text-xs text-gray-500">&lt; {tempThreshold}€</p>
+                  </div>
+                  <div className={`flex-1 p-3 rounded-lg border-l-4 ${colorOptions.find(c => c.id === tempHighColor)?.border} ${colorOptions.find(c => c.id === tempHighColor)?.bg}`}>
+                    <p className="text-sm font-semibold">Deal 5 000€</p>
+                    <p className="text-xs text-gray-500">&ge; {tempThreshold}€</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowColorModal(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={saveColorSettings}
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+              >
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

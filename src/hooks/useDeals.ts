@@ -8,7 +8,7 @@ export interface Deal {
   description: string | null;
   value: number;
   currency: string;
-  stage: 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING';
+  stage: string; // Stages dynamiques depuis pipeline_stages
   productionStage?: 'PREMIER_RDV' | 'EN_PRODUCTION' | 'LIVRE' | 'ENCAISSE' | null;
   probability: number;
   expectedCloseDate: Date | null;
@@ -60,7 +60,7 @@ export interface CreateDealData {
   description?: string | null;
   value: number;
   currency?: string;
-  stage?: 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING';
+  stage?: string; // Stages dynamiques depuis pipeline_stages
   productionStage?: 'PREMIER_RDV' | 'EN_PRODUCTION' | 'LIVRE' | 'ENCAISSE' | null;
   probability?: number;
   expectedCloseDate?: string | null;
@@ -101,6 +101,11 @@ export function useDeals(params?: {
   showAll?: boolean;
   ownerId?: string;
   ownerIds?: string[]; // Multi-select filter
+  // Nouveaux params tri/filtre par montant
+  minValue?: number;
+  maxValue?: number;
+  sortBy?: 'value' | 'createdAt' | 'updatedAt' | 'expectedCloseDate';
+  sortOrder?: 'asc' | 'desc';
 }) {
   // Construire l'URL avec les paramètres
   const queryParams = new URLSearchParams();
@@ -112,6 +117,11 @@ export function useDeals(params?: {
   if (params?.showAll) queryParams.append('showAll', 'true');
   if (params?.ownerId) queryParams.append('ownerId', params.ownerId);
   if (params?.ownerIds?.length) queryParams.append('ownerIds', params.ownerIds.join(','));
+  // Nouveaux params tri/filtre
+  if (params?.minValue !== undefined) queryParams.append('minValue', params.minValue.toString());
+  if (params?.maxValue !== undefined) queryParams.append('maxValue', params.maxValue.toString());
+  if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+  if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
   const url = `/api/deals${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { notifyEvent, getAdminIds } from '@/lib/notifications';
 
 // Schema de validation pour update (tous les champs optionnels)
 const invoiceUpdateSchema = z.object({
@@ -135,6 +136,32 @@ export async function PUT(
         invoice_products: true,
       },
     });
+
+    // Notifications selon le changement de statut
+    if (validatedData.status && validatedData.status !== existingInvoice.status) {
+      const actorName = session.user.name || session.user.email;
+      const invoiceName = `${updatedInvoice.number} - ${updatedInvoice.clientName}`;
+
+      if (validatedData.status === 'ENVOYEE' || validatedData.status === 'EN_ATTENTE') {
+        // Facture envoyée - notifier owner + admins
+        const adminIds = await getAdminIds();
+        notifyEvent('INVOICE_SENT', {
+          actorId: session.user.id,
+          actorName,
+          entityId: updatedInvoice.id,
+          entityName: invoiceName,
+        }, [updatedInvoice.ownerId, ...adminIds]);
+      } else if (validatedData.status === 'PAYEE') {
+        // Facture payée - notifier owner + admins
+        const adminIds = await getAdminIds();
+        notifyEvent('INVOICE_PAID', {
+          actorId: session.user.id,
+          actorName,
+          entityId: updatedInvoice.id,
+          entityName: invoiceName,
+        }, [updatedInvoice.ownerId, ...adminIds]);
+      }
+    }
 
     return NextResponse.json(updatedInvoice);
   } catch (error) {

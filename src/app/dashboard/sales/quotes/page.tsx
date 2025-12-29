@@ -18,7 +18,8 @@ import {
   Loader2,
   Filter,
   AlertCircle,
-  PenTool
+  PenTool,
+  FileSignature
 } from 'lucide-react';
 import { useQuotes, useQuoteMutations } from '@/hooks/useQuotes';
 import { useContacts } from '@/hooks/useContacts';
@@ -318,7 +319,7 @@ export default function QuotesPage() {
   };
 
   const handleGenerateSignature = async (quote: any) => {
-    if (!confirm(`Générer une demande de signature électronique pour ${quote.clientName} ?\n\nLe client recevra un email avec le contrat à signer.`)) return;
+    if (!confirm(`Générer une demande de signature électronique pour ${quote.clientName} ?\n\n1. Vous allez signer en premier (DIGIFLOW)\n2. Le client recevra ensuite un email pour signer`)) return;
 
     try {
       const response = await fetch('/api/yousign/create-signature', {
@@ -331,8 +332,17 @@ export default function QuotesPage() {
       console.log('📤 Réponse complète Yousign:', data);
 
       if (response.ok) {
-        alert('✅ Demande de signature envoyée avec succès !\n\nLe client va recevoir un email pour signer électroniquement.');
         mutate();
+
+        // Si on a un lien de signature DIGIFLOW, l'ouvrir
+        if (data.digiflowSignatureLink) {
+          const openNow = confirm('✅ Demande créée !\n\nVoulez-vous signer maintenant ?\n\n(Le client recevra son email après votre signature)');
+          if (openNow) {
+            window.open(data.digiflowSignatureLink, '_blank');
+          }
+        } else {
+          alert('✅ Demande de signature envoyée !\n\nVérifiez votre email (jason@digiflow.fr) pour signer.\nLe client recevra son email après votre signature.');
+        }
       } else {
         console.error('❌ Erreur Yousign complète:', JSON.stringify(data, null, 2));
         const errorDetails = data.details ? (typeof data.details === 'string' ? data.details : JSON.stringify(data.details, null, 2)) : 'Aucun détail';
@@ -678,6 +688,15 @@ export default function QuotesPage() {
                           >
                             <PenTool className="h-4 w-4 text-blue-600" />
                           </button>
+                          {quote.signatureUrl && quote.status === 'ENVOYE' && (
+                            <button
+                              onClick={() => window.open(quote.signatureUrl!, '_blank')}
+                              className="p-2 hover:bg-green-100 rounded-lg transition-colors"
+                              title="Signer maintenant (DIGIFLOW)"
+                            >
+                              <FileSignature className="h-4 w-4 text-green-600" />
+                            </button>
+                          )}
                           {quote.status === 'BROUILLON' && (
                             <button
                               onClick={() => handleSend(quote)}

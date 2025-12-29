@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { GripVertical, X, Edit2, Save, User, Mail, Phone, Building2, MapPin, Euro, MessageSquare, Calendar, Trash2, AlertTriangle, Globe, Megaphone, Instagram, Linkedin, Users, PhoneCall, MailIcon, MessageCircle, UserPlus, UserMinus, Bell, Clock, Plus } from 'lucide-react';
 import { useReminders } from '@/hooks/useReminders';
+import { useStages } from '@/hooks/useStages';
 
 
 interface DealSidebarProps {
@@ -111,6 +112,9 @@ export default function DealSidebar({ deal, isOpen, onClose, onUpdate, onDelete 
 
   // Hook pour les rappels
   const { reminders, createReminder, deleteReminder, markAsRead } = useReminders({ dealId: deal?.id });
+
+  // Hook pour les stages dynamiques
+  const { stages, getStageLabel, getStageColor } = useStages();
 
   useEffect(() => {
     setEditedDeal(deal);
@@ -783,32 +787,25 @@ export default function DealSidebar({ deal, isOpen, onClose, onUpdate, onDelete 
                       onChange={(e) => setEditedDeal({ ...editedDeal, stage: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
                     >
-                      <option value="A_CONTACTER">À Contacter</option>
-                      <option value="EN_DISCUSSION">En Discussion</option>
-                      <option value="A_RELANCER">À Relancer</option>
-                      <option value="RDV_PRIS">RDV Pris</option>
-                      <option value="NEGO_HOT">Négo Hot 🔥</option>
-                      <option value="CLOSING">Closing</option>
-                      <option value="REFUSE">Refusé</option>
+                      {stages.map((stage) => (
+                        <option key={stage.code} value={stage.code}>
+                          {stage.label}
+                        </option>
+                      ))}
                     </select>
                   ) : (
-                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                      deal.stage === 'A_CONTACTER'
-                        ? 'bg-gray-100 text-gray-700'
-                        : deal.stage === 'EN_DISCUSSION'
-                        ? 'bg-blue-100 text-blue-700'
-                        : deal.stage === 'A_RELANCER'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : deal.stage === 'RDV_PRIS'
-                        ? 'bg-violet-100 text-violet-700'
-                        : deal.stage === 'NEGO_HOT'
-                        ? 'bg-orange-100 text-orange-700'
-                        : deal.stage === 'CLOSING'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}>
-                      {deal.stage}
-                    </span>
+                    (() => {
+                      const stageColor = getStageColor(deal.stage);
+                      // Extraire la couleur de fond (bg-X-100 ou bg-X-50)
+                      const bgClass = stageColor.split(' ')[0] || 'bg-gray-100';
+                      // Dériver la couleur de texte depuis le fond
+                      const textClass = bgClass.replace('bg-', 'text-').replace('-50', '-700').replace('-100', '-700');
+                      return (
+                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${bgClass} ${textClass}`}>
+                          {getStageLabel(deal.stage)}
+                        </span>
+                      );
+                    })()
                   )}
                 </div>
 

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { notifyEvent } from '@/lib/notifications';
 
 // Schema de validation pour update (tous les champs optionnels)
 const contactUpdateSchema = z.object({
@@ -150,6 +151,21 @@ export async function PUT(
         },
       },
     });
+
+    // Notification si changement de statut
+    if (validatedData.status && validatedData.status !== existingContact.status) {
+      const recipients = existingContact.assignedToId ? [existingContact.assignedToId] : [];
+      if (recipients.length > 0) {
+        notifyEvent('CONTACT_STATUS_CHANGED', {
+          actorId: session.user.id,
+          actorName: session.user.name || session.user.email,
+          entityId: updatedContact.id,
+          entityName: `${updatedContact.firstName} ${updatedContact.lastName}`,
+          oldValue: existingContact.status,
+          newValue: validatedData.status,
+        }, recipients);
+      }
+    }
 
     return NextResponse.json(updatedContact);
   } catch (error) {

@@ -1,24 +1,16 @@
 'use client';
 
-import { Plus, Mail, MapPin, Euro, Loader2, LayoutGrid, List as ListIcon, User, Building2, Phone, MessageSquare, Search, Settings2, Check, Eye, EyeOff, TrendingUp, Target, Calendar, BarChart3 } from 'lucide-react';
+import { Plus, Mail, MapPin, Euro, Loader2, LayoutGrid, List as ListIcon, User, Building2, Phone, MessageSquare, Search, Settings2, Check, Eye, EyeOff, TrendingUp, Target, Calendar, BarChart3, Settings, Palette, X } from 'lucide-react';
 import { useMemo } from 'react';
 import { useDeals, useDealMutations } from '@/hooks/useDeals';
+import { useStages } from '@/hooks/useStages';
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Modal from '@/components/Modal';
 import DealSidebar from '@/components/DealSidebar';
+import StageSettingsModal from '@/components/StageSettingsModal';
 
-type DealStage = 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING' | 'REFUSE';
-
-const columns: { id: DealStage; title: string; color: string }[] = [
-  { id: 'A_CONTACTER', title: 'À Contacter', color: 'bg-gray-100 border-gray-300' },
-  { id: 'EN_DISCUSSION', title: 'En Discussion', color: 'bg-blue-50 border-blue-300' },
-  { id: 'A_RELANCER', title: 'À Relancer', color: 'bg-yellow-50 border-yellow-300' },
-  { id: 'RDV_PRIS', title: 'RDV Pris', color: 'bg-violet-50 border-violet-300' },
-  { id: 'NEGO_HOT', title: 'Négo Hot 🔥', color: 'bg-orange-50 border-orange-300' },
-  { id: 'CLOSING', title: 'Closing', color: 'bg-green-50 border-green-300' },
-  { id: 'REFUSE', title: 'Refusé', color: 'bg-red-50 border-red-300' },
-];
+// Les stages sont maintenant dynamiques via useStages()
 
 const getProbabilityBadge = (probability: number) => {
   if (probability >= 90) return { label: 'TRES_CHAUD', color: 'bg-red-500' };
@@ -38,8 +30,22 @@ const productConfig: Record<string, { label: string; color: string; bgColor: str
 export default function CRMPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // Stages dynamiques
+  const { stages: dynamicStages, isLoading: stagesLoading, getStageColor, wonStage } = useStages();
+
+  // Convertir les stages en format colonne pour le Kanban
+  const columns = useMemo(() => {
+    return dynamicStages.map(stage => ({
+      id: stage.code,
+      title: stage.label,
+      color: stage.color,
+    }));
+  }, [dynamicStages]);
+
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isStageSettingsOpen, setIsStageSettingsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [draggedDeal, setDraggedDeal] = useState<any>(null);
@@ -50,9 +56,30 @@ export default function CRMPage() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [hiddenColumns, setHiddenColumns] = useState<DealStage[]>([]);
+  const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
   const [isColumnsMenuOpen, setIsColumnsMenuOpen] = useState(false);
   const columnsMenuRef = useRef<HTMLDivElement>(null);
+
+  // État pour le code couleur par montant (partagé avec Pipeline)
+  const [colorThreshold, setColorThreshold] = useState<number>(3000);
+  const [lowColor, setLowColor] = useState<string>('blue');
+  const [highColor, setHighColor] = useState<string>('violet');
+  const [showColorModal, setShowColorModal] = useState(false);
+  const [tempThreshold, setTempThreshold] = useState<string>('3000');
+  const [tempLowColor, setTempLowColor] = useState<string>('blue');
+  const [tempHighColor, setTempHighColor] = useState<string>('violet');
+
+  // Options de couleurs disponibles
+  const colorOptions = [
+    { id: 'blue', label: 'Bleu', border: 'border-l-blue-500', bg: 'bg-blue-50', preview: 'bg-blue-500' },
+    { id: 'violet', label: 'Violet', border: 'border-l-violet-500', bg: 'bg-violet-50', preview: 'bg-violet-500' },
+    { id: 'green', label: 'Vert', border: 'border-l-green-500', bg: 'bg-green-50', preview: 'bg-green-500' },
+    { id: 'orange', label: 'Orange', border: 'border-l-orange-500', bg: 'bg-orange-50', preview: 'bg-orange-500' },
+    { id: 'pink', label: 'Rose', border: 'border-l-pink-500', bg: 'bg-pink-50', preview: 'bg-pink-500' },
+    { id: 'yellow', label: 'Jaune', border: 'border-l-yellow-500', bg: 'bg-yellow-50', preview: 'bg-yellow-500' },
+    { id: 'red', label: 'Rouge', border: 'border-l-red-500', bg: 'bg-red-50', preview: 'bg-red-500' },
+    { id: 'gray', label: 'Gris', border: 'border-l-gray-500', bg: 'bg-gray-50', preview: 'bg-gray-500' },
+  ];
 
   // Charger les colonnes cachées depuis localStorage
   useEffect(() => {
@@ -71,6 +98,47 @@ export default function CRMPage() {
     localStorage.setItem('crm-hidden-columns', JSON.stringify(hiddenColumns));
   }, [hiddenColumns]);
 
+  // Charger les paramètres de couleur depuis localStorage
+  useEffect(() => {
+    const savedThreshold = localStorage.getItem('dealColorThreshold');
+    const savedLowColor = localStorage.getItem('dealLowColor');
+    const savedHighColor = localStorage.getItem('dealHighColor');
+    if (savedThreshold) {
+      setColorThreshold(Number(savedThreshold));
+      setTempThreshold(savedThreshold);
+    }
+    if (savedLowColor) {
+      setLowColor(savedLowColor);
+      setTempLowColor(savedLowColor);
+    }
+    if (savedHighColor) {
+      setHighColor(savedHighColor);
+      setTempHighColor(savedHighColor);
+    }
+  }, []);
+
+  // Sauvegarder les paramètres de couleur
+  const saveColorSettings = () => {
+    const threshold = Number(tempThreshold) || 3000;
+    setColorThreshold(threshold);
+    setLowColor(tempLowColor);
+    setHighColor(tempHighColor);
+    localStorage.setItem('dealColorThreshold', String(threshold));
+    localStorage.setItem('dealLowColor', tempLowColor);
+    localStorage.setItem('dealHighColor', tempHighColor);
+    setShowColorModal(false);
+  };
+
+  // Fonction pour obtenir la couleur selon le montant
+  const getDealColor = (value: number) => {
+    const colorConfig = value < colorThreshold
+      ? colorOptions.find(c => c.id === lowColor)
+      : colorOptions.find(c => c.id === highColor);
+    return colorConfig
+      ? `border-l-4 ${colorConfig.border} ${colorConfig.bg}`
+      : 'border-l-4 border-l-gray-300 bg-gray-50';
+  };
+
   // Fermer le menu des colonnes au clic extérieur
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -83,7 +151,7 @@ export default function CRMPage() {
   }, []);
 
   // Toggle la visibilité d'une colonne
-  const toggleColumnVisibility = (columnId: DealStage) => {
+  const toggleColumnVisibility = (columnId: string) => {
     setHiddenColumns(prev =>
       prev.includes(columnId)
         ? prev.filter(id => id !== columnId)
@@ -211,16 +279,17 @@ export default function CRMPage() {
     // Valeur totale du pipeline
     const totalValue = deals.reduce((sum, d) => sum + d.value, 0);
 
-    // Deals gagnés (CLOSING ou ENCAISSE)
-    const wonDeals = deals.filter(d => d.stage === 'CLOSING' || d.productionStage === 'ENCAISSE');
+    // Deals gagnés (stage wonStage ou ENCAISSE)
+    const wonStageCode = wonStage?.code;
+    const wonDeals = deals.filter(d => d.stage === wonStageCode || d.productionStage === 'ENCAISSE');
     const wonValue = wonDeals.reduce((sum, d) => sum + d.value, 0);
 
     // Taux de conversion
     const conversionRate = totalDeals > 0 ? Math.round((wonDeals.length / totalDeals) * 100) : 0;
 
-    // RDV (deals au stage RDV_PRIS ou plus)
-    const rdvStages = ['RDV_PRIS', 'NEGO_HOT', 'CLOSING'];
-    const rdvCount = deals.filter(d => rdvStages.includes(d.stage)).length;
+    // RDV (deals avec probabilité >= 50)
+    const highProbabilityStages = dynamicStages.filter(s => s.probability >= 50).map(s => s.code);
+    const rdvCount = deals.filter(d => highProbabilityStages.includes(d.stage)).length;
 
     // Noms des commerciaux filtrés
     const filteredUserNames = users
@@ -237,7 +306,7 @@ export default function CRMPage() {
       rdvCount,
       userNames: filteredUserNames,
     };
-  }, [deals, selectedOwnerIds, users]);
+  }, [deals, selectedOwnerIds, users, wonStage, dynamicStages]);
 
   const [formData, setFormData] = useState({
     // Contact
@@ -253,7 +322,7 @@ export default function CRMPage() {
     instagram: '',
     // Deal
     assignedTo: '',
-    stage: 'A_CONTACTER' as DealStage,
+    stage: 'A_CONTACTER',
     product: '',
     value: '',
     meetingDate: '',
@@ -311,7 +380,7 @@ export default function CRMPage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || stagesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-orange-600" />
@@ -327,7 +396,7 @@ export default function CRMPage() {
     );
   }
 
-  const getDealsByStage = (stage: DealStage) => {
+  const getDealsByStage = (stage: string) => {
     return deals.filter((deal) => deal.stage === stage);
   };
 
@@ -339,7 +408,7 @@ export default function CRMPage() {
     e.preventDefault();
   };
 
-  const handleDrop = async (targetStage: DealStage) => {
+  const handleDrop = async (targetStage: string) => {
     if (!draggedDeal || draggedDeal.stage === targetStage) {
       setDraggedDeal(null);
       return;
@@ -387,7 +456,7 @@ export default function CRMPage() {
   };
 
   // Mise à jour rapide du stage inline
-  const handleInlineStageChange = async (dealId: string, newStage: DealStage, e: React.MouseEvent) => {
+  const handleInlineStageChange = async (dealId: string, newStage: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Empêcher l'ouverture de la sidebar
     try {
       const response = await fetch(`/api/deals/${dealId}`, {
@@ -532,6 +601,29 @@ export default function CRMPage() {
                   )}
                 </div>
               )}
+
+              {/* Bouton Paramètres Pipeline (admin) */}
+              <button
+                onClick={() => setIsStageSettingsOpen(true)}
+                className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                title="Paramètres du pipeline"
+              >
+                <Settings className="h-4 w-4" />
+              </button>
+
+              {/* Bouton Configuration couleurs */}
+              <button
+                onClick={() => {
+                  setTempThreshold(String(colorThreshold));
+                  setTempLowColor(lowColor);
+                  setTempHighColor(highColor);
+                  setShowColorModal(true);
+                }}
+                className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                title="Configurer les couleurs par montant"
+              >
+                <Palette className="h-4 w-4" />
+              </button>
 
               <button onClick={() => setIsModalOpen(true)} className="btn-primary">
                 <Plus className="h-5 w-5 mr-2" />
@@ -697,7 +789,7 @@ export default function CRMPage() {
                         draggable
                         onDragStart={() => handleDragStart(deal)}
                         onClick={() => handleDealClick(deal)}
-                        className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition cursor-move border border-gray-200"
+                        className={`p-4 rounded-lg shadow-sm hover:shadow-md transition cursor-move border border-gray-200 ${getDealColor(deal.value)}`}
                       >
                         {/* Deal Header */}
                         <div className="flex items-start justify-between mb-2">
@@ -715,23 +807,9 @@ export default function CRMPage() {
                         <div className="mb-3">
                           <select
                             value={deal.stage}
-                            onChange={(e) => handleInlineStageChange(deal.id, e.target.value as DealStage, e as unknown as React.MouseEvent)}
+                            onChange={(e) => handleInlineStageChange(deal.id, e.target.value, e as unknown as React.MouseEvent)}
                             onClick={(e) => e.stopPropagation()}
-                            className={`w-full px-2 py-1 rounded text-xs font-medium cursor-pointer border focus:ring-2 focus:ring-violet-500 transition-colors ${
-                              deal.stage === 'A_CONTACTER'
-                                ? 'bg-gray-50 text-gray-700 border-gray-200'
-                                : deal.stage === 'EN_DISCUSSION'
-                                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                : deal.stage === 'RDV_PRIS'
-                                ? 'bg-violet-50 text-violet-700 border-violet-200'
-                                : deal.stage === 'NEGO_HOT'
-                                ? 'bg-orange-50 text-orange-700 border-orange-200'
-                                : deal.stage === 'A_RELANCER'
-                                ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                : deal.stage === 'CLOSING'
-                                ? 'bg-green-50 text-green-700 border-green-200'
-                                : 'bg-red-50 text-red-700 border-red-200'
-                            }`}
+                            className={`w-full px-2 py-1 rounded text-xs font-medium cursor-pointer border focus:ring-2 focus:ring-violet-500 transition-colors ${getStageColor(deal.stage)}`}
                           >
                             {columns.map((col) => (
                               <option key={col.id} value={col.id}>
@@ -895,23 +973,9 @@ export default function CRMPage() {
                         <td className="px-6 py-4">
                           <select
                             value={deal.stage}
-                            onChange={(e) => handleInlineStageChange(deal.id, e.target.value as DealStage, e as unknown as React.MouseEvent)}
+                            onChange={(e) => handleInlineStageChange(deal.id, e.target.value, e as unknown as React.MouseEvent)}
                             onClick={(e) => e.stopPropagation()}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 focus:ring-2 focus:ring-violet-500 transition-colors ${
-                              deal.stage === 'A_CONTACTER'
-                                ? 'bg-gray-100 text-gray-700'
-                                : deal.stage === 'EN_DISCUSSION'
-                                ? 'bg-blue-100 text-blue-700'
-                                : deal.stage === 'RDV_PRIS'
-                                ? 'bg-violet-100 text-violet-700'
-                                : deal.stage === 'NEGO_HOT'
-                                ? 'bg-orange-100 text-orange-700'
-                                : deal.stage === 'A_RELANCER'
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : deal.stage === 'CLOSING'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
-                            }`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 focus:ring-2 focus:ring-violet-500 transition-colors ${getStageColor(deal.stage)}`}
                           >
                             {columns.map((col) => (
                               <option key={col.id} value={col.id}>
@@ -1114,16 +1178,14 @@ export default function CRMPage() {
                   </label>
                   <select
                     value={formData.stage}
-                    onChange={(e) => setFormData({ ...formData, stage: e.target.value as DealStage })}
+                    onChange={(e) => setFormData({ ...formData, stage: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
                   >
-                    <option value="A_CONTACTER">À Contacter</option>
-                    <option value="EN_DISCUSSION">En Discussion</option>
-                    <option value="A_RELANCER">À Relancer</option>
-                    <option value="RDV_PRIS">RDV Pris</option>
-                    <option value="NEGO_HOT">Négo Hot 🔥</option>
-                    <option value="CLOSING">Closing</option>
-                    <option value="REFUSE">Refusé</option>
+                    {columns.map((col) => (
+                      <option key={col.id} value={col.id}>
+                        {col.title}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -1299,6 +1361,131 @@ export default function CRMPage() {
             onUpdate={mutate}
             onDelete={handleDeleteDeal}
           />
+        )}
+
+        {/* Modal Paramètres Pipeline */}
+        <StageSettingsModal
+          isOpen={isStageSettingsOpen}
+          onClose={() => setIsStageSettingsOpen(false)}
+        />
+
+        {/* Modal configuration couleurs */}
+        {showColorModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setShowColorModal(false)}
+            />
+            <div className="relative bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Palette className="h-5 w-5 text-orange-600" />
+                  Configuration des couleurs
+                </h3>
+                <button
+                  onClick={() => setShowColorModal(false)}
+                  className="p-1 hover:bg-gray-100 rounded-lg"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Seuil de montant */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Seuil de montant (€)
+                  </label>
+                  <input
+                    type="number"
+                    value={tempThreshold}
+                    onChange={(e) => setTempThreshold(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="3000"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Les deals en dessous de ce montant auront la première couleur
+                  </p>
+                </div>
+
+                {/* Couleur pour petits montants */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Couleur pour montants &lt; {tempThreshold}€
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {colorOptions.map((color) => (
+                      <button
+                        key={color.id}
+                        onClick={() => setTempLowColor(color.id)}
+                        className={`p-2 rounded-lg border-2 transition-all ${
+                          tempLowColor === color.id
+                            ? 'border-orange-500 ring-2 ring-orange-200'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className={`w-full h-6 rounded ${color.preview}`} />
+                        <span className="text-xs text-gray-600 mt-1 block">{color.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Couleur pour gros montants */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Couleur pour montants &ge; {tempThreshold}€
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {colorOptions.map((color) => (
+                      <button
+                        key={color.id}
+                        onClick={() => setTempHighColor(color.id)}
+                        className={`p-2 rounded-lg border-2 transition-all ${
+                          tempHighColor === color.id
+                            ? 'border-orange-500 ring-2 ring-orange-200'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className={`w-full h-6 rounded ${color.preview}`} />
+                        <span className="text-xs text-gray-600 mt-1 block">{color.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Aperçu */}
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Aperçu</p>
+                  <div className="flex gap-3">
+                    <div className={`flex-1 p-3 rounded-lg border-l-4 ${colorOptions.find(c => c.id === tempLowColor)?.border} ${colorOptions.find(c => c.id === tempLowColor)?.bg}`}>
+                      <p className="text-sm font-semibold">Deal 2 500€</p>
+                      <p className="text-xs text-gray-500">&lt; {tempThreshold}€</p>
+                    </div>
+                    <div className={`flex-1 p-3 rounded-lg border-l-4 ${colorOptions.find(c => c.id === tempHighColor)?.border} ${colorOptions.find(c => c.id === tempHighColor)?.bg}`}>
+                      <p className="text-sm font-semibold">Deal 5 000€</p>
+                      <p className="text-xs text-gray-500">&ge; {tempThreshold}€</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowColorModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={saveColorSettings}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                >
+                  Enregistrer
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

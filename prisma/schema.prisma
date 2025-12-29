@@ -225,7 +225,7 @@ model deals {
   description        String?                  @db.Text
   value              Float
   currency           String                   @default("EUR")
-  stage              deals_stage              @default(A_CONTACTER)
+  stage              String                   @default("A_CONTACTER")
   productionStage    deals_production_stage?
   probability        Int                      @default(50)
   expectedCloseDate  DateTime?
@@ -584,7 +584,7 @@ model quotes {
   notes              String?          @db.Text
   yousignId          String?
   signedAt           DateTime?
-  signatureUrl       String?
+  signatureUrl       String?          @db.Text
   ownerId            String
   // Champs pour le calculateur
   commitmentPeriod   String?          @default("comptant") // "comptant", "24", "36", "48"
@@ -1242,4 +1242,26 @@ enum meta_lead_status {
   LIBRE
   ASSIGNE
   CONVERTI
+}
+
+// ============================================
+// PIPELINE STAGES (Colonnes dynamiques CRM)
+// ============================================
+
+model pipeline_stages {
+  id          String   @id @default(cuid())
+  code        String   @unique  // "A_CONTACTER", "NOUVEAU_STAGE"
+  label       String             // "À Contacter"
+  color       String             // "bg-gray-100 border-gray-300"
+  probability Int      @default(50)  // 0-100
+  position    Int                // Ordre d'affichage
+  isDefault   Boolean  @default(false)  // Stage par défaut pour nouveaux deals
+  isWonStage  Boolean  @default(false)  // Stage "gagné" (ex: CLOSING)
+  isLostStage Boolean  @default(false)  // Stage "perdu" (ex: REFUSE)
+  isActive    Boolean  @default(true)   // Masquer sans supprimer
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([position])
+  @@index([isActive])
 }

@@ -25,6 +25,7 @@ export interface Quote {
   paymentTerms: string | null;
   notes: string | null;
   yousignId: string | null;
+  signatureUrl: string | null;
   ownerId: string;
   commitmentPeriod?: string | null;
   owner?: {

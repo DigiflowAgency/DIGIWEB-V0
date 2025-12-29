@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { notifyEvent, getAdminIds } from '@/lib/notifications';
 
 // Schema de validation pour update (tous les champs optionnels)
 const quoteUpdateSchema = z.object({
@@ -217,6 +218,40 @@ export async function PUT(
         quote_products: true,
       },
     });
+
+    // Notifications selon le changement de statut
+    if (validatedData.status && validatedData.status !== existingQuote.status) {
+      const actorName = session.user.name || session.user.email;
+      const quoteName = `${updatedQuote.number} - ${updatedQuote.clientName}`;
+
+      if (validatedData.status === 'ENVOYE') {
+        // Devis envoyé - notifier owner + admins
+        const adminIds = await getAdminIds();
+        notifyEvent('QUOTE_SENT', {
+          actorId: session.user.id,
+          actorName,
+          entityId: updatedQuote.id,
+          entityName: quoteName,
+        }, [updatedQuote.ownerId, ...adminIds]);
+      } else if (validatedData.status === 'ACCEPTE') {
+        // Devis accepté - notifier owner + admins
+        const adminIds = await getAdminIds();
+        notifyEvent('QUOTE_ACCEPTED', {
+          actorId: session.user.id,
+          actorName,
+          entityId: updatedQuote.id,
+          entityName: quoteName,
+        }, [updatedQuote.ownerId, ...adminIds]);
+      } else if (validatedData.status === 'REFUSE') {
+        // Devis refusé - notifier seulement l'owner
+        notifyEvent('QUOTE_REFUSED', {
+          actorId: session.user.id,
+          actorName,
+          entityId: updatedQuote.id,
+          entityName: quoteName,
+        }, [updatedQuote.ownerId]);
+      }
+    }
 
     return NextResponse.json(updatedQuote);
   } catch (error) {

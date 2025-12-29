@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { notifyEvent } from '@/lib/notifications';
 
 // Schema de validation pour créer un rappel
 const createReminderSchema = z.object({
@@ -159,6 +160,15 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Notification: Rappel créé
+    notifyEvent('REMINDER_CREATED', {
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email,
+      entityId: reminder.id,
+      entityName: reminder.title,
+      metadata: { dealId: validatedData.dealId },
+    }, [session.user.id]);
 
     return NextResponse.json(reminder, { status: 201 });
   } catch (error) {

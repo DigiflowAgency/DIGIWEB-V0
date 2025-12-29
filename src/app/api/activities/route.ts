@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { notifyEvent } from '@/lib/notifications';
 
 // Schema de validation Zod pour Activity
 const activitySchema = z.object({
@@ -228,6 +229,14 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Notification: Activité créée
+    notifyEvent('ACTIVITY_CREATED', {
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email,
+      entityId: activity.id,
+      entityName: activity.title,
+    }, [session.user.id]);
 
     return NextResponse.json(activity, { status: 201 });
   } catch (error) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { notifyEvent } from '@/lib/notifications';
 
 // POST /api/deals/[id]/notes - Créer une nouvelle note
 export async function POST(
@@ -25,9 +26,14 @@ export async function POST(
       );
     }
 
-    // Vérifier que le deal existe
+    // Vérifier que le deal existe et récupérer les assignés
     const deal = await prisma.deals.findUnique({
       where: { id: dealId },
+      include: {
+        deal_assignees: {
+          select: { userId: true },
+        },
+      },
     });
 
     if (!deal) {
@@ -59,6 +65,16 @@ export async function POST(
         },
       },
     });
+
+    // Notification: Note ajoutée (owner + assignés)
+    const assigneeIds = deal.deal_assignees.map(a => a.userId);
+    const recipients = [deal.ownerId, ...assigneeIds];
+    notifyEvent('DEAL_NOTE_ADDED', {
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email,
+      entityId: dealId,
+      entityName: deal.title,
+    }, recipients);
 
     return NextResponse.json({ note }, { status: 201 });
   } catch (error) {

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { notifyEvent } from '@/lib/notifications';
 
 type RouteContext = {
   params: { id: string };
@@ -127,6 +128,14 @@ export async function POST(
       },
     });
 
+    // Notification: Utilisateur assigné au deal
+    notifyEvent('DEAL_ASSIGNED', {
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email,
+      entityId: params.id,
+      entityName: deal.title,
+    }, [validatedData.userId]);
+
     return NextResponse.json(assignee, { status: 201 });
   } catch (error) {
     console.error(`Erreur POST /api/deals/${params.id}/assignees:`, error);
@@ -183,6 +192,12 @@ export async function DELETE(
       );
     }
 
+    // Récupérer le deal pour la notification
+    const deal = await prisma.deals.findUnique({
+      where: { id: params.id },
+      select: { title: true },
+    });
+
     // Supprimer l'assignation
     await prisma.deal_assignees.delete({
       where: {
@@ -192,6 +207,16 @@ export async function DELETE(
         },
       },
     });
+
+    // Notification: Utilisateur retiré du deal
+    if (deal) {
+      notifyEvent('DEAL_UNASSIGNED', {
+        actorId: session.user.id,
+        actorName: session.user.name || session.user.email,
+        entityId: params.id,
+        entityName: deal.title,
+      }, [userId]);
+    }
 
     return NextResponse.json({ message: 'Assignation supprimée avec succès' });
   } catch (error) {

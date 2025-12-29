@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { notifyEvent } from '@/lib/notifications';
 
 // Fonction pour calculer automatiquement la probabilité selon l'étape
 function getProbabilityByStage(stage: string): number {
@@ -49,6 +50,12 @@ export async function GET(request: NextRequest) {
     const contactId = searchParams.get('contactId');
     const companyId = searchParams.get('companyId');
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
+
+    // Nouveaux paramètres de tri et filtre par montant
+    const minValue = searchParams.get('minValue') ? parseFloat(searchParams.get('minValue')!) : undefined;
+    const maxValue = searchParams.get('maxValue') ? parseFloat(searchParams.get('maxValue')!) : undefined;
+    const sortBy = searchParams.get('sortBy') as 'value' | 'createdAt' | 'updatedAt' | 'expectedCloseDate' | null;
+    const sortOrder = (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc';
 
     // Construire la query Prisma
     const where: Prisma.dealsWhereInput = {};
@@ -96,6 +103,22 @@ export async function GET(request: NextRequest) {
     }
     // Sinon, pas de filtre - tout le monde voit tous les deals
 
+    // Filtre par plage de montant
+    if (minValue !== undefined || maxValue !== undefined) {
+      where.value = {};
+      if (minValue !== undefined) {
+        where.value.gte = minValue;
+      }
+      if (maxValue !== undefined) {
+        where.value.lte = maxValue;
+      }
+    }
+
+    // Construire le tri dynamique
+    const orderBy: Prisma.dealsOrderByWithRelationInput[] = sortBy
+      ? [{ [sortBy]: sortOrder }]
+      : [{ expectedCloseDate: 'asc' }, { createdAt: 'desc' }];
+
     // Récupérer les deals
     const deals = await prisma.deals.findMany({
       where,
@@ -142,10 +165,7 @@ export async function GET(request: NextRequest) {
           orderBy: { createdAt: 'asc' },
         },
       },
-      orderBy: [
-        { expectedCloseDate: 'asc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy,
       take: limit,
     });
 
@@ -265,6 +285,14 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Notification: Deal créé (non-bloquant)
+    notifyEvent('DEAL_CREATED', {
+      actorId: session.user.id,
+      actorName: session.user.name || session.user.email,
+      entityId: deal.id,
+      entityName: deal.title,
+    }, [deal.ownerId]);
 
     return NextResponse.json(deal, { status: 201 });
   } catch (error) {

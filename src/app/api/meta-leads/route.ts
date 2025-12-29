@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getAllLeads, parseLeadData, getPagesInfo } from '@/lib/meta-leads';
+import { notifyEvent, getAdminIds } from '@/lib/notifications';
 
 // GET /api/meta-leads - Récupérer tous les leads Meta
 export async function GET(request: NextRequest) {
@@ -167,6 +168,25 @@ export async function POST(_request: NextRequest) {
       by: ['pageId', 'pageName'],
       _count: { id: true },
     });
+
+    // Notification: Leads importés (si des leads ont été créés)
+    if (created > 0) {
+      const adminIds = await getAdminIds();
+      // Récupérer aussi les commerciaux
+      const commerciaux = await prisma.users.findMany({
+        where: { role: { in: ['ADMIN', 'VENTE', 'ACCOUNT_MANAGEMENT'] } },
+        select: { id: true },
+      });
+      const allRecipients = Array.from(new Set([...adminIds, ...commerciaux.map(c => c.id)]));
+
+      notifyEvent('META_LEADS_IMPORTED', {
+        actorId: session.user.id,
+        actorName: session.user.name || session.user.email,
+        entityId: 'meta-leads',
+        entityName: 'Leads Meta',
+        metadata: { count: created },
+      }, allRecipients);
+    }
 
     return NextResponse.json({
       success: true,

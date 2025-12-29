@@ -91,11 +91,10 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
 
   const commitmentText = commitmentMonths > 0 ? `${commitmentMonths} MOIS` : 'Sans engagement';
 
-  // Position dans l'Article 2 - fin de la ligne "au terme de la période d'engagement prévue dans le contrat"
-  // Ajustement précis après analyse du PDF signé
+  // Position dans l'Article 2 - à côté de "au terme de la période d'engagement prévue dans le contrat"
   page1.drawText(commitmentText, {
-    x: 435,
-    y: height1 - 676,
+    x: 490,
+    y: height1 - 660,
     size: 9,
     font: fontBold,
     color: rgb(0, 0, 0),
@@ -200,10 +199,10 @@ export async function generateContract(quoteData: QuoteData): Promise<Buffer> {
     year: 'numeric'
   });
 
-  // Date après "Fait à AIX EN PROVENCE, le" - position ultra-précise d'après PDF signé
+  // Date à côté de "Fait à AIX EN PROVENCE, le"
   page4.drawText(today, {
-    x: 220,
-    y: height4 - 515,
+    x: 230,
+    y: height4 - 430,
     size: 10,
     font: font,
     color: rgb(0, 0, 0),

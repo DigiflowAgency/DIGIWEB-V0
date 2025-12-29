@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { notifyEvent, getAdminIds } from '@/lib/notifications';
 
 // Fonction pour calculer automatiquement la probabilité selon l'étape
 function getProbabilityByStage(stage: string): number {
@@ -280,8 +281,50 @@ export async function PUT(
             email: true,
           },
         },
+        deal_assignees: {
+          select: {
+            userId: true,
+          },
+        },
       },
     });
+
+    // Notifications selon le changement de stage
+    if (validatedData.stage && validatedData.stage !== existingDeal.stage) {
+      const actorName = session.user.name || session.user.email;
+      const assigneeIds = updatedDeal.deal_assignees.map((a: { userId: string }) => a.userId);
+      const recipients = [updatedDeal.ownerId, ...assigneeIds];
+
+      if (validatedData.stage === 'CLOSING') {
+        // Deal gagné - notifier aussi les admins
+        const adminIds = await getAdminIds();
+        notifyEvent('DEAL_CLOSED_WON', {
+          actorId: session.user.id,
+          actorName,
+          entityId: updatedDeal.id,
+          entityName: updatedDeal.title,
+        }, [...recipients, ...adminIds]);
+      } else if (validatedData.stage === 'REFUSE') {
+        // Deal perdu - notifier aussi les admins
+        const adminIds = await getAdminIds();
+        notifyEvent('DEAL_CLOSED_LOST', {
+          actorId: session.user.id,
+          actorName,
+          entityId: updatedDeal.id,
+          entityName: updatedDeal.title,
+        }, [...recipients, ...adminIds]);
+      } else {
+        // Changement de stage normal
+        notifyEvent('DEAL_STAGE_CHANGED', {
+          actorId: session.user.id,
+          actorName,
+          entityId: updatedDeal.id,
+          entityName: updatedDeal.title,
+          oldValue: existingDeal.stage,
+          newValue: validatedData.stage,
+        }, recipients);
+      }
+    }
 
     return NextResponse.json(updatedDeal);
   } catch (error) {
@@ -388,7 +431,48 @@ export async function PATCH(
         ...updateData,
         updatedAt: new Date(),
       },
+      include: {
+        deal_assignees: {
+          select: {
+            userId: true,
+          },
+        },
+      },
     });
+
+    // Notifications selon le changement de stage
+    if ('stage' in body && body.stage !== existingDeal.stage) {
+      const actorName = session.user.name || session.user.email;
+      const assigneeIds = updatedDeal.deal_assignees.map((a: { userId: string }) => a.userId);
+      const recipients = [updatedDeal.ownerId, ...assigneeIds];
+
+      if (body.stage === 'CLOSING') {
+        const adminIds = await getAdminIds();
+        notifyEvent('DEAL_CLOSED_WON', {
+          actorId: session.user.id,
+          actorName,
+          entityId: updatedDeal.id,
+          entityName: updatedDeal.title,
+        }, [...recipients, ...adminIds]);
+      } else if (body.stage === 'REFUSE') {
+        const adminIds = await getAdminIds();
+        notifyEvent('DEAL_CLOSED_LOST', {
+          actorId: session.user.id,
+          actorName,
+          entityId: updatedDeal.id,
+          entityName: updatedDeal.title,
+        }, [...recipients, ...adminIds]);
+      } else {
+        notifyEvent('DEAL_STAGE_CHANGED', {
+          actorId: session.user.id,
+          actorName,
+          entityId: updatedDeal.id,
+          entityName: updatedDeal.title,
+          oldValue: existingDeal.stage,
+          newValue: body.stage,
+        }, recipients);
+      }
+    }
 
     return NextResponse.json(updatedDeal);
   } catch (error) {

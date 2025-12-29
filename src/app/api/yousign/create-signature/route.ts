@@ -4,12 +4,21 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { generateContract } from '@/lib/generateContract';
 
-const YOUSIGN_API_KEY = '3Ad8KJwqK04rDfqbM7RGF8V7NKFcyjNN';
-const YOUSIGN_API_URL = 'https://api-sandbox.yousign.app/v3'; // Sandbox
+const YOUSIGN_API_KEY = process.env.YOUSIGN_API_KEY;
+const YOUSIGN_API_URL = process.env.YOUSIGN_API_URL || 'https://api-sandbox.yousign.app/v3';
 
 // POST /api/yousign/create-signature - Créer une signature électronique
 export async function POST(request: NextRequest) {
   try {
+    // Vérifier que la clé API Yousign est configurée
+    if (!YOUSIGN_API_KEY) {
+      console.error('❌ YOUSIGN_API_KEY non définie dans les variables d\'environnement');
+      return NextResponse.json(
+        { error: 'Configuration Yousign manquante' },
+        { status: 500 }
+      );
+    }
+
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
@@ -53,7 +62,6 @@ export async function POST(request: NextRequest) {
     // Étape 1 : Upload du document sur Yousign
     console.log('📤 Upload du document sur Yousign...');
     const documentFormData = new FormData();
-    // Convertir le Buffer en Uint8Array pour Blob
     const uint8Array = new Uint8Array(pdfBuffer);
     const blob = new Blob([uint8Array], { type: 'application/pdf' });
     documentFormData.append('file', blob, `Contrat_${quote.number}.pdf`);
@@ -80,18 +88,48 @@ export async function POST(request: NextRequest) {
     const documentId = documentData.id;
     console.log('✅ Document uploadé, ID:', documentId);
 
-    // Étape 2 : Créer la signature request avec le document uploadé
+    // Étape 2 : Créer la signature request avec 2 signataires
     console.log('📤 Création de la signature request...');
+
+    // Extraire prénom et nom du client
+    const clientNameParts = quote.clientName.split(' ');
+    const clientFirstName = clientNameParts[0] || quote.clientName;
+    const clientLastName = clientNameParts.slice(1).join(' ') || 'Client';
+
     const yousignPayload = {
       name: `Contrat - ${quote.clientName}`,
-      delivery_mode: 'email',
+      delivery_mode: 'email', // Email pour les notifications
       timezone: 'Europe/Paris',
+      ordered_signers: true, // Signature séquentielle : DIGIFLOW puis Client
       documents: [documentId],
       signers: [
+        // Signataire 1 : DIGIFLOW (signe en premier)
         {
           info: {
-            first_name: quote.clientName.split(' ')[0] || quote.clientName,
-            last_name: quote.clientName.split(' ').slice(1).join(' ') || 'Client',
+            first_name: 'Jason',
+            last_name: 'SOTOCA',
+            email: 'jason@digiflow.fr',
+            locale: 'fr',
+          },
+          signature_level: 'electronic_signature',
+          signature_authentication_mode: 'no_otp', // Pas de code OTP pour DIGIFLOW
+          fields: [
+            {
+              document_id: documentId,
+              type: 'signature',
+              page: 4,
+              x: 100,
+              y: 120,
+              width: 150,
+              height: 50,
+            },
+          ],
+        },
+        // Signataire 2 : Client (reçoit l'email après que DIGIFLOW ait signé)
+        {
+          info: {
+            first_name: clientFirstName,
+            last_name: clientLastName,
             email: quote.clientEmail,
             locale: 'fr',
           },
@@ -102,9 +140,9 @@ export async function POST(request: NextRequest) {
               document_id: documentId,
               type: 'signature',
               page: 4,
-              x: 100,
-              y: 200,
-              width: 200,
+              x: 350,
+              y: 120,
+              width: 150,
               height: 50,
             },
           ],
@@ -133,7 +171,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Signature request créée:', yousignData.id);
 
-    // Activer la signature request (pour l'envoyer au client)
+    // Étape 3 : Activer la signature request
     const activateResponse = await fetch(`${YOUSIGN_API_URL}/signature_requests/${yousignData.id}/activate`, {
       method: 'POST',
       headers: {
@@ -151,21 +189,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('✅ Demande de signature activée et envoyée au client');
+    const activatedData = await activateResponse.json();
+    console.log('✅ Signature request activée');
 
-    // Mettre à jour le devis avec l'ID Yousign
+    // Étape 4 : Récupérer le lien de signature DIGIFLOW
+    // Le premier signataire dans la liste est DIGIFLOW
+    const digiflowSigner = activatedData.signers?.[0];
+    const digiflowSignatureLink = digiflowSigner?.signature_link;
+
+    if (digiflowSignatureLink) {
+      console.log('✅ Lien de signature DIGIFLOW récupéré');
+    } else {
+      console.log('⚠️ Lien de signature DIGIFLOW non trouvé dans la réponse');
+    }
+
+    // Mettre à jour le devis avec l'ID Yousign et le lien de signature
     await prisma.quotes.update({
       where: { id: quoteId },
       data: {
         yousignId: yousignData.id,
         status: 'ENVOYE',
+        signatureUrl: digiflowSignatureLink || null,
       },
     });
 
     return NextResponse.json({
       success: true,
       signatureRequest: yousignData,
-      message: 'Demande de signature envoyée au client',
+      // Lien pour que DIGIFLOW signe immédiatement
+      digiflowSignatureLink: digiflowSignatureLink,
+      message: 'Cliquez sur le lien pour signer. Le client recevra son email ensuite.',
     });
   } catch (error) {
     console.error('❌ Erreur création signature:', error);

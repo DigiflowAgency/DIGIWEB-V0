@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { notifyEvent } from '@/lib/notifications';
 
 const sendMessageSchema = z.object({
   content: z.string().min(1),
@@ -147,6 +148,25 @@ export async function POST(
         },
       },
     });
+
+    // Notification: Message reçu pour tous les autres participants
+    const otherParticipants = await prisma.conversation_participants.findMany({
+      where: {
+        conversationId: params.id,
+        userId: { not: session.user.id },
+      },
+      select: { userId: true },
+    });
+
+    if (otherParticipants.length > 0) {
+      const recipientIds = otherParticipants.map(p => p.userId);
+      notifyEvent('MESSAGE_RECEIVED', {
+        actorId: session.user.id,
+        actorName: session.user.name || session.user.email,
+        entityId: params.id,
+        entityName: 'conversation',
+      }, recipientIds);
+    }
 
     return NextResponse.json({ message }, { status: 201 });
   } catch (error) {
