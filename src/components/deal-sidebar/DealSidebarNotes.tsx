@@ -53,6 +53,11 @@ export default function DealSidebarNotes({
 }: DealSidebarNotesProps) {
   const [notes, setNotes] = useState<Note[]>(initialNotes);
   const [newNoteContent, setNewNoteContent] = useState('');
+
+  // Synchroniser les notes quand le deal change
+  useEffect(() => {
+    setNotes(initialNotes);
+  }, [initialNotes, dealId]);
   const [isAddingNote, setIsAddingNote] = useState(false);
 
   // États pour le système @mention
@@ -190,6 +195,7 @@ export default function DealSidebarNotes({
   const handleAddNote = async () => {
     if (!newNoteContent.trim()) return;
 
+    console.log('📝 Ajout note pour deal:', dealId);
     setIsAddingNote(true);
     try {
       const response = await fetch(`/api/deals/${dealId}/notes`, {
@@ -198,17 +204,21 @@ export default function DealSidebarNotes({
         body: JSON.stringify({ content: newNoteContent }),
       });
 
+      console.log('📝 Response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('📝 Note créée:', data);
         setNotes((prev) => [data.note, ...prev]);
         setNewNoteContent('');
         onUpdate();
       } else {
         const error = await response.json();
+        console.error('📝 Erreur API:', error);
         alert(error.error || 'Erreur lors de l\'ajout de la note');
       }
     } catch (error) {
-      console.error('Erreur ajout note:', error);
+      console.error('📝 Erreur ajout note:', error);
       alert('Erreur lors de l\'ajout de la note');
     } finally {
       setIsAddingNote(false);

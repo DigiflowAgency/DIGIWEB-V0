@@ -10,6 +10,8 @@ export interface Deal {
   currency: string;
   stage: string; // Stages dynamiques depuis pipeline_stages
   productionStage?: 'PREMIER_RDV' | 'EN_PRODUCTION' | 'LIVRE' | 'ENCAISSE' | null;
+  productionServiceId?: string | null;
+  productionStageId?: string | null;
   probability: number;
   expectedCloseDate: Date | null;
   closedAt: Date | null;
@@ -62,6 +64,8 @@ export interface CreateDealData {
   currency?: string;
   stage?: string; // Stages dynamiques depuis pipeline_stages
   productionStage?: 'PREMIER_RDV' | 'EN_PRODUCTION' | 'LIVRE' | 'ENCAISSE' | null;
+  productionServiceId?: string | null;
+  productionStageId?: string | null;
   probability?: number;
   expectedCloseDate?: string | null;
   contactId?: string | null;

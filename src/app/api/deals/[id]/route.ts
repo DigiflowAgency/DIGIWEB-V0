@@ -28,6 +28,8 @@ const dealUpdateSchema = z.object({
   currency: z.string().optional(),
   stage: z.enum(['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING', 'REFUSE']).optional(),
   productionStage: z.enum(['PREMIER_RDV', 'EN_PRODUCTION', 'LIVRE', 'ENCAISSE']).optional().nullable(),
+  productionServiceId: z.string().optional().nullable(),
+  productionStageId: z.string().optional().nullable(),
   probability: z.number().int().min(0).max(100).optional(),
   expectedCloseDate: z.string().optional().nullable(),
   contactId: z.string().optional().nullable(),
@@ -446,6 +448,14 @@ export async function PATCH(
 
     if ('blocNotes' in body) {
       updateData.blocNotes = body.blocNotes;
+    }
+
+    if ('productionServiceId' in body) {
+      updateData.productionServiceId = body.productionServiceId;
+    }
+
+    if ('productionStageId' in body) {
+      updateData.productionStageId = body.productionStageId;
     }
 
     // Mettre à jour le deal

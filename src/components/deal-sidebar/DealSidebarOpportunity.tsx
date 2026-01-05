@@ -1,8 +1,9 @@
 'use client';
 
-import { Euro, User, Globe, Megaphone, Instagram, Linkedin, Users, PhoneCall, Mail as MailIcon, MessageCircle } from 'lucide-react';
+import { Euro, User, Globe, Megaphone, Instagram, Linkedin, Users, PhoneCall, Mail as MailIcon, MessageCircle, Briefcase } from 'lucide-react';
 import { Deal, User as UserType, Stage, originOptions, productOptions } from './types';
 import EditableField, { SelectField } from './EditableField';
+import { useProductionServices } from '@/hooks/useProductionServices';
 
 interface DealSidebarOpportunityProps {
   deal: Deal;
@@ -40,12 +41,36 @@ export default function DealSidebarOpportunity({
   getStageLabel,
   getStageColor,
 }: DealSidebarOpportunityProps) {
+  const { services } = useProductionServices();
+
   const updateField = (field: keyof Deal, value: any) => {
     setEditedDeal({ ...editedDeal, [field]: value });
   };
 
+  // Quand on change de service, on doit aussi mettre à jour le stageId
+  const handleServiceChange = (serviceId: string) => {
+    const service = services.find(s => s.id === serviceId);
+    const firstStageId = service?.stages[0]?.id || null;
+    setEditedDeal({
+      ...editedDeal,
+      productionServiceId: serviceId || null,
+      productionStageId: firstStageId,
+    });
+  };
+
   const stageOptions = stages.map((s) => ({ value: s.code, label: s.label }));
   const userOptions = users.map((u) => ({ value: u.id, label: `${u.firstName} ${u.lastName}` }));
+  const serviceOptions = [
+    { value: '', label: 'Aucun service' },
+    ...services.map(s => ({ value: s.id, label: s.name })),
+  ];
+
+  // Récupérer le service actuel pour afficher les stages
+  const currentServiceId = isEditing ? editedDeal.productionServiceId : deal.productionServiceId;
+  const currentService = services.find(s => s.id === currentServiceId);
+  const stageOptionsForService = currentService
+    ? currentService.stages.map(s => ({ value: s.id, label: s.name }))
+    : [];
 
   return (
     <div>
@@ -150,6 +175,79 @@ export default function DealSidebarOpportunity({
             options={productOptions}
           />
         </div>
+
+        {/* Service de production (seulement si deal CLOSING) */}
+        {deal.stage === 'CLOSING' && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                <Briefcase className="h-4 w-4 text-violet-500" />
+                Service de production
+              </label>
+              {isEditing ? (
+                <select
+                  value={editedDeal.productionServiceId || ''}
+                  onChange={(e) => handleServiceChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
+                >
+                  {serviceOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <>
+                  {currentService ? (
+                    <span
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-white"
+                      style={{ backgroundColor: currentService.color }}
+                    >
+                      {currentService.name}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 italic text-sm">Aucun service assigné</span>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Étape du service (si un service est assigné) */}
+            {currentService && stageOptionsForService.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Étape du service
+                </label>
+                {isEditing ? (
+                  <select
+                    value={editedDeal.productionStageId || ''}
+                    onChange={(e) => updateField('productionStageId', e.target.value || null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
+                  >
+                    <option value="">Sélectionner une étape</option>
+                    {stageOptionsForService.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <>
+                    {(() => {
+                      const currentStage = currentService.stages.find(s => s.id === deal.productionStageId);
+                      return currentStage ? (
+                        <span
+                          className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium text-gray-800"
+                          style={{ backgroundColor: currentStage.color }}
+                        >
+                          {currentStage.name}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 italic text-sm">Aucune étape</span>
+                      );
+                    })()}
+                  </>
+                )}
+              </div>
+            )}
+          </>
+        )}
 
         {/* Origine / Source */}
         <div>

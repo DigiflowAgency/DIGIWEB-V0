@@ -250,25 +250,58 @@ model deals {
   emailReminderSent  String?
   smsReminderSent    String?
   comments           String?                  @db.Text
-  blocNotes          String?                  @db.Text
-  createdAt          DateTime                 @default(now())
-  updatedAt          DateTime
-  activities         activities[]
-  deal_products      deal_products[]
-  companies          companies?               @relation(fields: [companyId], references: [id])
-  contacts           contacts?                @relation(fields: [contactId], references: [id])
-  users              users                    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  notes              notes[]
-  deal_assignees     deal_assignees[]
-  reminders          reminders[]
-  deal_documents     deal_documents[]
-  stage_history      deal_stage_history[]
+  blocNotes              String?                  @db.Text
+  productionServiceId    String?
+  productionStageId      String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime
+  activities             activities[]
+  deal_products          deal_products[]
+  companies              companies?               @relation(fields: [companyId], references: [id])
+  contacts               contacts?                @relation(fields: [contactId], references: [id])
+  users                  users                    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  notes                  notes[]
+  deal_assignees         deal_assignees[]
+  reminders              reminders[]
+  deal_documents         deal_documents[]
+  stage_history          deal_stage_history[]
+  productionService      production_services?     @relation(fields: [productionServiceId], references: [id])
 
   @@index([companyId])
   @@index([contactId])
   @@index([ownerId])
   @@index([stage])
   @@index([productionStage])
+  @@index([productionServiceId])
+}
+
+// Service de production (Site Web, SEO, etc.)
+model production_services {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  color       String   @default("#8B5CF6")
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stages      production_service_stages[]
+  deals       deals[]
+}
+
+// Colonnes/étapes d'un service de production
+model production_service_stages {
+  id          String   @id @default(uuid())
+  serviceId   String
+  name        String
+  description String?
+  color       String   @default("#E5E7EB")
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  service     production_services @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId])
 }
 
 // Historique des changements de stage d'un deal

@@ -8,6 +8,8 @@ export interface Deal {
   currency: string;
   stage: string;
   productionStage?: string | null;
+  productionServiceId?: string | null;
+  productionStageId?: string | null;
   probability: number;
   expectedCloseDate?: string | null;
   closedAt?: string | null;
