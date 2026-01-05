@@ -30,6 +30,26 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const month = searchParams.get('month');
     const year = searchParams.get('year');
+    const checkCurrentMonth = searchParams.get('checkCurrentMonth');
+
+    // Vérification rapide si check-in fait ce mois-ci
+    if (checkCurrentMonth === 'true') {
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      const currentYear = now.getFullYear();
+
+      const existing = await prisma.checkins.findUnique({
+        where: {
+          userId_month_year: {
+            userId: session.user.id,
+            month: currentMonth,
+            year: currentYear,
+          },
+        },
+      });
+
+      return NextResponse.json({ hasCheckinThisMonth: !!existing });
+    }
 
     // Construire la query
     const where: any = {};

@@ -4,6 +4,7 @@ import { useDeals } from '@/hooks/useDeals';
 import { useState } from 'react';
 import Modal from '@/components/Modal';
 import { Loader2, Mail, Phone, MapPin, Calendar, Euro } from 'lucide-react';
+import DealSidebarContainer from '@/components/deal-sidebar/DealSidebarContainer';
 
 type ProductionStage = 'PREMIER_RDV' | 'EN_PRODUCTION' | 'LIVRE' | 'ENCAISSE';
 
@@ -20,6 +21,11 @@ export default function DealsPage() {
   const [isDragModalOpen, setIsDragModalOpen] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
   const [targetStage, setTargetStage] = useState<ProductionStage | null>(null);
+
+  // States pour le sidebar
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarDeal, setSidebarDeal] = useState<any>(null);
+  const [dealDetailData, setDealDetailData] = useState<any>(null);
 
   // Filtrer uniquement les deals qui ont atteint le stage CLOSING
   const closingDeals = deals.filter((deal) => deal.stage === 'CLOSING');
@@ -42,6 +48,34 @@ export default function DealsPage() {
 
   const getDealsByProductionStage = (stage: ProductionStage | null) => {
     return closingDeals.filter((deal) => deal.productionStage === stage);
+  };
+
+  // Handler pour ouvrir le sidebar au clic sur une card
+  const handleDealClick = async (deal: any) => {
+    setIsSidebarOpen(true);
+    setSidebarDeal(deal);
+    setDealDetailData(null);
+
+    try {
+      const response = await fetch(`/api/deals/${deal.id}`);
+      if (response.ok) {
+        const fullDeal = await response.json();
+        setDealDetailData({
+          metaLead: fullDeal.metaLead || null,
+          notes: fullDeal.notes || [],
+        });
+        setSidebarDeal(fullDeal);
+      }
+    } catch (error) {
+      console.error('Erreur chargement détail deal:', error);
+    }
+  };
+
+  // Handler pour supprimer un deal
+  const handleDeleteDeal = async (dealId: string) => {
+    const response = await fetch(`/api/deals/${dealId}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Erreur suppression');
+    window.location.reload();
   };
 
   const handleDragStart = (deal: any) => {
@@ -164,7 +198,8 @@ export default function DealsPage() {
                         key={deal.id}
                         draggable
                         onDragStart={() => handleDragStart(deal)}
-                        className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition cursor-move border border-gray-200"
+                        onClick={() => handleDealClick(deal)}
+                        className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition cursor-pointer border border-gray-200"
                       >
                         {/* Deal Header */}
                         <div className="flex items-start justify-between mb-3">
@@ -295,6 +330,26 @@ export default function DealsPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Deal Sidebar */}
+      {sidebarDeal && (
+        <DealSidebarContainer
+          deal={{
+            ...sidebarDeal,
+            metaLead: dealDetailData?.metaLead ?? sidebarDeal.metaLead,
+            notes: dealDetailData?.notes ?? sidebarDeal.notes,
+          }}
+          isOpen={isSidebarOpen}
+          onClose={() => {
+            setIsSidebarOpen(false);
+            setSidebarDeal(null);
+            setDealDetailData(null);
+          }}
+          onUpdate={() => window.location.reload()}
+          onDelete={handleDeleteDeal}
+          showNotesTab={true}
+        />
+      )}
     </div>
   );
 }

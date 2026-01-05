@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import NotificationDropdown from '@/components/NotificationDropdown';
 import MotivationBanner from '@/components/MotivationBanner';
+import CheckinReminderModal from '@/components/CheckinReminderModal';
 import {
   LayoutDashboard,
   Users,
@@ -600,6 +601,9 @@ export default function DashboardLayout({
 
         {/* Motivation Banner */}
         <MotivationBanner />
+
+        {/* Check-in Reminder Modal */}
+        <CheckinReminderModal />
 
         {/* Page Content */}
         <main className="flex-1">

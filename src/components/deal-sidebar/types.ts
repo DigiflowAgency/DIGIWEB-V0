@@ -19,6 +19,7 @@ export interface Deal {
   emailReminderSent?: string | null;
   smsReminderSent?: string | null;
   comments?: string | null;
+  blocNotes?: string | null;
   createdAt: string;
   updatedAt: string;
   contacts?: Contact | null;

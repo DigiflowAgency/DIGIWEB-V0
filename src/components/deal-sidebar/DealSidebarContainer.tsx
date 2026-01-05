@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { GripVertical, Calendar, AlertTriangle, Trash2, Megaphone } from 'lucide-react';
+import { GripVertical, Calendar, AlertTriangle, Trash2, Megaphone, StickyNote, LayoutList, Save, Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useReminders } from '@/hooks/useReminders';
 import { useStages } from '@/hooks/useStages';
@@ -23,6 +23,7 @@ interface DealSidebarContainerProps {
   onClose: () => void;
   onDelete?: (dealId: string) => Promise<void>;
   onUpdate: () => void;
+  showNotesTab?: boolean;
 }
 
 // Helper pour extraire les infos de localisation des customFields
@@ -72,6 +73,7 @@ export default function DealSidebarContainer({
   onClose,
   onUpdate,
   onDelete,
+  showNotesTab = false,
 }: DealSidebarContainerProps) {
   const [width, setWidth] = useState(500);
   const [isResizing, setIsResizing] = useState(false);
@@ -89,6 +91,11 @@ export default function DealSidebarContainer({
   const [users, setUsers] = useState<User[]>([]);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
+  // États pour le bloc-notes (onglet Production)
+  const [activeTab, setActiveTab] = useState<'details' | 'notes'>('details');
+  const [blocNotes, setBlocNotes] = useState(deal.blocNotes || '');
+  const [isSavingBlocNotes, setIsSavingBlocNotes] = useState(false);
+
   // Hooks
   const { data: session } = useSession();
   const { reminders, createReminder, deleteReminder, markAsRead } = useReminders({ dealId: deal?.id });
@@ -99,6 +106,7 @@ export default function DealSidebarContainer({
     setEditedDeal(deal);
     setEditedContact(deal?.contacts ? { ...deal.contacts } : null);
     setEditedCompany(deal?.companies ? { ...deal.companies } : null);
+    setBlocNotes(deal.blocNotes || '');
   }, [deal]);
 
   // Load users
@@ -218,6 +226,24 @@ export default function DealSidebarContainer({
     }
   };
 
+  // Sauvegarde du bloc-notes
+  const handleSaveBlocNotes = async () => {
+    setIsSavingBlocNotes(true);
+    try {
+      const response = await fetch(`/api/deals/${deal.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blocNotes }),
+      });
+      if (!response.ok) throw new Error('Erreur sauvegarde');
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Erreur lors de la sauvegarde du bloc-notes');
+    } finally {
+      setIsSavingBlocNotes(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const companyName = deal.companies?.name || deal.title;
@@ -258,8 +284,69 @@ export default function DealSidebarContainer({
           onDelete={onDelete ? () => setShowDeleteConfirm(true) : undefined}
         />
 
-        {/* Content */}
-        <div className="overflow-y-auto flex-1 p-6 space-y-6">
+        {/* Tabs (seulement si showNotesTab est activé) */}
+        {showNotesTab && (
+          <div className="flex border-b border-gray-200 px-4">
+            <button
+              onClick={() => setActiveTab('details')}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'details'
+                  ? 'border-violet-600 text-violet-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <LayoutList className="h-4 w-4" />
+              Détails
+            </button>
+            <button
+              onClick={() => setActiveTab('notes')}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'notes'
+                  ? 'border-violet-600 text-violet-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <StickyNote className="h-4 w-4" />
+              Bloc-notes
+            </button>
+          </div>
+        )}
+
+        {/* Vue Bloc-notes (plein écran) */}
+        {showNotesTab && activeTab === 'notes' ? (
+          <div className="flex-1 flex flex-col p-4 overflow-hidden">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <StickyNote className="h-5 w-5 text-violet-600" />
+                Bloc-notes
+              </h3>
+              <button
+                onClick={handleSaveBlocNotes}
+                disabled={isSavingBlocNotes}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-50 transition-colors"
+              >
+                {isSavingBlocNotes ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Sauvegarder
+              </button>
+            </div>
+            <textarea
+              value={blocNotes}
+              onChange={(e) => setBlocNotes(e.target.value)}
+              placeholder="Écrivez vos notes ici... (Suivi de production, remarques, to-do list, etc.)"
+              className="flex-1 w-full p-4 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+              style={{ minHeight: '300px' }}
+            />
+            <p className="text-xs text-gray-400 mt-2">
+              Dernière modification : {deal.updatedAt ? new Date(deal.updatedAt).toLocaleString('fr-FR') : '-'}
+            </p>
+          </div>
+        ) : (
+          /* Content normal */
+          <div className="overflow-y-auto flex-1 p-6 space-y-6">
           {/* Contact */}
           <DealSidebarContact
             contact={deal.contacts || null}
@@ -395,6 +482,7 @@ export default function DealSidebarContainer({
             currentUserId={session?.user?.id || ''}
           />
         </div>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}

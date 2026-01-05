@@ -444,6 +444,10 @@ export async function PATCH(
       updateData.comments = body.comments;
     }
 
+    if ('blocNotes' in body) {
+      updateData.blocNotes = body.blocNotes;
+    }
+
     // Mettre à jour le deal
     const updatedDeal = await prisma.deals.update({
       where: { id: params.id },
