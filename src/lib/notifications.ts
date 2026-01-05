@@ -33,10 +33,14 @@ export type NotificationEvent =
   | 'ACTIVITY_COMPLETED'
   // Reminders
   | 'REMINDER_CREATED'
+  | 'REMINDER_ASSIGNED'
+  | 'REMINDER_DUE'
   // Messages
   | 'MESSAGE_RECEIVED'
   // Meta Leads
-  | 'META_LEADS_IMPORTED';
+  | 'META_LEADS_IMPORTED'
+  // Mentions
+  | 'USER_MENTIONED';
 
 interface CreateNotificationParams {
   userId: string;
@@ -149,43 +153,43 @@ function getNotificationConfig(
       type: 'DEAL',
       title: 'Nouveau deal créé',
       message: `${ctx.actorName || 'Un utilisateur'} a créé le deal "${ctx.entityName}"`,
-      link: `/dashboard/crm/deals?dealId=${ctx.entityId}`,
+      link: `/dashboard/crm?dealId=${ctx.entityId}`,
     },
     DEAL_STAGE_CHANGED: {
       type: 'DEAL',
       title: 'Deal déplacé',
       message: `Le deal "${ctx.entityName}" est passé de ${ctx.oldValue} à ${ctx.newValue}`,
-      link: `/dashboard/crm/deals?dealId=${ctx.entityId}`,
+      link: `/dashboard/crm?dealId=${ctx.entityId}`,
     },
     DEAL_CLOSED_WON: {
       type: 'DEAL',
       title: 'Deal gagné !',
       message: `Félicitations ! Le deal "${ctx.entityName}" a été conclu`,
-      link: `/dashboard/crm/deals?dealId=${ctx.entityId}`,
+      link: `/dashboard/crm?dealId=${ctx.entityId}`,
     },
     DEAL_CLOSED_LOST: {
       type: 'DEAL',
       title: 'Deal perdu',
       message: `Le deal "${ctx.entityName}" a été refusé`,
-      link: `/dashboard/crm/deals?dealId=${ctx.entityId}`,
+      link: `/dashboard/crm?dealId=${ctx.entityId}`,
     },
     DEAL_ASSIGNED: {
       type: 'DEAL',
       title: 'Nouveau deal assigné',
       message: `${ctx.actorName || 'Un utilisateur'} vous a assigné au deal "${ctx.entityName}"`,
-      link: `/dashboard/crm/deals?dealId=${ctx.entityId}`,
+      link: `/dashboard/crm?dealId=${ctx.entityId}`,
     },
     DEAL_UNASSIGNED: {
       type: 'DEAL',
       title: "Retrait d'un deal",
       message: `Vous avez été retiré du deal "${ctx.entityName}"`,
-      link: `/dashboard/crm/deals?dealId=${ctx.entityId}`,
+      link: `/dashboard/crm?dealId=${ctx.entityId}`,
     },
     DEAL_NOTE_ADDED: {
       type: 'DEAL',
       title: 'Nouvelle note',
       message: `${ctx.actorName || 'Un utilisateur'} a ajouté une note sur "${ctx.entityName}"`,
-      link: `/dashboard/crm/deals?dealId=${ctx.entityId}`,
+      link: `/dashboard/crm?dealId=${ctx.entityId}`,
     },
 
     // === CONTACTS ===
@@ -268,7 +272,23 @@ function getNotificationConfig(
       title: 'Nouveau rappel',
       message: `Rappel créé: "${ctx.entityName}"`,
       link: ctx.metadata?.dealId
-        ? `/dashboard/crm/deals?dealId=${ctx.metadata.dealId}`
+        ? `/dashboard/crm?dealId=${ctx.metadata.dealId}`
+        : '/dashboard',
+    },
+    REMINDER_ASSIGNED: {
+      type: 'ACTIVITY',
+      title: 'Nouveau rappel assigné',
+      message: `${ctx.actorName || 'Un utilisateur'} vous a créé un rappel: "${ctx.entityName}"`,
+      link: ctx.metadata?.dealId
+        ? `/dashboard/crm?dealId=${ctx.metadata.dealId}`
+        : '/dashboard',
+    },
+    REMINDER_DUE: {
+      type: 'ACTIVITY',
+      title: 'Rappel échu',
+      message: `Rappel: "${ctx.entityName}"`,
+      link: ctx.metadata?.dealId
+        ? `/dashboard/crm?dealId=${ctx.metadata.dealId}`
         : '/dashboard',
     },
 
@@ -286,6 +306,14 @@ function getNotificationConfig(
       title: 'Leads importés',
       message: `${ctx.metadata?.count || 0} nouveaux leads Meta ont été importés`,
       link: '/dashboard/meta-leads',
+    },
+
+    // === MENTIONS ===
+    USER_MENTIONED: {
+      type: 'MENTION',
+      title: 'Vous avez été mentionné',
+      message: `${ctx.actorName || 'Un utilisateur'} vous a mentionné dans une note sur "${ctx.entityName}"`,
+      link: `/dashboard/crm?dealId=${ctx.entityId}`,
     },
   };
 

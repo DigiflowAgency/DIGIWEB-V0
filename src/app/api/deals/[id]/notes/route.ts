@@ -76,6 +76,27 @@ export async function POST(
       entityName: deal.title,
     }, recipients);
 
+    // Parser les mentions @[Nom](userId) et notifier les utilisateurs mentionnés
+    const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g;
+    const mentionedUserIds: string[] = [];
+    let match;
+    while ((match = mentionRegex.exec(content)) !== null) {
+      mentionedUserIds.push(match[2]); // L'ID utilisateur
+    }
+
+    // Envoyer notifications aux mentionnés (exclure l'auteur et dédupliquer)
+    const uniqueMentions = Array.from(new Set(mentionedUserIds))
+      .filter(id => id !== session.user.id);
+
+    if (uniqueMentions.length > 0) {
+      notifyEvent('USER_MENTIONED', {
+        actorId: session.user.id,
+        actorName: session.user.name || session.user.email,
+        entityId: dealId,
+        entityName: deal.title,
+      }, uniqueMentions);
+    }
+
     return NextResponse.json({ note }, { status: 201 });
   } catch (error) {
     console.error('Erreur création note:', error);

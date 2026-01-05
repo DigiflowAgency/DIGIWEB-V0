@@ -17,6 +17,21 @@ export default function NotificationDropdown() {
   const { markAsRead, markAllAsRead, deleteNotification } = useNotificationMutations();
   const { reminders, markAsRead: markReminderAsRead, deleteReminder } = useReminders({ upcoming: true });
 
+  // Vérifier les rappels échus au chargement et créer des notifications
+  useEffect(() => {
+    const checkDueReminders = async () => {
+      try {
+        await fetch('/api/reminders/check-due');
+        // Rafraîchir les notifications après le check
+        mutate();
+      } catch (error) {
+        console.error('Erreur check-due:', error);
+      }
+    };
+
+    checkDueReminders();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Rappels en retard (date passée et non lus)
   const dueReminders = reminders.filter(r => {
     const remindAt = new Date(r.remindAt);

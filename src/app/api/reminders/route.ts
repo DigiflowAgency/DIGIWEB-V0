@@ -9,6 +9,7 @@ import { notifyEvent } from '@/lib/notifications';
 const createReminderSchema = z.object({
   dealId: z.string().optional().nullable(),
   contactId: z.string().optional().nullable(),
+  targetUserId: z.string().optional().nullable(), // Utilisateur destinataire (optionnel)
   title: z.string().min(1, 'Le titre est requis'),
   description: z.string().optional().nullable(),
   remindAt: z.string().min(1, 'La date de rappel est requise'),
@@ -135,9 +136,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Déterminer le destinataire du rappel
+    const reminderUserId = validatedData.targetUserId || session.user.id;
+
     const reminder = await prisma.reminders.create({
       data: {
-        userId: session.user.id,
+        userId: reminderUserId,
         dealId: validatedData.dealId || null,
         contactId: validatedData.contactId || null,
         title: validatedData.title,
@@ -161,14 +165,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Notification: Rappel créé
-    notifyEvent('REMINDER_CREATED', {
-      actorId: session.user.id,
-      actorName: session.user.name || session.user.email,
-      entityId: reminder.id,
-      entityName: reminder.title,
-      metadata: { dealId: validatedData.dealId },
-    }, [session.user.id]);
+    // Notification: Rappel assigné à quelqu'un d'autre
+    if (reminderUserId !== session.user.id) {
+      notifyEvent('REMINDER_ASSIGNED', {
+        actorId: session.user.id,
+        actorName: session.user.name || session.user.email,
+        entityId: reminder.id,
+        entityName: reminder.title,
+        metadata: { dealId: validatedData.dealId },
+      }, [reminderUserId]);
+    }
 
     return NextResponse.json(reminder, { status: 201 });
   } catch (error) {

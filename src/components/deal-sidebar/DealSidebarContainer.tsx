@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { GripVertical, Calendar, AlertTriangle, Trash2, Megaphone } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { useReminders } from '@/hooks/useReminders';
 import { useStages } from '@/hooks/useStages';
 
@@ -89,6 +90,7 @@ export default function DealSidebarContainer({
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Hooks
+  const { data: session } = useSession();
   const { reminders, createReminder, deleteReminder, markAsRead } = useReminders({ dealId: deal?.id });
   const { stages, getStageLabel, getStageColor } = useStages();
 
@@ -367,6 +369,7 @@ export default function DealSidebarContainer({
             initialNotes={deal.notes || []}
             legacyComments={deal.comments}
             onUpdate={onUpdate}
+            users={users}
           />
 
           {/* Dates */}
@@ -388,6 +391,8 @@ export default function DealSidebarContainer({
             deleteReminder={deleteReminder}
             markAsRead={markAsRead}
             dealId={deal.id}
+            users={users}
+            currentUserId={session?.user?.id || ''}
           />
         </div>
       </div>

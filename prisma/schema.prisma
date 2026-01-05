@@ -315,6 +315,7 @@ model reminders {
   remindAt    DateTime // Date/heure du rappel
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
+  notifiedAt  DateTime? // Date où la notification d'échéance a été envoyée
 
   deal    deals?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
   contact contacts? @relation(fields: [contactId], references: [id], onDelete: Cascade)

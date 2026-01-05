@@ -1,15 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, Plus, Clock, Trash2 } from 'lucide-react';
-import { Reminder } from './types';
+import { Bell, Plus, Clock, Trash2, User } from 'lucide-react';
+import { Reminder, User as UserType } from './types';
 
 interface DealSidebarRemindersProps {
   reminders: Reminder[];
-  createReminder: (data: { dealId: string; title: string; remindAt: string }) => Promise<unknown>;
+  createReminder: (data: { dealId: string; title: string; remindAt: string; targetUserId?: string }) => Promise<unknown>;
   deleteReminder: (id: string) => Promise<unknown>;
   markAsRead: (id: string) => Promise<unknown>;
   dealId: string;
+  users: UserType[];
+  currentUserId: string;
 }
 
 export default function DealSidebarReminders({
@@ -18,11 +20,14 @@ export default function DealSidebarReminders({
   deleteReminder,
   markAsRead,
   dealId,
+  users,
+  currentUserId,
 }: DealSidebarRemindersProps) {
   const [showAddReminder, setShowAddReminder] = useState(false);
   const [reminderTitle, setReminderTitle] = useState('');
   const [reminderDate, setReminderDate] = useState('');
   const [reminderTime, setReminderTime] = useState('09:00');
+  const [targetUserId, setTargetUserId] = useState(currentUserId);
   const [isAddingReminder, setIsAddingReminder] = useState(false);
 
   const handleAddReminder = async () => {
@@ -30,16 +35,20 @@ export default function DealSidebarReminders({
 
     setIsAddingReminder(true);
     try {
-      const remindAt = `${reminderDate}T${reminderTime}:00`;
+      // Créer la date en heure locale et convertir en ISO
+      const localDate = new Date(`${reminderDate}T${reminderTime}:00`);
+      const remindAt = localDate.toISOString();
       await createReminder({
         dealId,
         title: reminderTitle,
         remindAt,
+        targetUserId: targetUserId !== currentUserId ? targetUserId : undefined,
       });
 
       setReminderTitle('');
       setReminderDate('');
       setReminderTime('09:00');
+      setTargetUserId(currentUserId);
       setShowAddReminder(false);
     } catch (error) {
       console.error('Erreur:', error);
@@ -95,6 +104,26 @@ export default function DealSidebarReminders({
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
+
+            {/* Sélecteur d'utilisateur */}
+            <div>
+              <label className="block text-xs text-gray-600 mb-1 flex items-center gap-1">
+                <User className="h-3 w-3" />
+                Rappel pour
+              </label>
+              <select
+                value={targetUserId}
+                onChange={(e) => setTargetUserId(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
+              >
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.firstName} {user.lastName} {user.id === currentUserId ? '(moi)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs text-gray-600 mb-1">Date</label>
@@ -123,6 +152,7 @@ export default function DealSidebarReminders({
                   setReminderTitle('');
                   setReminderDate('');
                   setReminderTime('09:00');
+                  setTargetUserId(currentUserId);
                 }}
                 className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
               >

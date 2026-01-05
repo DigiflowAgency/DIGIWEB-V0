@@ -37,6 +37,7 @@ interface UseRemindersOptions {
 interface CreateReminderData {
   dealId?: string | null;
   contactId?: string | null;
+  targetUserId?: string | null;
   title: string;
   description?: string | null;
   remindAt: string;
