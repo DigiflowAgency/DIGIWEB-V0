@@ -32,6 +32,7 @@ const dealSchema = z.object({
   expectedCloseDate: z.string().datetime().optional().nullable(),
   contactId: z.string().optional().nullable(),
   companyId: z.string().optional().nullable(),
+  comments: z.string().optional().nullable(),
 });
 
 // GET /api/deals - Liste tous les deals
