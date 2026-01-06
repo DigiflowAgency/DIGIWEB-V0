@@ -108,15 +108,22 @@ export async function GET(request: NextRequest) {
     const ownerIdFilter = searchParams.get('ownerId'); // Single select (rétrocompat)
 
     // Si plusieurs ownerIds sont demandés (nouveau format multi-select)
+    // On cherche dans le responsable principal OU dans l'équipe assignée
     if (ownerIdsParam) {
       const ownerIds = ownerIdsParam.split(',').filter(id => id.trim());
       if (ownerIds.length > 0) {
-        where.ownerId = { in: ownerIds };
+        where.OR = [
+          { ownerId: { in: ownerIds } },
+          { deal_assignees: { some: { userId: { in: ownerIds } } } }
+        ];
       }
     }
     // Sinon, si un seul ownerId est demandé (ancien format)
     else if (ownerIdFilter) {
-      where.ownerId = ownerIdFilter;
+      where.OR = [
+        { ownerId: ownerIdFilter },
+        { deal_assignees: { some: { userId: ownerIdFilter } } }
+      ];
     }
     // Sinon, pas de filtre - tout le monde voit tous les deals
 
