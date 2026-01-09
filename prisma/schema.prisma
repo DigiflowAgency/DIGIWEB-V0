@@ -266,6 +266,7 @@ model deals {
   deal_documents         deal_documents[]
   stage_history          deal_stage_history[]
   productionService      production_services?     @relation(fields: [productionServiceId], references: [id])
+  deal_service_assignments deal_service_assignments[]  // Multi-services
 
   @@index([companyId])
   @@index([contactId])
@@ -287,6 +288,7 @@ model production_services {
 
   stages      production_service_stages[]
   deals       deals[]
+  deal_service_assignments deal_service_assignments[]  // Multi-services
 }
 
 // Colonnes/étapes d'un service de production
@@ -300,8 +302,28 @@ model production_service_stages {
   createdAt   DateTime @default(now())
 
   service     production_services @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  deal_service_assignments deal_service_assignments[]
 
   @@index([serviceId])
+}
+
+// Table pivot pour assigner plusieurs services à un deal (avec stage indépendant par service)
+model deal_service_assignments {
+  id        String   @id @default(uuid())
+  dealId    String
+  serviceId String
+  stageId   String?  // Stage indépendant par service (nullable = non encore démarré)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deal    deals                      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  service production_services        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  stage   production_service_stages? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+
+  @@unique([dealId, serviceId])  // Un deal ne peut avoir un service qu'une fois
+  @@index([dealId])
+  @@index([serviceId])
+  @@index([stageId])
 }
 
 // Historique des changements de stage d'un deal

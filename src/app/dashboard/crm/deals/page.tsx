@@ -48,9 +48,11 @@ export default function DealsPage() {
   // Filtrer uniquement les deals qui ont atteint le stage CLOSING
   const closingDeals = deals.filter((deal) => deal.stage === 'CLOSING');
 
-  // Filtrer les deals par service sélectionné
+  // Filtrer les deals par service sélectionné (multi-services)
   const filteredDeals = selectedService
-    ? closingDeals.filter(deal => deal.productionServiceId === selectedService.id)
+    ? closingDeals.filter(deal =>
+        deal.deal_service_assignments?.some(a => a.serviceId === selectedService.id)
+      )
     : closingDeals;
 
   if (isLoading || servicesLoading) {
@@ -92,8 +94,13 @@ export default function DealsPage() {
 
   const getDealsByColumn = (columnId: string | ProductionStage | null) => {
     if (selectedService) {
-      // Vue service - filtrer par productionStageId
-      return filteredDeals.filter(deal => deal.productionStageId === columnId);
+      // Vue service - filtrer par stageId de l'assignation du service
+      return filteredDeals.filter(deal => {
+        const assignment = deal.deal_service_assignments?.find(
+          a => a.serviceId === selectedService.id
+        );
+        return assignment?.stageId === columnId;
+      });
     }
     // Vue "Tous" - filtrer par productionStage classique
     return closingDeals.filter(deal => deal.productionStage === columnId);
@@ -152,28 +159,36 @@ export default function DealsPage() {
     if (!selectedDeal) return;
 
     try {
-      const updateData: any = {};
+      if (targetServiceStage !== null && selectedService) {
+        // Déplacement vers un stage de service - utiliser l'API des services
+        const response = await fetch(`/api/deals/${selectedDeal.id}/services`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            serviceId: selectedService.id,
+            stageId: targetServiceStage,
+          }),
+        });
 
-      if (targetServiceStage !== null) {
-        // Déplacement vers un stage de service
-        updateData.productionStageId = targetServiceStage;
+        if (!response.ok) {
+          throw new Error('Erreur mise à jour stage service');
+        }
       } else {
-        // Déplacement vers un stage par défaut
-        updateData.productionStage = targetStage;
-        updateData.productionStageId = null; // Retirer du service
+        // Déplacement vers un stage par défaut (vue "Tous")
+        const response = await fetch(`/api/deals/${selectedDeal.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productionStage: targetStage,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erreur mise à jour stage par défaut');
+        }
       }
 
-      const response = await fetch(`/api/deals/${selectedDeal.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
-      });
-
-      if (response.ok) {
-        mutateDeals();
-      } else {
-        alert('Erreur lors de la mise à jour du stage de production');
-      }
+      mutateDeals();
     } catch (error) {
       console.error('Erreur:', error);
       alert('Erreur lors de la mise à jour');
@@ -182,25 +197,6 @@ export default function DealsPage() {
       setSelectedDeal(null);
       setTargetStage(null);
       setTargetServiceStage(null);
-    }
-  };
-
-  // Changer le service d'un deal directement
-  const handleChangeService = async (dealId: string, serviceId: string | null, stageId: string | null) => {
-    try {
-      const response = await fetch(`/api/deals/${dealId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productionServiceId: serviceId,
-          productionStageId: stageId,
-        }),
-      });
-      if (response.ok) {
-        mutateDeals();
-      }
-    } catch (error) {
-      console.error('Erreur changement service:', error);
     }
   };
 
@@ -428,7 +424,6 @@ export default function DealsPage() {
                       : 'Contact non défini';
                     const companyName = deal.companies?.name || deal.title;
                     const city = deal.companies?.city || '';
-                    const dealService = services.find(s => s.id === deal.productionServiceId);
 
                     return (
                       <div
@@ -471,38 +466,28 @@ export default function DealsPage() {
                           )}
                         </div>
 
-                        {/* Service selector sur la card (seulement en vue "Tous") */}
+                        {/* Badges des services assignés (seulement en vue "Tous") */}
                         {!selectedService && (
                           <div className="mb-3">
-                            <select
-                              value={deal.productionServiceId || ''}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                const newServiceId = e.target.value || null;
-                                const newService = services.find(s => s.id === newServiceId);
-                                const firstStageId = newService?.stages[0]?.id || null;
-                                handleChangeService(deal.id, newServiceId, firstStageId);
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-full text-xs px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-violet-500"
-                            >
-                              <option value="">Aucun service</option>
-                              {services.map(s => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-
-                        {/* Badge service (si assigné et en vue "Tous") */}
-                        {!selectedService && dealService && (
-                          <div className="mb-3">
-                            <span
-                              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full text-white"
-                              style={{ backgroundColor: dealService.color }}
-                            >
-                              {dealService.name}
-                            </span>
+                            {deal.deal_service_assignments && deal.deal_service_assignments.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {deal.deal_service_assignments.map(assignment => (
+                                  <span
+                                    key={assignment.id}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full text-white"
+                                    style={{ backgroundColor: assignment.service.color }}
+                                    title={assignment.stage ? `${assignment.service.name} - ${assignment.stage.name}` : assignment.service.name}
+                                  >
+                                    {assignment.service.name}
+                                    {assignment.stage && (
+                                      <span className="opacity-75 text-[10px]">• {assignment.stage.name}</span>
+                                    )}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400 italic">Aucun service</span>
+                            )}
                           </div>
                         )}
 

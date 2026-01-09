@@ -139,6 +139,39 @@ export async function GET(
           },
           orderBy: { createdAt: 'asc' },
         },
+        deal_service_assignments: {
+          select: {
+            id: true,
+            serviceId: true,
+            stageId: true,
+            createdAt: true,
+            service: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+                stages: {
+                  select: {
+                    id: true,
+                    name: true,
+                    color: true,
+                    position: true,
+                  },
+                  orderBy: { position: 'asc' },
+                },
+              },
+            },
+            stage: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+                position: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
 

@@ -16,6 +16,7 @@ import DealSidebarNotes from './DealSidebarNotes';
 import DealSidebarReminders from './DealSidebarReminders';
 import DealSidebarDocuments from './DealSidebarDocuments';
 import DealSidebarActivities from './DealSidebarActivities';
+import DealSidebarServices from './DealSidebarServices';
 
 interface DealSidebarContainerProps {
   deal: Deal;
@@ -436,6 +437,14 @@ export default function DealSidebarContainer({
             getStageLabel={getStageLabel}
             getStageColor={getStageColor}
           />
+
+          {/* Services de Production (seulement pour les deals CLOSING) */}
+          {deal.stage === 'CLOSING' && (
+            <DealSidebarServices
+              dealId={deal.id}
+              onUpdate={onUpdate}
+            />
+          )}
 
           {/* Assignees */}
           <DealSidebarAssignees

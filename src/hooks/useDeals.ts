@@ -2,6 +2,30 @@ import useSWR from 'swr';
 import { useState } from 'react';
 
 // Types
+export interface DealServiceAssignment {
+  id: string;
+  serviceId: string;
+  stageId: string | null;
+  createdAt: string;
+  service: {
+    id: string;
+    name: string;
+    color: string;
+    stages?: Array<{
+      id: string;
+      name: string;
+      color: string;
+      position: number;
+    }>;
+  };
+  stage: {
+    id: string;
+    name: string;
+    color: string;
+    position: number;
+  } | null;
+}
+
 export interface Deal {
   id: string;
   title: string;
@@ -43,6 +67,8 @@ export interface Deal {
   comments?: string | null;
   createdAt: string;
   updatedAt: string;
+  // Multi-services assignments
+  deal_service_assignments?: DealServiceAssignment[];
 }
 
 export interface DealsResponse {

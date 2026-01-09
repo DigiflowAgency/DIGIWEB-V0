@@ -189,6 +189,30 @@ export async function GET(request: NextRequest) {
           },
           orderBy: { createdAt: 'asc' },
         },
+        deal_service_assignments: {
+          select: {
+            id: true,
+            serviceId: true,
+            stageId: true,
+            createdAt: true,
+            service: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
+            },
+            stage: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+                position: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
       },
       orderBy,
       take: limit,
