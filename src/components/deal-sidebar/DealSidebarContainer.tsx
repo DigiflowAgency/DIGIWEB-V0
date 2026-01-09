@@ -106,8 +106,12 @@ export default function DealSidebarContainer({
     setEditedDeal(deal);
     setEditedContact(deal?.contacts ? { ...deal.contacts } : null);
     setEditedCompany(deal?.companies ? { ...deal.companies } : null);
-    setBlocNotes(deal.blocNotes || '');
   }, [deal]);
+
+  // Reset blocNotes seulement quand on change de deal (pas quand les autres données changent)
+  useEffect(() => {
+    setBlocNotes(deal.blocNotes || '');
+  }, [deal.id]);
 
   // Load users
   useEffect(() => {
