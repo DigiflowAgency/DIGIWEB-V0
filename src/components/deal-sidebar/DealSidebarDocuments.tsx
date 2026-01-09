@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { FileText, Upload, Trash2, Download, File, FileSpreadsheet, FileImage } from 'lucide-react';
+import { FileText, Upload, Trash2, Download, File, FileSpreadsheet, FileImage, Eye, X, ExternalLink } from 'lucide-react';
 import { DealDocument } from './types';
 
 interface DealSidebarDocumentsProps {
@@ -28,12 +28,18 @@ function getFileIcon(mimeType: string) {
   return <File className="h-5 w-5 text-gray-500" />;
 }
 
+// Vérifie si un fichier est prévisualisable
+function isPreviewable(mimeType: string): boolean {
+  return mimeType.includes('pdf') || mimeType.includes('image');
+}
+
 export default function DealSidebarDocuments({ dealId }: DealSidebarDocumentsProps) {
   const [documents, setDocuments] = useState<DealDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [previewDoc, setPreviewDoc] = useState<DealDocument | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Charger les documents
@@ -232,7 +238,10 @@ export default function DealSidebarDocuments({ dealId }: DealSidebarDocumentsPro
           documents.map((doc) => (
             <div
               key={doc.id}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 group"
+              onClick={() => isPreviewable(doc.fileType) && setPreviewDoc(doc)}
+              className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 group ${
+                isPreviewable(doc.fileType) ? 'cursor-pointer hover:bg-gray-100' : ''
+              }`}
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 {getFileIcon(doc.fileType)}
@@ -245,19 +254,34 @@ export default function DealSidebarDocuments({ dealId }: DealSidebarDocumentsPro
                 </div>
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {isPreviewable(doc.fileType) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewDoc(doc);
+                    }}
+                    className="p-1.5 text-violet-600 hover:bg-violet-100 rounded"
+                    title="Voir"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                )}
                 <a
                   href={doc.fileUrl}
                   download={doc.name}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-1.5 text-violet-600 hover:bg-violet-100 rounded"
+                  className="p-1.5 text-gray-500 hover:bg-gray-200 rounded"
                   title="Télécharger"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Download className="h-4 w-4" />
                 </a>
                 <button
-                  onClick={() => deleteDocument(doc.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteDocument(doc.id);
+                  }}
                   className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-100 rounded"
                   title="Supprimer"
                 >
@@ -268,6 +292,88 @@ export default function DealSidebarDocuments({ dealId }: DealSidebarDocumentsPro
           ))
         )}
       </div>
+
+      {/* Modal de prévisualisation */}
+      {previewDoc && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={() => setPreviewDoc(null)}
+          />
+
+          {/* Modal content */}
+          <div className="relative bg-white rounded-xl shadow-2xl w-[90vw] h-[90vh] max-w-6xl flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
+              <div className="flex items-center gap-3">
+                {getFileIcon(previewDoc.fileType)}
+                <div>
+                  <h3 className="font-semibold text-gray-900 truncate max-w-md">
+                    {previewDoc.name}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {formatFileSize(previewDoc.fileSize)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewDoc.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Ouvrir dans un nouvel onglet"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Ouvrir
+                </a>
+                <a
+                  href={previewDoc.fileUrl}
+                  download={previewDoc.name}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  Télécharger
+                </a>
+                <button
+                  onClick={() => setPreviewDoc(null)}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Preview content */}
+            <div className="flex-1 overflow-hidden bg-gray-100">
+              {previewDoc.fileType.includes('pdf') ? (
+                <iframe
+                  src={previewDoc.fileUrl}
+                  className="w-full h-full border-0"
+                  title={previewDoc.name}
+                />
+              ) : previewDoc.fileType.includes('image') ? (
+                <div className="w-full h-full flex items-center justify-center p-4 overflow-auto">
+                  <img
+                    src={previewDoc.fileUrl}
+                    alt={previewDoc.name}
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
+                  <File className="h-16 w-16 mb-4" />
+                  <p className="text-lg font-medium">Prévisualisation non disponible</p>
+                  <p className="text-sm mt-2">
+                    Téléchargez le fichier pour le consulter
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
