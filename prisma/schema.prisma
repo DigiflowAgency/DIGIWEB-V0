@@ -240,6 +240,7 @@ model deals {
   probability        Int                      @default(50)
   expectedCloseDate  DateTime?
   closedAt           DateTime?
+  encaisseAt         DateTime?                // Date de passage en ENCAISSE
   lostReason         String?                  // PRICE | TIMING | COMPETITOR | NO_BUDGET | NO_RESPONSE | OTHER
   proposalSentAt     DateTime?                // Date envoi proposition
   contactId          String?
@@ -253,6 +254,7 @@ model deals {
   blocNotes              String?                  @db.Text
   productionServiceId    String?
   productionStageId      String?
+  isManual               Boolean                  @default(false)  // Deals créés manuellement (BeHype/BeBook)
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime
   activities             activities[]
@@ -267,6 +269,7 @@ model deals {
   stage_history          deal_stage_history[]
   productionService      production_services?     @relation(fields: [productionServiceId], references: [id])
   deal_service_assignments deal_service_assignments[]  // Multi-services
+  important_comments     DealImportantComment[]
 
   @@index([companyId])
   @@index([contactId])
@@ -865,6 +868,8 @@ model users {
   reminders                           reminders[]
   deal_documents                      deal_documents[]
   deal_stage_changes                  deal_stage_history[]        @relation("StageChangedBy")
+  deal_important_comments             DealImportantComment[]
+  lead_assignment_counter             lead_assignment_counters?
 
   @@index([email])
   @@index([managerId])
@@ -1447,4 +1452,38 @@ model app_settings {
   updatedAt DateTime @updatedAt
 
   @@index([key])
+}
+
+// ============================================
+// LEAD ASSIGNMENT COUNTERS (Attribution équitable)
+// ============================================
+
+model lead_assignment_counters {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  count     Int      @default(0)
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt
+
+  @@index([count])
+}
+
+// ============================================
+// DEAL IMPORTANT COMMENTS (Commentaires importants)
+// ============================================
+
+model DealImportantComment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  dealId    String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deal      deals    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  user      users    @relation(fields: [userId], references: [id])
+
+  @@index([dealId])
+  @@index([userId])
+  @@map("deal_important_comments")
 }

@@ -39,6 +39,7 @@ export interface Deal {
   probability: number;
   expectedCloseDate: Date | null;
   closedAt: Date | null;
+  encaisseAt?: Date | null;
   contactId: string | null;
   contacts?: {
     id: string;
@@ -65,6 +66,7 @@ export interface Deal {
   emailReminderSent?: string | null;
   smsReminderSent?: string | null;
   comments?: string | null;
+  isManual?: boolean;
   createdAt: string;
   updatedAt: string;
   // Multi-services assignments

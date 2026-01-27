@@ -5,23 +5,26 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { notifyEvent } from '@/lib/notifications';
 
+// Helper pour convertir les chaînes vides en null
+const emptyToNull = z.string().transform(val => val === '' ? null : val);
+
 // Schema de validation pour update (tous les champs optionnels)
 const contactUpdateSchema = z.object({
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
-  email: z.string().email().optional().nullable(),
-  phone: z.string().optional().nullable(),
-  position: z.string().optional().nullable(),
+  email: emptyToNull.optional().nullable(),
+  phone: emptyToNull.optional().nullable(),
+  position: emptyToNull.optional().nullable(),
   companyId: z.string().optional().nullable(),
-  siret: z.string().optional().nullable(),
-  gerant: z.string().optional().nullable(),
+  siret: emptyToNull.optional().nullable(),
+  gerant: emptyToNull.optional().nullable(),
   status: z.enum(['LEAD', 'PROSPECT', 'CLIENT']).optional(),
   qualityScore: z.number().int().min(0).max(100).optional().nullable(),
-  address: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
-  postalCode: z.string().optional().nullable(),
+  address: emptyToNull.optional().nullable(),
+  city: emptyToNull.optional().nullable(),
+  postalCode: emptyToNull.optional().nullable(),
   country: z.string().optional(),
-  source: z.string().optional().nullable(),
+  source: emptyToNull.optional().nullable(),
 });
 
 type RouteContext = {

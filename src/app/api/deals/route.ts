@@ -12,6 +12,7 @@ function getProbabilityByStage(stage: string): number {
     'A_CONTACTER': 10,
     'EN_DISCUSSION': 30,
     'A_RELANCER': 20,
+    'NRP': 5,
     'RDV_PRIS': 50,
     'NEGO_HOT': 70,
     'CLOSING': 90,
@@ -20,19 +21,30 @@ function getProbabilityByStage(stage: string): number {
   return probabilityMap[stage] || 50;
 }
 
+// Fonction de normalisation des numéros de téléphone
+function normalizePhone(phone: string): string {
+  return phone.replace(/[\s\-\.\(\)\+]/g, '');
+}
+
+// Détecter si la recherche ressemble à un numéro de téléphone
+function isPhoneSearch(search: string): boolean {
+  return /^[\d\s\-\.\(\)\+]+$/.test(search) && search.replace(/\D/g, '').length >= 3;
+}
+
 // Schema de validation Zod pour Deal
 const dealSchema = z.object({
   title: z.string().min(1, 'Le titre est requis'),
   description: z.string().optional().nullable(),
   value: z.number().positive('Le montant doit être positif'),
   currency: z.string().default('EUR'),
-  stage: z.enum(['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING']).default('A_CONTACTER'),
+  stage: z.enum(['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'NRP', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING']).default('A_CONTACTER'),
   productionStage: z.enum(['PREMIER_RDV', 'EN_PRODUCTION', 'LIVRE', 'ENCAISSE']).optional().nullable(),
   probability: z.number().int().min(0).max(100).default(50),
   expectedCloseDate: z.string().datetime().optional().nullable(),
   contactId: z.string().optional().nullable(),
   companyId: z.string().optional().nullable(),
   comments: z.string().optional().nullable(),
+  isManual: z.boolean().default(false),
 });
 
 // GET /api/deals - Liste tous les deals
@@ -63,35 +75,68 @@ export async function GET(request: NextRequest) {
 
     // Filtre par texte de recherche (recherche étendue)
     if (search) {
+      const searchTerm = search.trim();
+
+      // Construire la liste des conditions OR (MySQL est insensible à la casse par défaut)
       where.OR = [
         // Deal fields
-        { title: { contains: search } },
-        { description: { contains: search } },
-        { product: { contains: search } },
-        { comments: { contains: search } },
-        { origin: { contains: search } },
+        { title: { contains: searchTerm } },
+        { description: { contains: searchTerm } },
+        { product: { contains: searchTerm } },
+        { comments: { contains: searchTerm } },
+        { origin: { contains: searchTerm } },
 
         // Contact fields
-        { contacts: { firstName: { contains: search } } },
-        { contacts: { lastName: { contains: search } } },
-        { contacts: { email: { contains: search } } },
-        { contacts: { phone: { contains: search } } },
-        { contacts: { city: { contains: search } } },
-        { contacts: { position: { contains: search } } },
+        { contacts: { firstName: { contains: searchTerm } } },
+        { contacts: { lastName: { contains: searchTerm } } },
+        { contacts: { email: { contains: searchTerm } } },
+        { contacts: { phone: { contains: searchTerm } } },
+        { contacts: { city: { contains: searchTerm } } },
+        { contacts: { position: { contains: searchTerm } } },
 
         // Company fields
-        { companies: { name: { contains: search } } },
-        { companies: { city: { contains: search } } },
-        { companies: { siret: { contains: search } } },
-        { companies: { website: { contains: search } } },
-        { companies: { phone: { contains: search } } },
-        { companies: { email: { contains: search } } },
+        { companies: { name: { contains: searchTerm } } },
+        { companies: { city: { contains: searchTerm } } },
+        { companies: { siret: { contains: searchTerm } } },
+        { companies: { website: { contains: searchTerm } } },
+        { companies: { phone: { contains: searchTerm } } },
+        { companies: { email: { contains: searchTerm } } },
       ];
+
+      // Si ça ressemble à un numéro de téléphone, ajouter aussi la recherche normalisée
+      if (isPhoneSearch(searchTerm)) {
+        const normalizedSearch = normalizePhone(searchTerm);
+
+        // Trouver les IDs des contacts dont le téléphone normalisé contient la recherche
+        const contactIds = await prisma.$queryRaw<{ id: string }[]>`
+          SELECT id FROM contacts
+          WHERE REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '.', ''), '(', ''), ')', '')
+          LIKE CONCAT('%', ${normalizedSearch}, '%')
+        `;
+
+        // Trouver les IDs des companies dont le téléphone normalisé contient la recherche
+        const companyIds = await prisma.$queryRaw<{ id: string }[]>`
+          SELECT id FROM companies
+          WHERE REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '.', ''), '(', ''), ')', '')
+          LIKE CONCAT('%', ${normalizedSearch}, '%')
+        `;
+
+        const contactIdList = contactIds.map(c => c.id);
+        const companyIdList = companyIds.map(c => c.id);
+
+        // Ajouter les résultats de la recherche normalisée aux conditions OR
+        if (contactIdList.length > 0) {
+          where.OR.push({ contactId: { in: contactIdList } });
+        }
+        if (companyIdList.length > 0) {
+          where.OR.push({ companyId: { in: companyIdList } });
+        }
+      }
     }
 
     // Filtre par étape
-    if (stage && ['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING'].includes(stage)) {
-      where.stage = stage as 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING';
+    if (stage && ['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'NRP', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING'].includes(stage)) {
+      where.stage = stage as 'A_CONTACTER' | 'EN_DISCUSSION' | 'A_RELANCER' | 'NRP' | 'RDV_PRIS' | 'NEGO_HOT' | 'CLOSING';
     }
 
     // Filtre par contact
@@ -113,18 +158,38 @@ export async function GET(request: NextRequest) {
     if (ownerIdsParam) {
       const ownerIds = ownerIdsParam.split(',').filter(id => id.trim());
       if (ownerIds.length > 0) {
-        where.OR = [
+        // Combiner avec les conditions de recherche existantes
+        const ownerConditions = [
           { ownerId: { in: ownerIds } },
           { deal_assignees: { some: { userId: { in: ownerIds } } } }
         ];
+        if (where.OR && where.OR.length > 0) {
+          // Si on a déjà des conditions OR (recherche), les combiner avec AND
+          where.AND = [
+            { OR: where.OR },
+            { OR: ownerConditions }
+          ];
+          delete where.OR;
+        } else {
+          where.OR = ownerConditions;
+        }
       }
     }
     // Sinon, si un seul ownerId est demandé (ancien format)
     else if (ownerIdFilter) {
-      where.OR = [
+      const ownerConditions = [
         { ownerId: ownerIdFilter },
         { deal_assignees: { some: { userId: ownerIdFilter } } }
       ];
+      if (where.OR && where.OR.length > 0) {
+        where.AND = [
+          { OR: where.OR },
+          { OR: ownerConditions }
+        ];
+        delete where.OR;
+      } else {
+        where.OR = ownerConditions;
+      }
     }
     // Sinon, pas de filtre - tout le monde voit tous les deals
 
@@ -155,6 +220,8 @@ export async function GET(request: NextRequest) {
             lastName: true,
             email: true,
             phone: true,
+            city: true,
+            position: true,
           },
         },
         companies: {
@@ -162,6 +229,10 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             city: true,
+            siret: true,
+            website: true,
+            phone: true,
+            email: true,
           },
         },
         users: {
@@ -235,7 +306,7 @@ export async function GET(request: NextRequest) {
         where: {
           ...where,
           stage: {
-            in: ['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT']
+            in: ['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'NRP', 'RDV_PRIS', 'NEGO_HOT']
           }
         }
       }),
@@ -315,6 +386,8 @@ export async function POST(request: NextRequest) {
             lastName: true,
             email: true,
             phone: true,
+            city: true,
+            position: true,
           },
         },
         companies: {
@@ -322,6 +395,10 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true,
             city: true,
+            siret: true,
+            website: true,
+            phone: true,
+            email: true,
           },
         },
         users: {

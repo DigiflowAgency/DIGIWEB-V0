@@ -5,26 +5,37 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
+// Helper pour convertir les chaînes vides en null
+const emptyToNull = z.string().transform(val => val === '' ? null : val);
+const emptyToNullUrl = z.string().transform(val => val === '' ? null : val).nullable().refine(
+  val => val === null || /^https?:\/\/.+/.test(val),
+  { message: 'URL invalide' }
+).optional();
+const emptyToNullEmail = z.string().transform(val => val === '' ? null : val).nullable().refine(
+  val => val === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+  { message: 'Email invalide' }
+).optional();
+
 // Schema de validation Zod pour Company
 const companySchema = z.object({
   name: z.string().min(1, 'Le nom est requis'),
-  siret: z.string().optional().nullable(),
-  legalForm: z.string().optional().nullable(),
-  gerant: z.string().optional().nullable(),
-  industry: z.string().optional().nullable(),
+  siret: emptyToNull.optional().nullable(),
+  legalForm: emptyToNull.optional().nullable(),
+  gerant: emptyToNull.optional().nullable(),
+  industry: emptyToNull.optional().nullable(),
   employees: z.number().int().positive().optional().nullable(),
   revenue: z.number().positive().optional().nullable(),
   solvencyScore: z.number().int().min(0).max(100).optional().nullable(),
   status: z.enum(['LEAD', 'PROSPECT', 'CLIENT']).default('PROSPECT'),
-  address: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
-  postalCode: z.string().optional().nullable(),
+  address: emptyToNull.optional().nullable(),
+  city: emptyToNull.optional().nullable(),
+  postalCode: emptyToNull.optional().nullable(),
   country: z.string().default('France'),
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
-  website: z.string().url().optional().nullable(),
-  phone: z.string().optional().nullable(),
-  email: z.string().email().optional().nullable(),
+  website: emptyToNull.optional().nullable(),
+  phone: emptyToNull.optional().nullable(),
+  email: emptyToNull.optional().nullable(),
 });
 
 // GET /api/companies - Liste toutes les entreprises
@@ -127,7 +138,8 @@ export async function POST(request: NextRequest) {
 
     // Parser et valider le body
     const body = await request.json();
-    const validatedData = companySchema.parse(body);
+    const { dealId, ...companyData } = body;
+    const validatedData = companySchema.parse(companyData);
 
     // Vérifier si le SIRET existe déjà (s'il est fourni)
     if (validatedData.siret) {
@@ -158,6 +170,14 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Si un dealId est fourni, lier l'entreprise au deal
+    if (dealId) {
+      await prisma.deals.update({
+        where: { id: dealId },
+        data: { companyId: company.id },
+      });
+    }
 
     return NextResponse.json(company, { status: 201 });
   } catch (error) {

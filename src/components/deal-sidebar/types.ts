@@ -107,6 +107,21 @@ export interface Stage {
   color: string;
 }
 
+export interface ImportantComment {
+  id: string;
+  content: string;
+  dealId: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatar?: string | null;
+  };
+}
+
 // Props partagés
 export interface DealSidebarProps {
   deal: Deal;

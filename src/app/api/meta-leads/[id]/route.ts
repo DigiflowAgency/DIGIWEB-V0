@@ -86,7 +86,20 @@ export async function PATCH(
       const firstName = nameParts[0] || 'Lead';
       const lastName = nameParts.slice(1).join(' ') || 'Meta';
 
-      // Créer un contact
+      // Créer une company (pour pouvoir renseigner le SIREN plus tard)
+      const companyId = `COMPANY-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      await prisma.companies.create({
+        data: {
+          id: companyId,
+          name: lead.fullName || 'Entreprise sans nom',
+          phone: lead.phone,
+          email: lead.email,
+          // siret sera renseigné manuellement plus tard
+          updatedAt: new Date(),
+        },
+      });
+
+      // Créer un contact lié à la company
       const contactId = `CONTACT-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       await prisma.contacts.create({
         data: {
@@ -98,11 +111,12 @@ export async function PATCH(
           status: 'LEAD',
           source: 'Meta Ads',
           assignedToId: userId,
+          companyId: companyId,
           updatedAt: new Date(),
         },
       });
 
-      // Créer automatiquement un deal
+      // Créer automatiquement un deal lié à la company
       const dealId = `DEAL-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
       await prisma.deals.create({
@@ -117,6 +131,7 @@ export async function PATCH(
           ownerId: userId,
           origin: 'ADS',
           contactId: contactId,
+          companyId: companyId,
           comments: lead.email ? `Email: ${lead.email}` : null,
           updatedAt: new Date(),
         },

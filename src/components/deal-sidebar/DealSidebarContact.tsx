@@ -100,34 +100,38 @@ export default function DealSidebarContact({
               <User className="h-4 w-4 text-gray-400" />
               <span className="text-gray-700">{contactName}</span>
             </div>
-            {contact?.email && (
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-gray-400" />
+            <div className="flex items-center gap-3">
+              <Mail className="h-4 w-4 text-gray-400" />
+              {contact?.email ? (
                 <a href={`mailto:${contact.email}`} className="text-violet-600 hover:underline">
                   {contact.email}
                 </a>
-              </div>
-            )}
-            {contact?.phone && (
-              <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-gray-400" />
+              ) : (
+                <span className="text-gray-400 italic">Non renseigné</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <Phone className="h-4 w-4 text-gray-400" />
+              {contact?.phone ? (
                 <a href={`tel:${contact.phone}`} className="text-violet-600 hover:underline">
                   {contact.phone}
                 </a>
-              </div>
-            )}
-            {contact?.position && (
-              <div className="flex items-center gap-3">
-                <Briefcase className="h-4 w-4 text-gray-400" />
-                <span className="text-gray-700">{contact.position}</span>
-              </div>
-            )}
-            {contact?.city && (
-              <div className="flex items-center gap-3">
-                <MapPin className="h-4 w-4 text-gray-400" />
-                <span className="text-gray-700">{contact.city}</span>
-              </div>
-            )}
+              ) : (
+                <span className="text-gray-400 italic">Non renseigné</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <Briefcase className="h-4 w-4 text-gray-400" />
+              <span className={contact?.position ? "text-gray-700" : "text-gray-400 italic"}>
+                {contact?.position || "Non renseigné"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <MapPin className="h-4 w-4 text-gray-400" />
+              <span className={contact?.city ? "text-gray-700" : "text-gray-400 italic"}>
+                {contact?.city || "Non renseigné"}
+              </span>
+            </div>
           </>
         )}
       </div>

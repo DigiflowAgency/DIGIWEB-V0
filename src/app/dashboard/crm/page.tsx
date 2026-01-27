@@ -177,11 +177,14 @@ export default function CRMPage() {
   // Colonnes visibles
   const visibleColumns = columns.filter(col => !hiddenColumns.includes(col.id));
 
-  // Debounce la recherche
+  // Debounce la recherche (500ms + minimum 3 caractères)
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-    }, 300);
+      // Ne chercher que si 3+ caractères ou vide (pour réinitialiser)
+      if (searchQuery.length >= 3 || searchQuery === '') {
+        setDebouncedSearch(searchQuery);
+      }
+    }, 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -410,7 +413,18 @@ export default function CRMPage() {
   }
 
   const getDealsByStage = (stage: string) => {
-    return deals.filter((deal) => deal.stage === stage);
+    const stageDeals = deals.filter((deal) => deal.stage === stage);
+
+    // Pour la colonne "A_CONTACTER", trier par date de création (les plus récents en premier)
+    if (stage === 'A_CONTACTER') {
+      return stageDeals.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA; // Descendant: plus récent en premier
+      });
+    }
+
+    return stageDeals;
   };
 
   const handleDragStart = (deal: any) => {
@@ -520,6 +534,9 @@ export default function CRMPage() {
                   >
                     ×
                   </button>
+                )}
+                {searchQuery.length > 0 && searchQuery.length < 3 && (
+                  <p className="absolute left-0 top-full mt-1 text-xs text-gray-400">Tapez au moins 3 caractères</p>
                 )}
               </div>
               {/* View Mode Toggle */}

@@ -53,9 +53,11 @@ export async function GET(request: NextRequest) {
         updatedAt: true,
         lastLoginAt: true,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { firstName: 'asc' },
+        { lastName: 'asc' },
+        { id: 'asc' },  // Fallback deterministe
+      ],
     });
 
     return NextResponse.json({ users });

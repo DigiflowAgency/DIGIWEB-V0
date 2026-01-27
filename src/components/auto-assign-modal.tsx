@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { X, Play, CheckCircle, Loader2, Users, Shuffle, Zap } from 'lucide-react';
+import { X, Play, CheckCircle, Loader2, Users, Shuffle, Zap, RotateCcw } from 'lucide-react';
 import SpinWheel from './spin-wheel';
 
 interface MetaLead {
@@ -17,13 +17,20 @@ interface User {
   lastName: string;
 }
 
+interface Counter {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  count: number;
+}
+
 interface AutoAssignModalProps {
   isOpen: boolean;
   onClose: () => void;
   leads: MetaLead[];
   users: User[];
   onComplete: () => void;
-  onLeadAssigned?: () => void; // Callback après chaque attribution pour rafraîchir les stats
+  onLeadAssigned?: () => void;
 }
 
 interface Assignment {
@@ -32,6 +39,62 @@ interface Assignment {
   userId: string;
   userName: string;
   success: boolean;
+}
+
+// Fonction pour calculer l'ordre d'attribution equitable
+function calculateAssignmentOrder(
+  users: User[],
+  counters: Counter[],
+  leadCount: number
+): string[] {
+  // Creer une copie des compteurs pour simulation
+  const simCounters = new Map<string, number>(
+    counters.map((c) => [c.userId, c.count])
+  );
+
+  // Pour les nouveaux commerciaux sans compteur, initialiser a 0
+  users.forEach((u) => {
+    if (!simCounters.has(u.id)) simCounters.set(u.id, 0);
+  });
+
+  const assignments: string[] = [];
+
+  for (let i = 0; i < leadCount; i++) {
+    // Trouver le commercial avec le moins de leads
+    const entries: [string, number][] = [];
+    simCounters.forEach((count, id) => {
+      if (users.some((u) => u.id === id)) {
+        entries.push([id, count]);
+      }
+    });
+    const sorted = entries.sort((a, b) =>
+      a[1] !== b[1] ? a[1] - b[1] : a[0].localeCompare(b[0])
+    );
+
+    const [nextUserId] = sorted[0];
+    assignments.push(nextUserId);
+
+    // Incrementer le compteur simule
+    simCounters.set(nextUserId, simCounters.get(nextUserId)! + 1);
+  }
+
+  return assignments;
+}
+
+// Trouver le prochain commercial (le moins charge)
+function getNextUser(users: User[], counters: Counter[]): User | null {
+  if (users.length === 0) return null;
+
+  const counterMap = new Map(counters.map((c) => [c.userId, c.count]));
+
+  // Trier les utilisateurs par compteur puis par ID
+  const sorted = [...users].sort((a, b) => {
+    const countA = counterMap.get(a.id) || 0;
+    const countB = counterMap.get(b.id) || 0;
+    return countA !== countB ? countA - countB : a.id.localeCompare(b.id);
+  });
+
+  return sorted[0];
 }
 
 export default function AutoAssignModal({
@@ -49,70 +112,74 @@ export default function AutoAssignModal({
   const [isSpinning, setIsSpinning] = useState(false);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isComplete, setIsComplete] = useState(false);
-  const [wheelStartPosition, setWheelStartPosition] = useState(0);
-  const [isLoadingPosition, setIsLoadingPosition] = useState(false);
+  const [counters, setCounters] = useState<Counter[]>([]);
+  const [isLoadingCounters, setIsLoadingCounters] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
-  // Refs pour éviter les problèmes de closure
+  // Refs pour eviter les problemes de closure
   const currentLeadIndexRef = useRef(0);
-  const currentUserIndexRef = useRef(0);
-  const wheelStartPositionRef = useRef(0);
+  const countersRef = useRef<Counter[]>([]);
   const leadsRef = useRef(leads);
   const usersRef = useRef(users);
 
-  // Mettre à jour les refs quand les props changent
+  // Mettre a jour les refs quand les props changent
   leadsRef.current = leads;
   usersRef.current = users;
+  countersRef.current = counters;
 
   const onLeadAssignedRef = useRef(onLeadAssigned);
   onLeadAssignedRef.current = onLeadAssigned;
 
-  // Charger la position de la roue au demarrage
+  // Charger les compteurs au demarrage
+  const loadCounters = useCallback(async () => {
+    setIsLoadingCounters(true);
+    try {
+      const response = await fetch('/api/settings/lead-assignment');
+      const data = await response.json();
+      if (data.counters) {
+        setCounters(data.counters);
+        countersRef.current = data.counters;
+      }
+    } catch (err) {
+      console.error('Erreur chargement compteurs:', err);
+      setCounters([]);
+    } finally {
+      setIsLoadingCounters(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (isOpen && !isRunning && !isComplete) {
-      setIsLoadingPosition(true);
-      fetch('/api/settings/wheel-position')
-        .then((r) => r.json())
-        .then((data) => {
-          const position = data.position || 0;
-          setWheelStartPosition(position);
-          wheelStartPositionRef.current = position;
-          setCurrentUserIndex(position % users.length);
-          currentUserIndexRef.current = position % users.length;
-        })
-        .catch((err) => {
-          console.error('Erreur chargement position roue:', err);
-          setWheelStartPosition(0);
-          wheelStartPositionRef.current = 0;
-        })
-        .finally(() => {
-          setIsLoadingPosition(false);
-        });
+      loadCounters();
     }
-  }, [isOpen, users.length, isRunning, isComplete]);
+  }, [isOpen, isRunning, isComplete, loadCounters]);
 
-  // Sauvegarder la nouvelle position apres attribution
-  const saveWheelPosition = async (newPosition: number) => {
+  // Incrementer le compteur en DB
+  const incrementCounter = async (userId: string) => {
     try {
-      await fetch('/api/settings/wheel-position', {
+      await fetch('/api/settings/lead-assignment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ position: newPosition }),
+        body: JSON.stringify({ userId }),
       });
+      // Mettre a jour les compteurs locaux
+      setCounters((prev) =>
+        prev.map((c) =>
+          c.userId === userId ? { ...c, count: c.count + 1 } : c
+        )
+      );
     } catch (err) {
-      console.error('Erreur sauvegarde position roue:', err);
+      console.error('Erreur increment compteur:', err);
     }
   };
 
   const assignLead = async (leadId: string, userId: string) => {
     try {
-      console.log(`Assigning lead ${leadId} to user ${userId}`);
       const response = await fetch(`/api/meta-leads/${leadId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ assignedToId: userId }),
       });
-      const data = await response.json();
-      console.log('Response:', response.ok, data);
       return response.ok;
     } catch (error) {
       console.error('Error assigning lead:', error);
@@ -122,9 +189,9 @@ export default function AutoAssignModal({
 
   const processNextLead = useCallback(async () => {
     const leadIndex = currentLeadIndexRef.current;
-    const userIndex = currentUserIndexRef.current;
     const currentLeads = leadsRef.current;
     const currentUsers = usersRef.current;
+    const currentCounters = countersRef.current;
 
     if (leadIndex >= currentLeads.length) {
       setIsComplete(true);
@@ -133,14 +200,28 @@ export default function AutoAssignModal({
     }
 
     const lead = currentLeads[leadIndex];
-    const user = currentUsers[userIndex];
+    // Trouver le prochain commercial (le moins charge)
+    const nextUser = getNextUser(currentUsers, currentCounters);
 
-    console.log(`Processing lead ${leadIndex + 1}/${currentLeads.length}: ${lead.fullName} -> ${user.firstName}`);
+    if (!nextUser) {
+      setIsComplete(true);
+      setIsRunning(false);
+      return;
+    }
 
     // Assigner le lead
-    const success = await assignLead(lead.id, user.id);
+    const success = await assignLead(lead.id, nextUser.id);
 
-    // Rafraîchir les stats après chaque attribution
+    if (success) {
+      // Incrementer le compteur
+      await incrementCounter(nextUser.id);
+      // Mettre a jour le ref
+      countersRef.current = countersRef.current.map((c) =>
+        c.userId === nextUser.id ? { ...c, count: c.count + 1 } : c
+      );
+    }
+
+    // Rafraichir les stats apres chaque attribution
     if (success && onLeadAssignedRef.current) {
       onLeadAssignedRef.current();
     }
@@ -151,8 +232,8 @@ export default function AutoAssignModal({
       {
         leadId: lead.id,
         leadName: lead.fullName || 'Sans nom',
-        userId: user.id,
-        userName: `${user.firstName} ${user.lastName}`,
+        userId: nextUser.id,
+        userName: `${nextUser.firstName} ${nextUser.lastName}`,
         success,
       },
     ]);
@@ -161,22 +242,22 @@ export default function AutoAssignModal({
 
     // Passer au lead suivant
     const nextLeadIndex = leadIndex + 1;
-    const nextUserIndex = (userIndex + 1) % currentUsers.length;
-
     currentLeadIndexRef.current = nextLeadIndex;
-    currentUserIndexRef.current = nextUserIndex;
     setCurrentLeadIndex(nextLeadIndex);
-    setCurrentUserIndex(nextUserIndex);
+
+    // Trouver l'index du prochain commercial pour la roue
+    const nextNextUser = getNextUser(currentUsers, countersRef.current);
+    if (nextNextUser) {
+      const nextUserIdx = currentUsers.findIndex((u) => u.id === nextNextUser.id);
+      setCurrentUserIndex(nextUserIdx >= 0 ? nextUserIdx : 0);
+    }
 
     if (nextLeadIndex < currentLeads.length) {
-      // Lancer le prochain spin après un délai
+      // Lancer le prochain spin apres un delai
       setTimeout(() => {
         setIsSpinning(true);
       }, 50);
     } else {
-      // Terminé - sauvegarder la nouvelle position de la roue
-      const newPosition = (wheelStartPositionRef.current + currentLeads.length) % currentUsers.length;
-      saveWheelPosition(newPosition);
       setIsComplete(true);
       setIsRunning(false);
     }
@@ -186,19 +267,25 @@ export default function AutoAssignModal({
     processNextLead();
   }, [processNextLead]);
 
-  const handleStart = () => {
-    // Réinitialiser les refs et états avec la position persistante
+  const handleStart = async () => {
+    // Recharger les compteurs frais
+    await loadCounters();
+
+    // Reinitialiser les refs et etats
     currentLeadIndexRef.current = 0;
-    // Utiliser la position de depart sauvegardee
-    const startUserIdx = wheelStartPosition % users.length;
-    currentUserIndexRef.current = startUserIdx;
+
+    // Trouver le prochain commercial
+    const nextUser = getNextUser(users, countersRef.current);
+    const startUserIdx = nextUser
+      ? users.findIndex((u) => u.id === nextUser.id)
+      : 0;
 
     setIsRunning(true);
     setIsBatchMode(false);
     setIsComplete(false);
     setAssignments([]);
     setCurrentLeadIndex(0);
-    setCurrentUserIndex(startUserIdx);
+    setCurrentUserIndex(startUserIdx >= 0 ? startUserIdx : 0);
 
     // Lancer le premier spin
     setTimeout(() => {
@@ -214,25 +301,45 @@ export default function AutoAssignModal({
     setAssignments([]);
     setCurrentLeadIndex(0);
 
-    // Utiliser la position de depart sauvegardee pour une distribution equitable
-    const startPosition = wheelStartPosition % users.length;
-    setCurrentUserIndex(startPosition);
+    // Recharger les compteurs frais
+    await loadCounters();
+    const freshCounters = countersRef.current;
+
+    // Calculer l'ordre d'attribution equitable
+    const assignmentOrder = calculateAssignmentOrder(
+      users,
+      freshCounters,
+      leads.length
+    );
 
     const newAssignments: Assignment[] = [];
 
-    // Traiter tous les leads en parallèle par lots de 5
-    // IMPORTANT: utiliser la position de depart + index global pour un round-robin equitable
+    // Traiter tous les leads en parallele par lots de 5
     const batchSize = 5;
     for (let i = 0; i < leads.length; i += batchSize) {
       const batch = leads.slice(i, Math.min(i + batchSize, leads.length));
 
       const batchPromises = batch.map(async (lead, batchIndex) => {
-        // Utiliser startPosition + index global pour une distribution equitable
         const globalLeadIndex = i + batchIndex;
-        const assignUserIndex = (startPosition + globalLeadIndex) % users.length;
-        const user = users[assignUserIndex];
+        const userId = assignmentOrder[globalLeadIndex];
+        const user = users.find((u) => u.id === userId);
+
+        if (!user) {
+          return {
+            leadId: lead.id,
+            leadName: lead.fullName || 'Sans nom',
+            userId: '',
+            userName: 'Inconnu',
+            success: false,
+          };
+        }
 
         const success = await assignLead(lead.id, user.id);
+
+        if (success) {
+          // Incrementer le compteur
+          await incrementCounter(user.id);
+        }
 
         return {
           leadId: lead.id,
@@ -248,18 +355,38 @@ export default function AutoAssignModal({
       setAssignments([...newAssignments]);
       setCurrentLeadIndex(Math.min(i + batchSize, leads.length));
 
-      // Rafraîchir les stats
+      // Rafraichir les stats
       if (onLeadAssigned) {
         onLeadAssigned();
       }
     }
 
-    // Sauvegarder la nouvelle position de la roue pour les prochaines attributions
-    const newPosition = (startPosition + leads.length) % users.length;
-    await saveWheelPosition(newPosition);
-
     setIsComplete(true);
     setIsRunning(false);
+  };
+
+  const handleResetCounters = async () => {
+    if (!confirm('Reinitialiser tous les compteurs a 0 ? Cette action est irreversible.')) {
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const response = await fetch('/api/settings/lead-assignment', {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        await loadCounters();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Erreur lors de la reinitialisation');
+      }
+    } catch (err) {
+      console.error('Erreur reset compteurs:', err);
+      alert('Erreur lors de la reinitialisation');
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   const handleClose = () => {
@@ -273,7 +400,6 @@ export default function AutoAssignModal({
     setCurrentLeadIndex(0);
     setCurrentUserIndex(0);
     currentLeadIndexRef.current = 0;
-    currentUserIndexRef.current = 0;
     setIsSpinning(false);
     onClose();
   };
@@ -281,8 +407,14 @@ export default function AutoAssignModal({
   if (!isOpen) return null;
 
   const currentLead = leads[currentLeadIndex];
-  const progress = isRunning || isComplete ? ((assignments.length / leads.length) * 100).toFixed(0) : 0;
+  const progress =
+    isRunning || isComplete
+      ? ((assignments.length / leads.length) * 100).toFixed(0)
+      : 0;
   const successCount = assignments.filter((a) => a.success).length;
+
+  // Trouver le prochain commercial pour l'affichage
+  const nextUser = getNextUser(users, counters);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -301,9 +433,12 @@ export default function AutoAssignModal({
               <Shuffle className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Attribution automatique</h2>
+              <h2 className="text-xl font-bold text-gray-900">
+                Attribution automatique
+              </h2>
               <p className="text-sm text-gray-500">
-                {leads.length} lead{leads.length > 1 ? 's' : ''} à attribuer à {users.length} commercial{users.length > 1 ? 'aux' : ''}
+                {leads.length} lead{leads.length > 1 ? 's' : ''} a attribuer a{' '}
+                {users.length} commercial{users.length > 1 ? 'aux' : ''}
               </p>
             </div>
           </div>
@@ -334,13 +469,73 @@ export default function AutoAssignModal({
                   {/* Info lead en cours */}
                   {isRunning && currentLead && !isComplete && (
                     <div className="mt-6 text-center">
-                      <p className="text-sm text-gray-500">Attribution en cours...</p>
+                      <p className="text-sm text-gray-500">
+                        Attribution en cours...
+                      </p>
                       <p className="font-semibold text-gray-900 mt-1">
                         {currentLead.fullName || 'Lead sans nom'}
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
                         Lead {currentLeadIndex + 1} / {leads.length}
                       </p>
+                    </div>
+                  )}
+
+                  {/* Compteurs des commerciaux */}
+                  {!isRunning && !isComplete && counters.length > 0 && (
+                    <div className="mt-6 w-full">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-gray-700">
+                          Leads attribues
+                        </h4>
+                        <button
+                          onClick={handleResetCounters}
+                          disabled={isResetting}
+                          className="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1"
+                          title="Reinitialiser les compteurs"
+                        >
+                          <RotateCcw className={`h-3 w-3 ${isResetting ? 'animate-spin' : ''}`} />
+                          Reset
+                        </button>
+                      </div>
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {counters
+                          .filter((c) => users.some((u) => u.id === c.userId))
+                          .map((counter) => (
+                            <div
+                              key={counter.userId}
+                              className={`flex items-center justify-between px-3 py-1.5 rounded text-sm ${
+                                nextUser?.id === counter.userId
+                                  ? 'bg-violet-50 border border-violet-200'
+                                  : 'bg-gray-50'
+                              }`}
+                            >
+                              <span
+                                className={
+                                  nextUser?.id === counter.userId
+                                    ? 'font-medium text-violet-700'
+                                    : 'text-gray-600'
+                                }
+                              >
+                                {counter.firstName} {counter.lastName}
+                                {nextUser?.id === counter.userId && (
+                                  <span className="ml-2 text-xs text-violet-500">
+                                    (prochain)
+                                  </span>
+                                )}
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                  nextUser?.id === counter.userId
+                                    ? 'bg-violet-100 text-violet-700'
+                                    : 'bg-gray-200 text-gray-600'
+                                }`}
+                              >
+                                {counter.count} leads
+                              </span>
+                            </div>
+                          ))}
+                      </div>
                     </div>
                   )}
                 </>
@@ -374,7 +569,7 @@ export default function AutoAssignModal({
               <div className="flex-1 overflow-y-auto space-y-2 pr-2">
                 {assignments.length === 0 ? (
                   <div className="text-center py-8 text-gray-400">
-                    <p>Les attributions apparaîtront ici</p>
+                    <p>Les attributions apparaitront ici</p>
                   </div>
                 ) : (
                   assignments.map((assignment, index) => (
@@ -416,7 +611,8 @@ export default function AutoAssignModal({
               <div className="flex items-center gap-2 text-green-600">
                 <CheckCircle className="h-5 w-5" />
                 <span className="font-medium">
-                  {successCount} lead{successCount > 1 ? 's' : ''} attribué{successCount > 1 ? 's' : ''} avec succès
+                  {successCount} lead{successCount > 1 ? 's' : ''} attribue
+                  {successCount > 1 ? 's' : ''} avec succes
                 </span>
               </div>
               <button
@@ -453,17 +649,19 @@ export default function AutoAssignModal({
                   Annuler
                 </button>
                 {/* Indicateur du prochain commercial */}
-                {!isLoadingPosition && users.length >= 2 && (
+                {!isLoadingCounters && users.length >= 2 && nextUser && (
                   <div className="text-sm text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">
-                    Prochain: <span className="font-semibold text-violet-600">
-                      {users[wheelStartPosition % users.length]?.firstName}
+                    Prochain:{' '}
+                    <span className="font-semibold text-violet-600">
+                      {nextUser.firstName}
                     </span>
                     <span className="text-gray-400 ml-1">
-                      (pos {(wheelStartPosition % users.length) + 1}/{users.length})
+                      ({counters.find((c) => c.userId === nextUser.id)?.count || 0}{' '}
+                      leads)
                     </span>
                   </div>
                 )}
-                {isLoadingPosition && (
+                {isLoadingCounters && (
                   <div className="flex items-center gap-2 text-sm text-gray-400">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Chargement...
@@ -473,7 +671,7 @@ export default function AutoAssignModal({
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleBatchStart}
-                  disabled={leads.length === 0 || isLoadingPosition}
+                  disabled={leads.length === 0 || isLoadingCounters}
                   className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Attribution rapide sans animation"
                 >
@@ -482,7 +680,9 @@ export default function AutoAssignModal({
                 </button>
                 <button
                   onClick={handleStart}
-                  disabled={users.length < 2 || leads.length === 0 || isLoadingPosition}
+                  disabled={
+                    users.length < 2 || leads.length === 0 || isLoadingCounters
+                  }
                   className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-lg hover:from-blue-700 hover:to-violet-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Play className="h-5 w-5" />

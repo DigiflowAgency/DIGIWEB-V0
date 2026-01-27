@@ -120,6 +120,13 @@ interface Stats {
   converti: number;
 }
 
+interface LeadCounter {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  count: number;
+}
+
 interface PageStat {
   pageId: string | null;
   pageName: string | null;
@@ -170,6 +177,7 @@ export default function AdsLeadsPage() {
   const [showAutoAssign, setShowAutoAssign] = useState(false);
   const [commerciaux, setCommerciaux] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [leadCounters, setLeadCounters] = useState<LeadCounter[]>([]);
 
   const fetchLeads = async () => {
     try {
@@ -203,7 +211,20 @@ export default function AdsLeadsPage() {
     fetchLeads();
   }, [statusFilter, pageFilter]);
 
-  // Charger les commerciaux au montage
+  // Charger les compteurs d'attribution
+  const fetchLeadCounters = async () => {
+    try {
+      const response = await fetch('/api/settings/lead-assignment');
+      const data = await response.json();
+      if (response.ok && data.counters) {
+        setLeadCounters(data.counters);
+      }
+    } catch (error) {
+      console.error('Erreur chargement compteurs:', error);
+    }
+  };
+
+  // Charger les commerciaux et compteurs au montage
   useEffect(() => {
     const fetchCommerciaux = async () => {
       try {
@@ -217,6 +238,7 @@ export default function AdsLeadsPage() {
       }
     };
     fetchCommerciaux();
+    fetchLeadCounters();
   }, []);
 
   // Filtrer les leads par recherche
@@ -390,7 +412,7 @@ export default function AdsLeadsPage() {
 
         {/* Stats par entreprise */}
         {pageStats.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {pageStats.map((ps) => (
               <div
                 key={ps.pageId || 'unknown'}
@@ -404,6 +426,38 @@ export default function AdsLeadsPage() {
                 <div className="text-xs opacity-75">leads</div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Compteurs d'attribution par commercial */}
+        {leadCounters.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm p-4 mb-8 border border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Attribution par commercial
+              </h3>
+              <span className="text-xs text-gray-400">
+                Total: {leadCounters.reduce((sum, c) => sum + c.count, 0)} leads attribues
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {leadCounters
+                .filter((c) => commerciaux.some((u) => u.id === c.userId))
+                .map((counter) => (
+                  <div
+                    key={counter.userId}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200"
+                  >
+                    <span className="text-sm text-gray-700">
+                      {counter.firstName} {counter.lastName}
+                    </span>
+                    <span className="px-2 py-0.5 bg-violet-100 text-violet-700 rounded text-xs font-medium">
+                      {counter.count}
+                    </span>
+                  </div>
+                ))}
+            </div>
           </div>
         )}
 
@@ -705,9 +759,13 @@ export default function AdsLeadsPage() {
         users={commerciaux}
         onComplete={() => {
           fetchLeads();
+          fetchLeadCounters();
           setShowAutoAssign(false);
         }}
-        onLeadAssigned={fetchLeads}
+        onLeadAssigned={() => {
+          fetchLeads();
+          fetchLeadCounters();
+        }}
       />
     </div>
   );

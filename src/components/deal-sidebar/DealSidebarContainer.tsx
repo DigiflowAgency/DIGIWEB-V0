@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { GripVertical, Calendar, AlertTriangle, Trash2, Megaphone, StickyNote, LayoutList, Save, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { GripVertical, Calendar, AlertTriangle, Trash2, Megaphone, StickyNote, LayoutList, Save, Loader2, AlertCircle } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useReminders } from '@/hooks/useReminders';
 import { useStages } from '@/hooks/useStages';
+import { usePathname } from 'next/navigation';
 
 import { Deal, Contact, Company, User } from './types';
 import DealSidebarHeader from './DealSidebarHeader';
@@ -17,6 +18,7 @@ import DealSidebarReminders from './DealSidebarReminders';
 import DealSidebarDocuments from './DealSidebarDocuments';
 import DealSidebarActivities from './DealSidebarActivities';
 import DealSidebarServices from './DealSidebarServices';
+import DealSidebarImportant from './DealSidebarImportant';
 
 interface DealSidebarContainerProps {
   deal: Deal;
@@ -93,9 +95,13 @@ export default function DealSidebarContainer({
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // États pour le bloc-notes (onglet Production)
-  const [activeTab, setActiveTab] = useState<'details' | 'notes'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'important' | 'notes'>('details');
   const [blocNotes, setBlocNotes] = useState(deal.blocNotes || '');
   const [isSavingBlocNotes, setIsSavingBlocNotes] = useState(false);
+  const [importantCommentsCount, setImportantCommentsCount] = useState(0);
+
+  // Pathname pour détecter la page CRM
+  const pathname = usePathname();
 
   // Hooks
   const { data: session } = useSession();
@@ -112,7 +118,35 @@ export default function DealSidebarContainer({
   // Reset blocNotes seulement quand on change de deal (pas quand les autres données changent)
   useEffect(() => {
     setBlocNotes(deal.blocNotes || '');
+    setActiveTab('details');
   }, [deal.id]);
+
+  // Callback pour mettre à jour le compteur de commentaires importants
+  const handleImportantCountChange = useCallback((count: number) => {
+    setImportantCommentsCount(count);
+  }, []);
+
+  // Charger le compteur de commentaires importants dès l'ouverture du sidebar
+  useEffect(() => {
+    const fetchImportantCount = async () => {
+      try {
+        const response = await fetch(`/api/deals/${deal.id}/important-comments`);
+        if (response.ok) {
+          const data = await response.json();
+          setImportantCommentsCount(data.comments?.length || 0);
+        }
+      } catch (error) {
+        console.error('Erreur chargement compteur commentaires:', error);
+      }
+    };
+
+    if (isOpen) {
+      fetchImportantCount();
+    }
+  }, [deal.id, isOpen]);
+
+  // Afficher les tabs sur CRM ou Production
+  const showTabs = showNotesTab || pathname?.includes('/crm');
 
   // Load users
   useEffect(() => {
@@ -162,48 +196,104 @@ export default function DealSidebarContainer({
       const dealResponse = await fetch(`/api/deals/${deal.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editedDeal),
+        body: JSON.stringify({
+          title: editedDeal.title,
+          description: editedDeal.description,
+          value: editedDeal.value,
+          stage: editedDeal.stage,
+          probability: editedDeal.probability,
+          expectedCloseDate: editedDeal.expectedCloseDate,
+          ownerId: editedDeal.ownerId,
+          product: editedDeal.product,
+          origin: editedDeal.origin,
+          emailReminderSent: editedDeal.emailReminderSent,
+          smsReminderSent: editedDeal.smsReminderSent,
+        }),
       });
 
-      if (!dealResponse.ok) throw new Error('Erreur sauvegarde deal');
+      if (!dealResponse.ok) {
+        const errorData = await dealResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erreur sauvegarde deal');
+      }
 
       // Save contact if modified
       if (editedContact && deal.contacts?.id) {
-        await fetch(`/api/contacts/${deal.contacts.id}`, {
+        const contactResponse = await fetch(`/api/contacts/${deal.contacts.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             firstName: editedContact.firstName,
             lastName: editedContact.lastName,
-            email: editedContact.email,
-            phone: editedContact.phone,
-            position: editedContact.position,
-            city: editedContact.city,
+            email: editedContact.email || null,
+            phone: editedContact.phone || null,
+            position: editedContact.position || null,
+            city: editedContact.city || null,
           }),
         });
+
+        if (!contactResponse.ok) {
+          const errorData = await contactResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Erreur sauvegarde contact');
+        }
       }
 
-      // Save company if modified
-      if (editedCompany && deal.companies?.id) {
-        await fetch(`/api/companies/${deal.companies.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: editedCompany.name,
-            city: editedCompany.city,
-            siret: editedCompany.siret,
-            website: editedCompany.website,
-            phone: editedCompany.phone,
-            email: editedCompany.email,
-          }),
-        });
+      // Save company if modified or create new one
+      if (editedCompany) {
+        const hasCompanyData = editedCompany.name || editedCompany.siret || editedCompany.city ||
+                               editedCompany.website || editedCompany.phone || editedCompany.email;
+
+        console.log('Save company - hasData:', hasCompanyData, 'existingId:', deal.companies?.id, 'editedCompany:', editedCompany);
+
+        if (deal.companies?.id) {
+          // Update existing company
+          const companyResponse = await fetch(`/api/companies/${deal.companies.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: editedCompany.name,
+              city: editedCompany.city || null,
+              siret: editedCompany.siret || null,
+              website: editedCompany.website || null,
+              phone: editedCompany.phone || null,
+              email: editedCompany.email || null,
+            }),
+          });
+
+          if (!companyResponse.ok) {
+            const errorData = await companyResponse.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Erreur sauvegarde entreprise');
+          }
+        } else if (hasCompanyData) {
+          // Create new company and link to deal
+          const companyResponse = await fetch('/api/companies', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: editedCompany.name || editedDeal.title || 'Entreprise',
+              city: editedCompany.city || null,
+              siret: editedCompany.siret || null,
+              website: editedCompany.website || null,
+              phone: editedCompany.phone || null,
+              email: editedCompany.email || null,
+              dealId: deal.id,
+            }),
+          });
+
+          if (!companyResponse.ok) {
+            const errorData = await companyResponse.json().catch(() => ({}));
+            console.error('Erreur création company:', errorData);
+            throw new Error(errorData.error || 'Erreur création entreprise');
+          }
+          const newCompany = await companyResponse.json();
+          console.log('Company créée:', newCompany);
+        }
       }
 
       setIsEditing(false);
       onUpdate();
     } catch (error) {
       console.error('Erreur:', error);
-      alert('Erreur lors de la sauvegarde');
+      alert(error instanceof Error ? error.message : 'Erreur lors de la sauvegarde');
     } finally {
       setIsSaving(false);
     }
@@ -251,7 +341,7 @@ export default function DealSidebarContainer({
 
   if (!isOpen) return null;
 
-  const companyName = deal.companies?.name || deal.title;
+  const companyName = editedCompany?.name || editedDeal.title;
 
   return (
     <>
@@ -283,14 +373,28 @@ export default function DealSidebarContainer({
           isEditing={isEditing}
           isSaving={isSaving}
           onClose={onClose}
-          onEdit={() => setIsEditing(true)}
+          onEdit={() => {
+            setIsEditing(true);
+            // Créer une company vide si elle n'existe pas (pour les leads Meta)
+            if (!editedCompany) {
+              setEditedCompany({
+                id: '',
+                name: '',
+                city: null,
+                siret: null,
+                website: null,
+                phone: null,
+                email: null,
+              });
+            }
+          }}
           onSave={handleSave}
           onCancel={handleCancel}
           onDelete={onDelete ? () => setShowDeleteConfirm(true) : undefined}
         />
 
-        {/* Tabs (seulement si showNotesTab est activé) */}
-        {showNotesTab && (
+        {/* Tabs (si showNotesTab ou page CRM) */}
+        {showTabs && (
           <div className="flex border-b border-gray-200 px-4">
             <button
               onClick={() => setActiveTab('details')}
@@ -304,21 +408,48 @@ export default function DealSidebarContainer({
               Détails
             </button>
             <button
-              onClick={() => setActiveTab('notes')}
+              onClick={() => setActiveTab('important')}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'notes'
-                  ? 'border-violet-600 text-violet-600'
+                activeTab === 'important'
+                  ? 'border-orange-500 text-orange-500'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <StickyNote className="h-4 w-4" />
-              Bloc-notes
+              <AlertCircle className="h-4 w-4" />
+              Important
+              {importantCommentsCount > 0 && (
+                <span className="bg-orange-100 text-orange-700 text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                  {importantCommentsCount}
+                </span>
+              )}
             </button>
+            {showNotesTab && (
+              <button
+                onClick={() => setActiveTab('notes')}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'notes'
+                    ? 'border-violet-600 text-violet-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <StickyNote className="h-4 w-4" />
+                Bloc-notes
+              </button>
+            )}
           </div>
         )}
 
-        {/* Vue Bloc-notes (plein écran) */}
-        {showNotesTab && activeTab === 'notes' ? (
+        {/* Vue Important (plein écran) */}
+        {showTabs && activeTab === 'important' ? (
+          <div className="flex-1 flex flex-col p-4 overflow-hidden">
+            <DealSidebarImportant
+              dealId={deal.id}
+              currentUserId={session?.user?.id || ''}
+              onCountChange={handleImportantCountChange}
+            />
+          </div>
+        ) : showNotesTab && activeTab === 'notes' ? (
+          /* Vue Bloc-notes (plein écran) */
           <div className="flex-1 flex flex-col p-4 overflow-hidden">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -354,7 +485,7 @@ export default function DealSidebarContainer({
           <div className="overflow-y-auto flex-1 p-6 space-y-6">
           {/* Contact */}
           <DealSidebarContact
-            contact={deal.contacts || null}
+            contact={editedContact}
             isEditing={isEditing}
             editedContact={editedContact}
             setEditedContact={setEditedContact}
@@ -362,7 +493,7 @@ export default function DealSidebarContainer({
 
           {/* Company */}
           <DealSidebarCompany
-            company={deal.companies || null}
+            company={editedCompany}
             isEditing={isEditing}
             editedCompany={editedCompany}
             setEditedCompany={setEditedCompany}
@@ -428,7 +559,7 @@ export default function DealSidebarContainer({
 
           {/* Opportunity */}
           <DealSidebarOpportunity
-            deal={deal}
+            deal={editedDeal}
             isEditing={isEditing}
             editedDeal={editedDeal}
             setEditedDeal={setEditedDeal}
@@ -439,7 +570,7 @@ export default function DealSidebarContainer({
           />
 
           {/* Services de Production (seulement pour les deals CLOSING) */}
-          {deal.stage === 'CLOSING' && (
+          {editedDeal.stage === 'CLOSING' && (
             <DealSidebarServices
               dealId={deal.id}
               onUpdate={onUpdate}

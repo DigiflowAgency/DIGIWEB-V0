@@ -34,6 +34,12 @@ export async function POST(request: NextRequest) {
       emailReminderSent,
       smsReminderSent,
       comments,
+      // Nouveaux champs
+      title,
+      description,
+      expectedCloseDate,
+      isManual = false,
+      serviceId,
     } = body;
 
     // Validation
@@ -77,16 +83,17 @@ export async function POST(request: NextRequest) {
     });
 
     // 3. Créer le deal
+    const dealId = `deal_${Date.now()}`;
     const deal = await prisma.deals.create({
       data: {
-        id: `deal_${Date.now()}`,
-        title: companyName || `${firstName} ${lastName}`,
-        description: comments || product || null,
+        id: dealId,
+        title: title || companyName || `${firstName} ${lastName}`,
+        description: description || comments || product || null,
         value: value ? parseFloat(value) : 0,
         currency: 'EUR',
         stage: stage as any,
         probability: stage === 'A_CONTACTER' ? 10 : 50,
-        expectedCloseDate: meetingDate ? new Date(meetingDate) : null,
+        expectedCloseDate: expectedCloseDate ? new Date(expectedCloseDate) : (meetingDate ? new Date(meetingDate) : null),
         contactId: contact.id,
         companyId: company?.id || null,
         ownerId: assignedTo || session.user.id,
@@ -95,10 +102,28 @@ export async function POST(request: NextRequest) {
         emailReminderSent: emailReminderSent || null,
         smsReminderSent: smsReminderSent || null,
         comments: comments || null,
+        isManual: isManual || false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
     });
+
+    // 4. Si un serviceId est fourni, créer l'assignation au service
+    if (serviceId) {
+      // Récupérer le premier stage du service pour l'assignation initiale
+      const firstStage = await prisma.production_service_stages.findFirst({
+        where: { serviceId },
+        orderBy: { position: 'asc' },
+      });
+
+      await prisma.deal_service_assignments.create({
+        data: {
+          dealId: deal.id,
+          serviceId,
+          stageId: firstStage?.id || null,
+        },
+      });
+    }
 
     // Retourner le deal avec les relations
     const createdDeal = await prisma.deals.findUnique({

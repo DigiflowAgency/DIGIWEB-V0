@@ -66,6 +66,13 @@ export default function DealSidebarActivities({ dealId, contactId }: DealSidebar
   const [modalType, setModalType] = useState<ActivityType | null>(null);
   const [stats, setStats] = useState({ appels: 0, rdv: 0, emails: 0, total: 0 });
   const [lastContactDays, setLastContactDays] = useState<number | null>(null);
+  const [expandedNotes, setExpandedNotes] = useState<string[]>([]);
+
+  const toggleExpandNote = (id: string) => {
+    setExpandedNotes(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
 
   const fetchActivities = async () => {
     try {
@@ -207,9 +214,24 @@ export default function DealSidebarActivities({ dealId, contactId }: DealSidebar
                     )}
                   </div>
                   {activity.resultNotes && (
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                      "{activity.resultNotes}"
-                    </p>
+                    <div>
+                      <p className={`text-sm text-gray-600 mt-1 ${
+                        expandedNotes.includes(activity.id) ? 'whitespace-pre-wrap' : 'line-clamp-2'
+                      }`}>
+                        "{activity.resultNotes}"
+                      </p>
+                      {activity.resultNotes.length > 100 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpandNote(activity.id);
+                          }}
+                          className="text-xs text-violet-600 hover:underline mt-1"
+                        >
+                          {expandedNotes.includes(activity.id) ? 'Réduire' : 'Voir plus'}
+                        </button>
+                      )}
+                    </div>
                   )}
                   <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
                     <span>{formatRelativeTime(activity.scheduledAt)}</span>

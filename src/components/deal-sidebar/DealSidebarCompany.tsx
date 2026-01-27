@@ -17,13 +17,14 @@ export default function DealSidebarCompany({
   editedCompany,
   setEditedCompany,
 }: DealSidebarCompanyProps) {
-  if (!company) return null;
-
   const updateField = (field: keyof Company, value: string) => {
     if (editedCompany) {
       setEditedCompany({ ...editedCompany, [field]: value });
     }
   };
+
+  // Utiliser company ou un objet vide pour l'affichage en mode lecture
+  const displayCompany = company || { id: '', name: '', city: '', siret: '', website: '', phone: '', email: '' };
 
   return (
     <div>
@@ -98,49 +99,57 @@ export default function DealSidebarCompany({
           <>
             <div className="flex items-center gap-3">
               <Building2 className="h-4 w-4 text-gray-400" />
-              <span className="text-gray-700">{company.name}</span>
+              <span className={displayCompany.name ? "text-gray-700" : "text-gray-400 italic"}>
+                {displayCompany.name || "Non renseigné"}
+              </span>
             </div>
-            {company.city && (
-              <div className="flex items-center gap-3">
-                <MapPin className="h-4 w-4 text-gray-400" />
-                <span className="text-gray-700">{company.city}</span>
-              </div>
-            )}
-            {company.siret && (
-              <div className="flex items-center gap-3">
-                <span className="text-gray-400 text-sm">SIRET:</span>
-                <span className="text-gray-700">{company.siret}</span>
-              </div>
-            )}
-            {company.website && (
-              <div className="flex items-center gap-3">
-                <Globe className="h-4 w-4 text-gray-400" />
+            <div className="flex items-center gap-3">
+              <MapPin className="h-4 w-4 text-gray-400" />
+              <span className={displayCompany.city ? "text-gray-700" : "text-gray-400 italic"}>
+                {displayCompany.city || "Non renseigné"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-gray-400 text-sm">SIRET:</span>
+              <span className={displayCompany.siret ? "text-gray-700" : "text-gray-400 italic"}>
+                {displayCompany.siret || "Non renseigné"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Globe className="h-4 w-4 text-gray-400" />
+              {displayCompany.website ? (
                 <a
-                  href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                  href={displayCompany.website.startsWith('http') ? displayCompany.website : `https://${displayCompany.website}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-violet-600 hover:underline"
                 >
-                  {company.website}
+                  {displayCompany.website}
                 </a>
-              </div>
-            )}
-            {company.phone && (
-              <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-gray-400" />
-                <a href={`tel:${company.phone}`} className="text-violet-600 hover:underline">
-                  {company.phone}
+              ) : (
+                <span className="text-gray-400 italic">Non renseigné</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <Phone className="h-4 w-4 text-gray-400" />
+              {displayCompany.phone ? (
+                <a href={`tel:${displayCompany.phone}`} className="text-violet-600 hover:underline">
+                  {displayCompany.phone}
                 </a>
-              </div>
-            )}
-            {company.email && (
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-gray-400" />
-                <a href={`mailto:${company.email}`} className="text-violet-600 hover:underline">
-                  {company.email}
+              ) : (
+                <span className="text-gray-400 italic">Non renseigné</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <Mail className="h-4 w-4 text-gray-400" />
+              {displayCompany.email ? (
+                <a href={`mailto:${displayCompany.email}`} className="text-violet-600 hover:underline">
+                  {displayCompany.email}
                 </a>
-              </div>
-            )}
+              ) : (
+                <span className="text-gray-400 italic">Non renseigné</span>
+              )}
+            </div>
           </>
         )}
       </div>

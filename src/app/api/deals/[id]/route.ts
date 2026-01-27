@@ -12,6 +12,7 @@ function getProbabilityByStage(stage: string): number {
     'A_CONTACTER': 10,
     'EN_DISCUSSION': 30,
     'A_RELANCER': 20,
+    'NRP': 5,
     'RDV_PRIS': 50,
     'NEGO_HOT': 70,
     'CLOSING': 90,
@@ -26,7 +27,7 @@ const dealUpdateSchema = z.object({
   description: z.string().optional().nullable(),
   value: z.number().positive().optional(),
   currency: z.string().optional(),
-  stage: z.enum(['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING', 'REFUSE']).optional(),
+  stage: z.enum(['A_CONTACTER', 'EN_DISCUSSION', 'A_RELANCER', 'NRP', 'RDV_PRIS', 'NEGO_HOT', 'CLOSING', 'REFUSE']).optional(),
   productionStage: z.enum(['PREMIER_RDV', 'EN_PRODUCTION', 'LIVRE', 'ENCAISSE']).optional().nullable(),
   productionServiceId: z.string().optional().nullable(),
   productionStageId: z.string().optional().nullable(),
@@ -67,6 +68,7 @@ export async function GET(
             lastName: true,
             email: true,
             phone: true,
+            city: true,
             position: true,
           },
         },
@@ -76,6 +78,9 @@ export async function GET(
             name: true,
             city: true,
             siret: true,
+            website: true,
+            phone: true,
+            email: true,
           },
         },
         users: {
@@ -303,6 +308,9 @@ export async function PUT(
             firstName: true,
             lastName: true,
             email: true,
+            phone: true,
+            city: true,
+            position: true,
           },
         },
         companies: {
@@ -310,6 +318,10 @@ export async function PUT(
             id: true,
             name: true,
             city: true,
+            siret: true,
+            website: true,
+            phone: true,
+            email: true,
           },
         },
         users: {
@@ -425,6 +437,14 @@ export async function PATCH(
     // Autoriser uniquement certains champs pour PATCH
     if ('productionStage' in body) {
       updateData.productionStage = body.productionStage;
+      // Si on passe en ENCAISSE, enregistrer la date
+      if (body.productionStage === 'ENCAISSE' && existingDeal.productionStage !== 'ENCAISSE') {
+        updateData.encaisseAt = new Date();
+      }
+      // Si on sort de ENCAISSE, effacer la date
+      if (body.productionStage !== 'ENCAISSE' && existingDeal.productionStage === 'ENCAISSE') {
+        updateData.encaisseAt = null;
+      }
     }
 
     if ('stage' in body) {
@@ -481,6 +501,14 @@ export async function PATCH(
 
     if ('blocNotes' in body) {
       updateData.blocNotes = body.blocNotes;
+    }
+
+    if ('title' in body) {
+      updateData.title = body.title;
+    }
+
+    if ('description' in body) {
+      updateData.description = body.description;
     }
 
     if ('productionServiceId' in body) {

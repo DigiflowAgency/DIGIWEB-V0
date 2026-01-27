@@ -4,26 +4,29 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+// Helper pour convertir les chaînes vides en null
+const emptyToNull = z.string().transform(val => val === '' ? null : val);
+
 // Schema de validation pour update (tous les champs optionnels)
 const companyUpdateSchema = z.object({
   name: z.string().min(1).optional(),
-  siret: z.string().optional().nullable(),
-  legalForm: z.string().optional().nullable(),
-  gerant: z.string().optional().nullable(),
-  industry: z.string().optional().nullable(),
+  siret: emptyToNull.optional().nullable(),
+  legalForm: emptyToNull.optional().nullable(),
+  gerant: emptyToNull.optional().nullable(),
+  industry: emptyToNull.optional().nullable(),
   employees: z.number().int().positive().optional().nullable(),
   revenue: z.number().positive().optional().nullable(),
   solvencyScore: z.number().int().min(0).max(100).optional().nullable(),
   status: z.enum(['LEAD', 'PROSPECT', 'CLIENT']).optional(),
-  address: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
-  postalCode: z.string().optional().nullable(),
+  address: emptyToNull.optional().nullable(),
+  city: emptyToNull.optional().nullable(),
+  postalCode: emptyToNull.optional().nullable(),
   country: z.string().optional(),
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
-  website: z.string().url().optional().nullable(),
-  phone: z.string().optional().nullable(),
-  email: z.string().email().optional().nullable(),
+  website: emptyToNull.optional().nullable(),
+  phone: emptyToNull.optional().nullable(),
+  email: emptyToNull.optional().nullable(),
 });
 
 type RouteContext = {
