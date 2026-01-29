@@ -1,5 +1,6 @@
 import 'next-auth';
 import 'next-auth/jwt';
+import { users_status } from '@prisma/client';
 
 declare module 'next-auth' {
   interface Session {
@@ -9,6 +10,7 @@ declare module 'next-auth' {
       name: string;
       role: string;
       avatar: string | null;
+      status: users_status;
     };
   }
 
