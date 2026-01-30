@@ -38,6 +38,9 @@ import {
   ExternalLink,
   MessageCircle,
   Trophy,
+  FolderKanban,
+  Columns,
+  List,
 } from 'lucide-react';
 
 interface SubNavItem {
@@ -82,6 +85,13 @@ const navigationCategories: NavCategory[] = [
       { name: 'Ads Lead', href: '/dashboard/crm/ads-leads', icon: Megaphone },
       { name: 'Calendrier Ventes', href: '/dashboard/crm/calendrier-ventes', icon: CalendarDays, adminOnly: true },
       { name: 'Activités', href: '/dashboard/crm/activities', icon: Calendar, disabled: true },
+    ],
+  },
+  {
+    name: 'Projets',
+    icon: FolderKanban,
+    subItems: [
+      { name: 'Projets', href: '/dashboard/projects', icon: FolderKanban },
     ],
   },
   {

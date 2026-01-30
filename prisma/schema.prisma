@@ -165,6 +165,7 @@ model companies {
   contacts      contacts[]
   deals         deals[]
   notes         notes[]
+  projects      projects[]       @relation("ProjectClient")
 
   @@index([assignedToId])
   @@index([siret])
@@ -870,6 +871,23 @@ model users {
   deal_stage_changes                  deal_stage_history[]        @relation("StageChangedBy")
   deal_important_comments             DealImportantComment[]
   lead_assignment_counter             lead_assignment_counters?
+  // Project Management relations
+  projectsOwned                       projects[]                  @relation("ProjectOwner")
+  projectMemberships                  project_members[]           @relation("ProjectMember")
+  tasksAssigned                       tasks[]                     @relation("TaskAssignee")
+  tasksReported                       tasks[]                     @relation("TaskReporter")
+  taskComments                        task_comments[]             @relation("TaskCommentAuthor")
+  taskAttachments                     task_attachments[]          @relation("TaskAttachmentUploader")
+  projectAttachments                  project_attachments[]       @relation("ProjectAttachmentUploader")
+  timeEntries                         task_time_entries[]         @relation("TimeEntryUser")
+  taskHistory                         task_history[]              @relation("TaskHistoryUser")
+  taskWatching                        task_watchers[]             @relation("TaskWatcher")
+  // Phase 6 & 7 relations
+  projectReleases                     project_releases[]          @relation("ReleaseAuthor")
+  improvementProposalsAuthored        improvement_proposals[]     @relation("ProposalAuthor")
+  improvementProposalsReviewed        improvement_proposals[]     @relation("ProposalReviewer")
+  improvementComments                 improvement_comments[]      @relation("ImprovementCommentAuthor")
+  improvementVotes                    improvement_votes[]         @relation("ImprovementVoter")
 
   @@index([email])
   @@index([managerId])
@@ -1235,6 +1253,7 @@ enum users_role {
   VENTE
   MARKETING
   ACCOUNT_MANAGEMENT
+  DEVELOPPEUR
 }
 
 enum clients_status {
@@ -1486,4 +1505,536 @@ model DealImportantComment {
   @@index([dealId])
   @@index([userId])
   @@map("deal_important_comments")
+}
+
+// ============================================
+// PROJECT MANAGEMENT MODULE
+// ============================================
+
+model projects {
+  id              String          @id @default(cuid())
+  code            String          @unique // "PROJ-001"
+  name            String
+  description     String?         @db.Text
+  type            project_type    @default(WEB)
+  status          project_status  @default(PLANNING)
+  budget          Float?
+  spent           Float           @default(0)
+  currency        String          @default("EUR")
+  startDate       DateTime?
+  endDate         DateTime?
+  deadline        DateTime?
+  clientId        String?
+  ownerId         String
+  aiGenerated     Boolean         @default(false)
+  aiPrompt        String?         @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  archivedAt      DateTime?
+
+  client          companies?      @relation("ProjectClient", fields: [clientId], references: [id])
+  owner           users           @relation("ProjectOwner", fields: [ownerId], references: [id])
+  members         project_members[]
+  labels          project_labels[]
+  statuses        project_statuses[]
+  epics           epics[]
+  sprints         sprints[]
+  tasks           tasks[]
+  attachments     project_attachments[]
+  repository      project_repositories?
+  releases        project_releases[]
+  improvements    improvement_proposals[]
+
+  @@index([status])
+  @@index([ownerId])
+  @@index([clientId])
+}
+
+enum project_type {
+  WEB
+  MOBILE
+  ECOMMERCE
+  SAAS
+  BRANDING
+  MARKETING
+  OTHER
+}
+
+enum project_status {
+  PLANNING
+  IN_PROGRESS
+  ON_HOLD
+  REVIEW
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+model project_members {
+  id          String              @id @default(cuid())
+  projectId   String
+  userId      String
+  role        project_member_role @default(MEMBER)
+  joinedAt    DateTime            @default(now())
+
+  project     projects            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        users               @relation("ProjectMember", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+enum project_member_role {
+  OWNER
+  LEAD
+  MEMBER
+  VIEWER
+}
+
+model project_labels {
+  id          String    @id @default(cuid())
+  projectId   String
+  name        String
+  color       String    @default("#8B5CF6")
+
+  project     projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       task_labels[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
+model project_statuses {
+  id          String    @id @default(cuid())
+  projectId   String
+  name        String
+  color       String    @default("#E5E7EB")
+  position    Int       @default(0)
+  isDefault   Boolean   @default(false)
+  isDone      Boolean   @default(false)
+
+  project     projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       tasks[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([position])
+}
+
+model epics {
+  id              String        @id @default(cuid())
+  projectId       String
+  code            String        // "EPIC-001"
+  title           String
+  description     String?       @db.Text
+  color           String        @default("#8B5CF6")
+  status          epic_status   @default(TODO)
+  startDate       DateTime?
+  endDate         DateTime?
+  progress        Int           @default(0) // 0-100 auto-calculated
+  aiGenerated     Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  project         projects      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks           tasks[]
+  improvements    improvement_proposals[]
+
+  @@unique([projectId, code])
+  @@index([projectId])
+  @@index([status])
+}
+
+enum epic_status {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+model sprints {
+  id              String          @id @default(cuid())
+  projectId       String
+  name            String          // "Sprint 1"
+  goal            String?         @db.Text
+  status          sprint_status   @default(PLANNING)
+  startDate       DateTime
+  endDate         DateTime
+  plannedPoints   Int             @default(0)
+  completedPoints Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  project         projects        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks           tasks[]
+  retrospective   sprint_retrospectives?
+
+  @@index([projectId])
+  @@index([status])
+}
+
+enum sprint_status {
+  PLANNING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model sprint_retrospectives {
+  id          String    @id @default(cuid())
+  sprintId    String    @unique
+  wentWell    String?   @db.Text
+  needsImprove String?  @db.Text
+  actions     String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  sprint      sprints   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+}
+
+model tasks {
+  id                  String          @id @default(cuid())
+  projectId           String
+  epicId              String?
+  sprintId            String?
+  parentId            String?         // For subtasks
+  statusId            String
+  code                String          // "TASK-001"
+  type                task_type       @default(TASK)
+  title               String
+  description         String?         @db.Text
+  acceptanceCriteria  String?         @db.Text
+  priority            task_priority   @default(MEDIUM)
+  storyPoints         Int?
+  estimatedHours      Float?
+  loggedHours         Float           @default(0)
+  startDate           DateTime?
+  dueDate             DateTime?
+  completedAt         DateTime?
+  assigneeId          String?
+  reporterId          String
+  position            Int             @default(0)
+  aiGenerated         Boolean         @default(false)
+  aiEstimated         Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  project             projects        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  epic                epics?          @relation(fields: [epicId], references: [id], onDelete: SetNull)
+  sprint              sprints?        @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  parent              tasks?          @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks            tasks[]         @relation("TaskHierarchy")
+  status              project_statuses @relation(fields: [statusId], references: [id])
+  assignee            users?          @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  reporter            users           @relation("TaskReporter", fields: [reporterId], references: [id])
+  labels              task_labels[]
+  comments            task_comments[]
+  attachments         task_attachments[]
+  timeEntries         task_time_entries[]
+  history             task_history[]
+  dependencies        task_dependencies[] @relation("DependencyFrom")
+  dependents          task_dependencies[] @relation("DependencyTo")
+  watchers            task_watchers[]
+
+  @@unique([projectId, code])
+  @@index([projectId, statusId])
+  @@index([sprintId])
+  @@index([epicId])
+  @@index([assigneeId])
+  @@index([parentId])
+}
+
+enum task_type {
+  STORY
+  FEATURE
+  TASK
+  BUG
+  IMPROVEMENT
+  SUBTASK
+}
+
+enum task_priority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model task_labels {
+  id        String          @id @default(cuid())
+  taskId    String
+  labelId   String
+
+  task      tasks           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label     project_labels  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, labelId])
+  @@index([taskId])
+  @@index([labelId])
+}
+
+model task_dependencies {
+  id              String              @id @default(cuid())
+  fromTaskId      String
+  toTaskId        String
+  type            dependency_type     @default(BLOCKS)
+
+  fromTask        tasks               @relation("DependencyFrom", fields: [fromTaskId], references: [id], onDelete: Cascade)
+  toTask          tasks               @relation("DependencyTo", fields: [toTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([fromTaskId, toTaskId])
+  @@index([fromTaskId])
+  @@index([toTaskId])
+}
+
+enum dependency_type {
+  BLOCKS
+  RELATES_TO
+  DUPLICATES
+}
+
+model task_comments {
+  id          String    @id @default(cuid())
+  taskId      String
+  authorId    String
+  content     String    @db.Text
+  parentId    String?   // For threads
+  mentions    String?   @db.Text // JSON array user IDs
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  editedAt    DateTime?
+
+  task        tasks     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author      users     @relation("TaskCommentAuthor", fields: [authorId], references: [id])
+  parent      task_comments?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     task_comments[] @relation("CommentThread")
+
+  @@index([taskId])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+model task_attachments {
+  id          String    @id @default(cuid())
+  taskId      String
+  name        String
+  fileUrl     String
+  fileType    String
+  fileSize    Int
+  uploadedBy  String
+  uploadedAt  DateTime  @default(now())
+
+  task        tasks     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploader    users     @relation("TaskAttachmentUploader", fields: [uploadedBy], references: [id])
+
+  @@index([taskId])
+  @@index([uploadedBy])
+}
+
+model project_attachments {
+  id          String    @id @default(cuid())
+  projectId   String
+  name        String
+  fileUrl     String
+  fileType    String
+  fileSize    Int
+  category    String?
+  uploadedBy  String
+  uploadedAt  DateTime  @default(now())
+
+  project     projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader    users     @relation("ProjectAttachmentUploader", fields: [uploadedBy], references: [id])
+
+  @@index([projectId])
+  @@index([uploadedBy])
+}
+
+model task_time_entries {
+  id          String    @id @default(cuid())
+  taskId      String
+  userId      String
+  hours       Float
+  description String?
+  date        DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  task        tasks     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        users     @relation("TimeEntryUser", fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId, date])
+}
+
+model task_history {
+  id          String    @id @default(cuid())
+  taskId      String
+  userId      String
+  field       String
+  oldValue    String?   @db.Text
+  newValue    String?   @db.Text
+  createdAt   DateTime  @default(now())
+
+  task        tasks     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        users     @relation("TaskHistoryUser", fields: [userId], references: [id])
+
+  @@index([taskId, createdAt])
+  @@index([userId])
+}
+
+model task_watchers {
+  id          String    @id @default(cuid())
+  taskId      String
+  userId      String
+  createdAt   DateTime  @default(now())
+
+  task        tasks     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        users     @relation("TaskWatcher", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@index([taskId])
+  @@index([userId])
+}
+
+// ============================================
+// PHASE 6: GITHUB INTEGRATION & RELEASE NOTES
+// ============================================
+
+// Connexion GitHub du projet
+model project_repositories {
+  id            String   @id @default(cuid())
+  projectId     String   @unique
+  project       projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // GitHub repo info
+  githubOwner   String   // ex: "anthropics"
+  githubRepo    String   // ex: "claude-code"
+  githubUrl     String   // ex: "https://github.com/anthropics/claude-code"
+  defaultBranch String   @default("main")
+
+  // OAuth token pour l'accès (optionnel, pour repos privés)
+  accessToken   String?  @db.Text
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("project_repositories")
+}
+
+// Notes de mise à jour (Release Notes)
+model project_releases {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Info release
+  version     String   // ex: "v1.2.0" ou "Sprint 5"
+  title       String   // ex: "Nouvelle interface utilisateur"
+  content     String   @db.Text  // Markdown des changements
+
+  // Lien GitHub (optionnel)
+  githubReleaseId  String?
+  githubReleaseUrl String?
+  commitSha        String?
+
+  // Métadonnées
+  authorId    String
+  author      users     @relation("ReleaseAuthor", fields: [authorId], references: [id])
+  status      release_status @default(DRAFT)
+  publishedAt DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+  @@map("project_releases")
+}
+
+enum release_status {
+  DRAFT
+  PUBLISHED
+}
+
+// ============================================
+// PHASE 7: IMPROVEMENT PROPOSALS
+// ============================================
+
+model improvement_proposals {
+  id          String   @id @default(cuid())
+  code        String   @unique // IMP-001
+  projectId   String
+  project     projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      users     @relation("ProposalAuthor", fields: [authorId], references: [id])
+
+  title       String
+  description String   @db.Text
+  context     String?  @db.Text  // Pourquoi c'est important
+  benefits    String?  @db.Text  // Avantages attendus
+
+  status      improvement_status @default(DRAFT)
+  priority    String?           // LOW, MEDIUM, HIGH, CRITICAL
+  category    String?           // UX, PERFORMANCE, FEATURE, BUG_FIX, etc.
+
+  // Décision
+  reviewerId  String?
+  reviewer    users?    @relation("ProposalReviewer", fields: [reviewerId], references: [id])
+  reviewNote  String?  @db.Text
+  reviewedAt  DateTime?
+
+  // Lien Epic si approuvé
+  epicId      String?
+  epic        epics?    @relation(fields: [epicId], references: [id])
+
+  // Timestamps
+  submittedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  comments    improvement_comments[]
+  votes       improvement_votes[]
+
+  @@index([projectId])
+  @@index([status])
+  @@map("improvement_proposals")
+}
+
+enum improvement_status {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  INFO_REQUESTED
+  APPROVED
+  REJECTED
+  IMPLEMENTED
+}
+
+model improvement_comments {
+  id          String   @id @default(cuid())
+  proposalId  String
+  proposal    improvement_proposals @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      users     @relation("ImprovementCommentAuthor", fields: [authorId], references: [id])
+  content     String   @db.Text
+  isInternal  Boolean  @default(false) // Commentaire interne devs only
+  createdAt   DateTime @default(now())
+
+  @@index([proposalId])
+  @@map("improvement_comments")
+}
+
+model improvement_votes {
+  id          String   @id @default(cuid())
+  proposalId  String
+  proposal    improvement_proposals @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  userId      String
+  user        users     @relation("ImprovementVoter", fields: [userId], references: [id])
+  value       Int      // +1 ou -1
+  createdAt   DateTime @default(now())
+
+  @@unique([proposalId, userId])
+  @@map("improvement_votes")
 }

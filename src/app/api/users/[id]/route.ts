@@ -10,7 +10,7 @@ const updateUserSchema = z.object({
   firstName: z.string().min(1, 'Prénom requis').optional(),
   lastName: z.string().min(1, 'Nom requis').optional(),
   password: z.string().min(6, 'Mot de passe minimum 6 caractères').optional(),
-  role: z.enum(['ADMIN', 'VENTE', 'MARKETING', 'ACCOUNT_MANAGEMENT']).optional(),
+  role: z.enum(['ADMIN', 'VENTE', 'MARKETING', 'ACCOUNT_MANAGEMENT', 'DEVELOPPEUR']).optional(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']).optional(),
   phone: z.string().optional(),
   position: z.string().optional(),

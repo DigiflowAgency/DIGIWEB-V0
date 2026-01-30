@@ -44,6 +44,7 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   VENTE: { label: 'Commercial', color: 'bg-blue-100 text-blue-700' },
   MARKETING: { label: 'Marketing', color: 'bg-purple-100 text-purple-700' },
   ACCOUNT_MANAGEMENT: { label: 'Account Manager', color: 'bg-green-100 text-green-700' },
+  DEVELOPPEUR: { label: 'Développeur', color: 'bg-orange-100 text-orange-700' },
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: any }> = {

@@ -10,7 +10,7 @@ const createUserSchema = z.object({
   firstName: z.string().min(1, 'Prénom requis'),
   lastName: z.string().min(1, 'Nom requis'),
   password: z.string().min(6, 'Mot de passe minimum 6 caractères'),
-  role: z.enum(['ADMIN', 'VENTE', 'MARKETING', 'ACCOUNT_MANAGEMENT']),
+  role: z.enum(['ADMIN', 'VENTE', 'MARKETING', 'ACCOUNT_MANAGEMENT', 'DEVELOPPEUR']),
   phone: z.string().optional(),
   position: z.string().optional(),
   department: z.string().optional(),
