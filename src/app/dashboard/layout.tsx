@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import { users_status } from '@prisma/client';
 import NotificationDropdown from '@/components/NotificationDropdown';
 import MotivationBanner from '@/components/MotivationBanner';
 import CheckinReminderModal from '@/components/CheckinReminderModal';
@@ -224,6 +225,13 @@ export default function DashboardLayout({
     if (status === 'unauthenticated') {
       router.push('/login');
     } else if (status === 'authenticated' && session?.user) {
+      // Vérifier si l'utilisateur est actif, sinon le déconnecter
+      if (session.user.status && session.user.status !== users_status.ACTIVE) {
+        signOut({ redirect: false }).then(() => {
+          router.push('/login?error=AccountInactive');
+        });
+        return;
+      }
       setUserEmail(session.user.email || 'user@digiweb.fr');
     }
   }, [status, session, router]);

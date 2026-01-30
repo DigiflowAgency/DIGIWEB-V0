@@ -4,6 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { compare } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { users_status } from '@prisma/client';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -66,6 +67,27 @@ export const authOptions: NextAuthOptions = {
     },
 
     async session({ session, token }) {
+      // Vérifier le statut de l'utilisateur en base de données à chaque accès
+      if (token?.id) {
+        const dbUser = await prisma.users.findUnique({
+          where: { id: token.id as string },
+          select: { status: true },
+        });
+
+        // Si l'utilisateur n'existe plus ou n'est plus actif, marquer la session comme inactive
+        if (!dbUser || dbUser.status !== users_status.ACTIVE) {
+          session.user = {
+            id: token.id as string,
+            email: token.email as string,
+            name: token.name as string,
+            role: token.role as string,
+            avatar: token.avatar as string | null,
+            status: dbUser?.status || users_status.INACTIVE,
+          };
+          return session;
+        }
+      }
+
       // Ajouter des infos custom à la session
       if (token) {
         session.user = {
@@ -74,6 +96,7 @@ export const authOptions: NextAuthOptions = {
           name: token.name as string,
           role: token.role as string,
           avatar: token.avatar as string | null,
+          status: users_status.ACTIVE,
         };
       }
       return session;
